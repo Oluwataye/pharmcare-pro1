@@ -7,6 +7,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
+import Inventory from "./pages/Inventory";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -22,6 +23,7 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route element={<DashboardLayout />}>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/inventory" element={<Inventory />} />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
