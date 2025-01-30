@@ -10,7 +10,7 @@ const Dashboard = () => {
   const stats = [
     {
       title: "Today's Sales",
-      value: "$1,234",
+      value: "₦1,234",
       icon: TrendingUp,
       trend: "+12.5%",
       trendUp: true,
@@ -31,7 +31,7 @@ const Dashboard = () => {
     },
     {
       title: "Revenue (MTD)",
-      value: "$45,678",
+      value: "₦45,678",
       icon: DollarSign,
       trend: "+8.2%",
       trendUp: true,
