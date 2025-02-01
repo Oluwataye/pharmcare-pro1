@@ -10,8 +10,10 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Search, Plus, Printer } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Sales = () => {
+  const navigate = useNavigate();
   const recentSales = [
     {
       id: 1,
@@ -40,7 +42,7 @@ const Sales = () => {
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search sales..." className="pl-8" />
           </div>
-          <Button>
+          <Button onClick={() => navigate("/sales/new")}>
             <Plus className="mr-2 h-4 w-4" />
             New Sale
           </Button>
