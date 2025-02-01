@@ -4,6 +4,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { RoleGuard } from "./components/auth/RoleGuard";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
@@ -12,6 +13,7 @@ import Sales from "./pages/Sales";
 import NewSale from "./pages/NewSale";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
+import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,15 +27,33 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route element={<DashboardLayout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/sales" element={<Sales />} />
-              <Route path="/sales/new" element={<NewSale />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/settings" element={<Settings />} />
-              <Route path="*" element={<NotFound />} />
+            <Route path="/unauthorized" element={<Unauthorized />} />
+            
+            {/* Admin Routes */}
+            <Route element={<RoleGuard allowedRoles={['ADMIN']} />}>
+              <Route element={<DashboardLayout />}>
+                <Route path="/" element={<Dashboard />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/settings" element={<Settings />} />
+              </Route>
             </Route>
+
+            {/* Pharmacist Routes */}
+            <Route element={<RoleGuard allowedRoles={['ADMIN', 'PHARMACIST']} />}>
+              <Route element={<DashboardLayout />}>
+                <Route path="/inventory" element={<Inventory />} />
+              </Route>
+            </Route>
+
+            {/* Cashier Routes */}
+            <Route element={<RoleGuard allowedRoles={['ADMIN', 'CASHIER']} />}>
+              <Route element={<DashboardLayout />}>
+                <Route path="/sales" element={<Sales />} />
+                <Route path="/sales/new" element={<NewSale />} />
+              </Route>
+            </Route>
+
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </TooltipProvider>
