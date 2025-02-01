@@ -9,7 +9,8 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, UserCog } from "lucide-react";
+import { Search, UserCog } from "lucide-react";
+import { AddUserDialog } from "@/components/users/AddUserDialog";
 
 const Users = () => {
   const users = [
@@ -40,10 +41,7 @@ const Users = () => {
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input placeholder="Search users..." className="pl-8" />
           </div>
-          <Button>
-            <Plus className="mr-2 h-4 w-4" />
-            Add User
-          </Button>
+          <AddUserDialog />
         </div>
       </div>
 
