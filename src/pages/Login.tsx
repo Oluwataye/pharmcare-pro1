@@ -16,14 +16,7 @@ const Login = () => {
     e.preventDefault();
     try {
       await login(email, password);
-      const { user } = useAuth();
-      
-      // Redirect based on role
-      if (user?.role === "CASHIER") {
-        navigate("/cashier");
-      } else {
-        navigate("/");
-      }
+      navigate("/");
     } catch (error) {
       toast({
         title: "Error",

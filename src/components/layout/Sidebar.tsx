@@ -17,12 +17,11 @@ const Sidebar = () => {
   const { logout, user } = useAuth();
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/", roles: ["ADMIN", "PHARMACIST"] },
-    { icon: Package, label: "Inventory", path: "/inventory", roles: ["ADMIN", "PHARMACIST"] },
-    { icon: ShoppingCart, label: "Sales", path: "/sales", roles: ["ADMIN", "PHARMACIST"] },
-    { icon: Users, label: "Users", path: "/users", roles: ["ADMIN"] },
-    { icon: Settings, label: "Settings", path: "/settings", roles: ["ADMIN", "PHARMACIST"] },
-    { icon: ShoppingCart, label: "Cashier Dashboard", path: "/cashier", roles: ["CASHIER"] },
+    { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+    { icon: Package, label: "Inventory", path: "/inventory" },
+    { icon: ShoppingCart, label: "Sales", path: "/sales" },
+    { icon: Users, label: "Users", path: "/users", adminOnly: true },
+    { icon: Settings, label: "Settings", path: "/settings" },
   ];
 
   const handleLogout = () => {
@@ -38,7 +37,7 @@ const Sidebar = () => {
 
       <nav className="flex-1 space-y-2 p-4">
         {menuItems.map((item) => {
-          if (!item.roles.includes(user?.role || "")) return null;
+          if (item.adminOnly && user?.role !== "ADMIN") return null;
           
           const isActive = location.pathname === item.path;
           return (
