@@ -1,12 +1,13 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, RefreshCw, Plus } from "lucide-react";
+import { Search, RefreshCw, Plus, Printer } from "lucide-react";
 
 interface InventoryToolbarProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   onRefresh: () => void;
   onAddItem: () => void;
+  onPrint: () => void;
 }
 
 export const InventoryToolbar = ({
@@ -14,6 +15,7 @@ export const InventoryToolbar = ({
   onSearchChange,
   onRefresh,
   onAddItem,
+  onPrint,
 }: InventoryToolbarProps) => {
   return (
     <div className="flex items-center justify-between mb-4">
@@ -34,6 +36,14 @@ export const InventoryToolbar = ({
           className="shrink-0"
         >
           <RefreshCw className="h-4 w-4" />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={onPrint}
+          className="shrink-0"
+        >
+          <Printer className="h-4 w-4" />
         </Button>
       </div>
       <Button onClick={onAddItem} className="shrink-0">
