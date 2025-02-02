@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState } from 'react';
 import { AuthState, User, UserRole } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
+import { logActivity } from '@/lib/activityLogger';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -59,6 +60,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isLoading: false,
       });
 
+      // Log the login activity
+      logActivity(
+        'LOGIN',
+        `User ${mockUser.name} logged in`,
+        mockUser.id,
+        mockUser.role
+      );
+
       toast({
         title: "Success",
         description: "Logged in successfully",
@@ -75,11 +84,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
+    if (authState.user) {
+      // Log the logout activity
+      logActivity(
+        'LOGOUT',
+        `User ${authState.user.name} logged out`,
+        authState.user.id,
+        authState.user.role
+      );
+    }
+
     setAuthState({
       user: null,
       isAuthenticated: false,
       isLoading: false,
     });
+    
     toast({
       title: "Success",
       description: "Logged out successfully",
