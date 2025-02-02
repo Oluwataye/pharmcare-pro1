@@ -1,7 +1,8 @@
 import React, { createContext, useContext, useState } from 'react';
 import { AuthState, User, UserRole } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
-import { logActivity } from '@/lib/activityLogger';
+import { getMockUser, validateUserRole } from '@/services/mockAuthService';
+import { useActivityLogger } from '@/hooks/useActivityLogger';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -17,57 +18,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: false,
     isLoading: false,
   });
+  
   const { toast } = useToast();
+  const { logUserActivity } = useActivityLogger();
 
   const login = async (email: string, password: string) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     try {
-      // TODO: Replace with actual API call
-      // Mock different user roles for testing
-      let mockUser: User;
+      const mockUser = getMockUser(email);
       
-      if (email.includes('admin')) {
-        mockUser = {
-          id: '1',
-          email,
-          name: 'Admin User',
-          role: 'ADMIN',
-          lastLogin: new Date().toISOString(),
-        };
-      } else if (email.includes('pharmacist')) {
-        mockUser = {
-          id: '2',
-          email,
-          name: 'Pharmacist User',
-          role: 'PHARMACIST',
-          lastLogin: new Date().toISOString(),
-        };
-      } else if (email.includes('cashier')) {
-        mockUser = {
-          id: '3',
-          email,
-          name: 'Cashier User',
-          role: 'CASHIER',
-          lastLogin: new Date().toISOString(),
-        };
-      } else {
-        throw new Error('Invalid credentials');
-      }
-
       setAuthState({
         user: mockUser,
         isAuthenticated: true,
         isLoading: false,
       });
 
-      // Log the login activity
-      logActivity(
-        'LOGIN',
-        `User ${mockUser.name} logged in`,
-        mockUser.id,
-        mockUser.role
-      );
-
+      logUserActivity('LOGIN', mockUser);
+      
       toast({
         title: "Success",
         description: "Logged in successfully",
@@ -84,16 +51,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    if (authState.user) {
-      // Log the logout activity
-      logActivity(
-        'LOGOUT',
-        `User ${authState.user.name} logged out`,
-        authState.user.id,
-        authState.user.role
-      );
-    }
-
+    logUserActivity('LOGOUT', authState.user);
+    
     setAuthState({
       user: null,
       isAuthenticated: false,
@@ -107,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const hasPermission = (allowedRoles: UserRole[]) => {
-    return authState.user ? allowedRoles.includes(authState.user.role) : false;
+    return validateUserRole(authState.user, allowedRoles);
   };
 
   return (
