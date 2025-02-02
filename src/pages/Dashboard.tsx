@@ -6,7 +6,7 @@ import {
   AlertTriangle,
   DollarSign,
   Clock,
-  Pills,
+  Pill,
   Receipt,
 } from "lucide-react";
 import { DashboardStat } from "@/lib/types";
@@ -63,7 +63,7 @@ const Dashboard = () => {
     {
       title: "Total Products",
       value: "1,456",
-      icon: Pills,
+      icon: Pill,
       trend: "+3",
       trendUp: true,
     },
