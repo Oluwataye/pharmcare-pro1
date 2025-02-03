@@ -23,6 +23,19 @@ const formSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+const getRedirectPath = (role: string) => {
+  switch (role) {
+    case "ADMIN":
+      return "/";
+    case "PHARMACIST":
+      return "/inventory";
+    case "CASHIER":
+      return "/sales";
+    default:
+      return "/";
+  }
+};
+
 const Login = () => {
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
@@ -43,19 +56,6 @@ const Login = () => {
     navigate(redirectPath);
     return null;
   }
-
-  const getRedirectPath = (role: string) => {
-    switch (role) {
-      case "ADMIN":
-        return "/";
-      case "PHARMACIST":
-        return "/inventory";
-      case "CASHIER":
-        return "/sales";
-      default:
-        return "/";
-    }
-  };
 
   const onSubmit = async (values: z.infer<typeof formSchema>) => {
     setIsLoading(true);
