@@ -3,6 +3,7 @@ import { AuthState, User, UserRole } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { supabase } from '@/lib/supabase';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -21,6 +22,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   
   const { toast } = useToast();
   const { logUserActivity } = useActivityLogger();
+  const navigate = useNavigate();
 
   useEffect(() => {
     // Check active session
@@ -37,6 +39,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           isAuthenticated: true,
           isLoading: false,
         });
+
+        // Redirect to appropriate dashboard
+        const redirectPath = getRedirectPath(user.role);
+        navigate(redirectPath);
       } else {
         setAuthState(prev => ({ ...prev, isLoading: false }));
       }
@@ -56,19 +62,42 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           isAuthenticated: true,
           isLoading: false,
         });
+
+        if (event === 'SIGNED_IN') {
+          // Redirect to appropriate dashboard
+          const redirectPath = getRedirectPath(user.role);
+          navigate(redirectPath);
+        }
       } else {
         setAuthState({
           user: null,
           isAuthenticated: false,
           isLoading: false,
         });
+
+        if (event === 'SIGNED_OUT') {
+          navigate('/login');
+        }
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate]);
+
+  const getRedirectPath = (role: UserRole) => {
+    switch (role) {
+      case 'ADMIN':
+        return '/';
+      case 'PHARMACIST':
+        return '/inventory';
+      case 'CASHIER':
+        return '/sales';
+      default:
+        return '/';
+    }
+  };
 
   const login = async (email: string, password: string) => {
     try {
@@ -89,10 +118,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logUserActivity('LOGIN', user);
       
       toast({
-        title: "Success",
-        description: "Logged in successfully",
+        title: "Welcome back!",
+        description: `Logged in as ${user.role.toLowerCase()}`,
       });
+
+      // Redirect handled by onAuthStateChange
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to login",
