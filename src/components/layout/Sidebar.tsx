@@ -15,24 +15,41 @@ import {
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout, user, hasPermission } = useAuth();
+  const { logout, user } = useAuth();
 
-  const menuItems: MenuItem[] = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/", roles: ['ADMIN'] },
-    { icon: Package, label: "Inventory", path: "/inventory", roles: ['ADMIN', 'PHARMACIST'] },
-    { icon: ShoppingCart, label: "Sales", path: "/sales", roles: ['ADMIN', 'CASHIER'] },
+  const adminMenuItems: MenuItem[] = [
+    { icon: LayoutDashboard, label: "Dashboard", path: "/admin", roles: ['ADMIN'] },
     { icon: Users, label: "Users", path: "/users", roles: ['ADMIN'] },
     { icon: Settings, label: "Settings", path: "/settings", roles: ['ADMIN'] },
   ];
+
+  const pharmacistMenuItems: MenuItem[] = [
+    { icon: LayoutDashboard, label: "Dashboard", path: "/", roles: ['PHARMACIST'] },
+    { icon: Package, label: "Inventory", path: "/inventory", roles: ['PHARMACIST'] },
+  ];
+
+  const cashierMenuItems: MenuItem[] = [
+    { icon: LayoutDashboard, label: "Dashboard", path: "/", roles: ['CASHIER'] },
+    { icon: ShoppingCart, label: "Sales", path: "/sales", roles: ['CASHIER'] },
+  ];
+
+  const getMenuItems = () => {
+    switch (user?.role) {
+      case 'ADMIN':
+        return adminMenuItems;
+      case 'PHARMACIST':
+        return pharmacistMenuItems;
+      case 'CASHIER':
+        return cashierMenuItems;
+      default:
+        return [];
+    }
+  };
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
-
-  const filteredMenuItems = menuItems.filter(item => 
-    hasPermission(item.roles)
-  );
 
   return (
     <div className="flex h-screen w-64 flex-col bg-white border-r">
@@ -44,7 +61,7 @@ const Sidebar = () => {
       </div>
 
       <nav className="flex-1 space-y-2 p-4">
-        {filteredMenuItems.map((item) => {
+        {getMenuItems().map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Button

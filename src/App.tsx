@@ -15,6 +15,7 @@ import Users from "./pages/Users";
 import Settings from "./pages/Settings";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
@@ -29,27 +30,29 @@ const App = () => (
             <Route path="/login" element={<Login />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             
-            {/* Admin Routes */}
+            {/* Super Admin Routes */}
             <Route element={<RoleGuard allowedRoles={['ADMIN']} />}>
               <Route element={<DashboardLayout />}>
-                <Route path="/" element={<Dashboard />} />
+                <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/users" element={<Users />} />
                 <Route path="/settings" element={<Settings />} />
               </Route>
             </Route>
 
             {/* Pharmacist Routes */}
-            <Route element={<RoleGuard allowedRoles={['ADMIN', 'PHARMACIST']} />}>
+            <Route element={<RoleGuard allowedRoles={['PHARMACIST']} />}>
               <Route element={<DashboardLayout />}>
                 <Route path="/inventory" element={<Inventory />} />
+                <Route path="/" element={<Dashboard />} />
               </Route>
             </Route>
 
             {/* Cashier Routes */}
-            <Route element={<RoleGuard allowedRoles={['ADMIN', 'CASHIER']} />}>
+            <Route element={<RoleGuard allowedRoles={['CASHIER']} />}>
               <Route element={<DashboardLayout />}>
                 <Route path="/sales" element={<Sales />} />
                 <Route path="/sales/new" element={<NewSale />} />
+                <Route path="/" element={<Dashboard />} />
               </Route>
             </Route>
 

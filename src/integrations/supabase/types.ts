@@ -76,7 +76,7 @@ export type Database = {
           created_at: string
           id: string
           password: string
-          role: string
+          role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           username: string
         }
@@ -84,7 +84,7 @@ export type Database = {
           created_at: string
           id: string
           password: string
-          role: string
+          role: Database["public"]["Enums"]["user_role"]
           updated_at: string
           username: string
         }
@@ -92,7 +92,7 @@ export type Database = {
           created_at?: string
           id?: string
           password?: string
-          role?: string
+          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
           username?: string
         }
@@ -106,7 +106,7 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      user_role: "ADMIN" | "PHARMACIST" | "CASHIER"
     }
     CompositeTypes: {
       [_ in never]: never
