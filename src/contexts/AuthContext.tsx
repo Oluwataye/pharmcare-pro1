@@ -1,9 +1,11 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useEffect } from 'react';
 import { AuthState, User, UserRole } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useActivityLogger } from '@/hooks/useActivityLogger';
+import { useAuthState } from '@/hooks/useAuthState';
 import { supabase } from '@/lib/supabase';
 import { useNavigate, useLocation } from 'react-router-dom';
+import { getRedirectPath, PUBLIC_ROUTES, createUserFromSession } from '@/lib/auth-utils';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -13,28 +15,8 @@ interface AuthContextType extends AuthState {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const getRedirectPath = (role: UserRole): string => {
-  switch (role) {
-    case 'ADMIN':
-      return '/';
-    case 'PHARMACIST':
-      return '/inventory';
-    case 'CASHIER':
-      return '/sales';
-    default:
-      return '/';
-  }
-};
-
-const PUBLIC_ROUTES = ['/login', '/unauthorized'];
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    isAuthenticated: false,
-    isLoading: true,
-  });
-  
+  const { authState, updateAuthState, setAuthState } = useAuthState();
   const { toast } = useToast();
   const { logUserActivity } = useActivityLogger();
   const navigate = useNavigate();
@@ -44,26 +26,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        const user: User = {
-          id: session.user.id,
-          email: session.user.email!,
-          name: session.user.user_metadata.name || 'User',
-          role: (session.user.user_metadata.role as UserRole) || 'CASHIER',
-        };
-        setAuthState({
-          user,
-          isAuthenticated: true,
-          isLoading: false,
-        });
+        const user = createUserFromSession(session);
+        updateAuthState(user);
 
-        // Only redirect if on a public route
         if (PUBLIC_ROUTES.includes(location.pathname)) {
           const redirectPath = getRedirectPath(user.role);
           navigate(redirectPath);
         }
       } else {
         setAuthState(prev => ({ ...prev, isLoading: false }));
-        // Redirect to login if not on a public route
         if (!PUBLIC_ROUTES.includes(location.pathname)) {
           navigate('/login');
         }
@@ -73,17 +44,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session) {
-        const user: User = {
-          id: session.user.id,
-          email: session.user.email!,
-          name: session.user.user_metadata.name || 'User',
-          role: (session.user.user_metadata.role as UserRole) || 'CASHIER',
-        };
-        setAuthState({
-          user,
-          isAuthenticated: true,
-          isLoading: false,
-        });
+        const user = createUserFromSession(session);
+        updateAuthState(user);
 
         if (event === 'SIGNED_IN') {
           const redirectPath = getRedirectPath(user.role);
@@ -94,11 +56,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           });
         }
       } else {
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
+        updateAuthState(null);
 
         if (event === 'SIGNED_OUT') {
           navigate('/login');
@@ -124,13 +82,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (error) throw error;
 
-      const user: User = {
-        id: data.user.id,
-        email: data.user.email!,
-        name: data.user.user_metadata.name || 'User',
-        role: (data.user.user_metadata.role as UserRole) || 'CASHIER',
-      };
-
+      const user = createUserFromSession(data);
       logUserActivity('LOGIN', user);
       
       // Redirect handled by onAuthStateChange
