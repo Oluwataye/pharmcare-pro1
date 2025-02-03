@@ -3,7 +3,7 @@ import { AuthState, User, UserRole } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useActivityLogger } from '@/hooks/useActivityLogger';
 import { supabase } from '@/lib/supabase';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -12,6 +12,21 @@ interface AuthContextType extends AuthState {
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
+
+const getRedirectPath = (role: UserRole): string => {
+  switch (role) {
+    case 'ADMIN':
+      return '/';
+    case 'PHARMACIST':
+      return '/inventory';
+    case 'CASHIER':
+      return '/sales';
+    default:
+      return '/';
+  }
+};
+
+const PUBLIC_ROUTES = ['/login', '/unauthorized'];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [authState, setAuthState] = useState<AuthState>({
@@ -23,6 +38,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
   const { logUserActivity } = useActivityLogger();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Check active session
@@ -40,11 +56,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           isLoading: false,
         });
 
-        // Redirect to appropriate dashboard
-        const redirectPath = getRedirectPath(user.role);
-        navigate(redirectPath);
+        // Only redirect if on a public route
+        if (PUBLIC_ROUTES.includes(location.pathname)) {
+          const redirectPath = getRedirectPath(user.role);
+          navigate(redirectPath);
+        }
       } else {
         setAuthState(prev => ({ ...prev, isLoading: false }));
+        // Redirect to login if not on a public route
+        if (!PUBLIC_ROUTES.includes(location.pathname)) {
+          navigate('/login');
+        }
       }
     });
 
@@ -64,9 +86,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         if (event === 'SIGNED_IN') {
-          // Redirect to appropriate dashboard
           const redirectPath = getRedirectPath(user.role);
           navigate(redirectPath);
+          toast({
+            title: "Welcome back!",
+            description: `Logged in as ${user.role.toLowerCase()}`,
+          });
         }
       } else {
         setAuthState({
@@ -77,6 +102,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (event === 'SIGNED_OUT') {
           navigate('/login');
+          toast({
+            title: "Logged out",
+            description: "Successfully signed out",
+          });
         }
       }
     });
@@ -84,20 +113,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
-
-  const getRedirectPath = (role: UserRole) => {
-    switch (role) {
-      case 'ADMIN':
-        return '/';
-      case 'PHARMACIST':
-        return '/inventory';
-      case 'CASHIER':
-        return '/sales';
-      default:
-        return '/';
-    }
-  };
+  }, [navigate, location.pathname]);
 
   const login = async (email: string, password: string) => {
     try {
@@ -117,11 +133,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       logUserActivity('LOGIN', user);
       
-      toast({
-        title: "Welcome back!",
-        description: `Logged in as ${user.role.toLowerCase()}`,
-      });
-
       // Redirect handled by onAuthStateChange
     } catch (error) {
       console.error('Login error:', error);

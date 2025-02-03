@@ -17,13 +17,14 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import * as z from "zod";
+import { UserRole } from "@/lib/types";
 
 const formSchema = z.object({
   email: z.string().email("Invalid email address"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
-const getRedirectPath = (role: string) => {
+const getRedirectPath = (role: UserRole): string => {
   switch (role) {
     case "ADMIN":
       return "/";
