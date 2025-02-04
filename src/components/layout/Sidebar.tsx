@@ -69,7 +69,7 @@ const Sidebar = () => {
   };
 
   const filteredMenuItems = menuItems.filter(item => 
-    item.roles.includes(user?.role || 'GUEST')
+    user?.role ? item.roles.includes(user.role) : false
   );
 
   return (
