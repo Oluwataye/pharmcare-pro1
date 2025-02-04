@@ -10,12 +10,29 @@ import {
   Users,
   Settings,
   LogOut,
+  Menu,
+  X,
 } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user } = useAuth();
+  const [isMobile, setIsMobile] = useState(false);
+  const [isOpen, setIsOpen] = useState(false);
+
+  useEffect(() => {
+    const checkScreenSize = () => {
+      setIsMobile(window.innerWidth < 768);
+    };
+
+    checkScreenSize();
+    window.addEventListener('resize', checkScreenSize);
+
+    return () => window.removeEventListener('resize', checkScreenSize);
+  }, []);
 
   const getBasePath = () => {
     switch (user?.role) {
@@ -72,8 +89,8 @@ const Sidebar = () => {
     user?.role ? item.roles.includes(user.role) : false
   );
 
-  return (
-    <div className="flex h-screen w-64 flex-col bg-white border-r">
+  const SidebarContent = () => (
+    <div className="flex h-full flex-col bg-white">
       <div className="p-4">
         <h1 className="text-xl font-bold text-primary">PharmaCare Pro</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -92,7 +109,10 @@ const Sidebar = () => {
                 "w-full justify-start gap-2",
                 isActive && "bg-primary/10"
               )}
-              onClick={() => navigate(item.path)}
+              onClick={() => {
+                navigate(item.path);
+                if (isMobile) setIsOpen(false);
+              }}
             >
               <item.icon className="h-4 w-4" />
               {item.label}
@@ -111,6 +131,33 @@ const Sidebar = () => {
           Logout
         </Button>
       </div>
+    </div>
+  );
+
+  if (isMobile) {
+    return (
+      <>
+        <Sheet open={isOpen} onOpenChange={setIsOpen}>
+          <SheetTrigger asChild>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="md:hidden fixed top-4 left-4 z-50"
+            >
+              <Menu className="h-6 w-6" />
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="left" className="p-0 w-64">
+            <SidebarContent />
+          </SheetContent>
+        </Sheet>
+      </>
+    );
+  }
+
+  return (
+    <div className="hidden md:block h-screen w-64 border-r">
+      <SidebarContent />
     </div>
   );
 };
