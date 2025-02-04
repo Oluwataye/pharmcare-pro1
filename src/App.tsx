@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RoleGuard } from "./components/auth/RoleGuard";
 import DashboardLayout from "./components/layout/DashboardLayout";
@@ -30,29 +30,34 @@ const App = () => (
             <Route path="/unauthorized" element={<Unauthorized />} />
             
             {/* Admin Routes */}
-            <Route element={<RoleGuard allowedRoles={['ADMIN']} />}>
+            <Route path="/admin" element={<RoleGuard allowedRoles={['ADMIN']} />}>
               <Route element={<DashboardLayout />}>
-                <Route path="/" element={<Dashboard />} />
-                <Route path="/users" element={<Users />} />
-                <Route path="/settings" element={<Settings />} />
+                <Route index element={<Dashboard />} />
+                <Route path="users" element={<Users />} />
+                <Route path="settings" element={<Settings />} />
+                <Route path="inventory" element={<Inventory />} />
+                <Route path="sales" element={<Sales />} />
               </Route>
             </Route>
 
             {/* Pharmacist Routes */}
-            <Route element={<RoleGuard allowedRoles={['ADMIN', 'PHARMACIST']} />}>
+            <Route path="/pharm" element={<RoleGuard allowedRoles={['PHARMACIST']} />}>
               <Route element={<DashboardLayout />}>
-                <Route path="/inventory" element={<Inventory />} />
+                <Route index element={<Dashboard />} />
+                <Route path="inventory" element={<Inventory />} />
               </Route>
             </Route>
 
             {/* Cashier Routes */}
-            <Route element={<RoleGuard allowedRoles={['ADMIN', 'CASHIER']} />}>
+            <Route path="/cashier" element={<RoleGuard allowedRoles={['CASHIER']} />}>
               <Route element={<DashboardLayout />}>
-                <Route path="/sales" element={<Sales />} />
-                <Route path="/sales/new" element={<NewSale />} />
+                <Route index element={<Dashboard />} />
+                <Route path="sales" element={<Sales />} />
+                <Route path="sales/new" element={<NewSale />} />
               </Route>
             </Route>
 
+            <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>

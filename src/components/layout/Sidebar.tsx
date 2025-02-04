@@ -15,14 +15,52 @@ import {
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { logout, user, hasPermission } = useAuth();
+  const { logout, user } = useAuth();
+
+  const getBasePath = () => {
+    switch (user?.role) {
+      case 'ADMIN':
+        return '/admin';
+      case 'PHARMACIST':
+        return '/pharm';
+      case 'CASHIER':
+        return '/cashier';
+      default:
+        return '/login';
+    }
+  };
 
   const menuItems: MenuItem[] = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/", roles: ['ADMIN'] },
-    { icon: Package, label: "Inventory", path: "/inventory", roles: ['ADMIN', 'PHARMACIST'] },
-    { icon: ShoppingCart, label: "Sales", path: "/sales", roles: ['ADMIN', 'CASHIER'] },
-    { icon: Users, label: "Users", path: "/users", roles: ['ADMIN'] },
-    { icon: Settings, label: "Settings", path: "/settings", roles: ['ADMIN'] },
+    { 
+      icon: LayoutDashboard, 
+      label: "Dashboard", 
+      path: `${getBasePath()}`, 
+      roles: ['ADMIN', 'PHARMACIST', 'CASHIER'] 
+    },
+    { 
+      icon: Package, 
+      label: "Inventory", 
+      path: `${getBasePath()}/inventory`, 
+      roles: ['ADMIN', 'PHARMACIST'] 
+    },
+    { 
+      icon: ShoppingCart, 
+      label: "Sales", 
+      path: `${getBasePath()}/sales`, 
+      roles: ['ADMIN', 'CASHIER'] 
+    },
+    { 
+      icon: Users, 
+      label: "Users", 
+      path: `${getBasePath()}/users`, 
+      roles: ['ADMIN'] 
+    },
+    { 
+      icon: Settings, 
+      label: "Settings", 
+      path: `${getBasePath()}/settings`, 
+      roles: ['ADMIN'] 
+    },
   ];
 
   const handleLogout = () => {
@@ -31,7 +69,7 @@ const Sidebar = () => {
   };
 
   const filteredMenuItems = menuItems.filter(item => 
-    hasPermission(item.roles)
+    item.roles.includes(user?.role || 'GUEST')
   );
 
   return (
