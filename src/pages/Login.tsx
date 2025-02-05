@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -26,16 +27,25 @@ const Login = () => {
     setIsLoading(true);
     
     try {
+      console.log('Login attempt with:', email)
       await login(email, password);
+      
       toast({
         title: "Success",
         description: "Welcome back!",
       });
-      navigate("/");
+
+      // Determine redirect based on user role
+      const basePath = email.includes('admin') ? '/admin' :
+                      email.includes('pharmacist') ? '/pharm' :
+                      email.includes('cashier') ? '/cashier' : '/';
+      
+      navigate(basePath);
     } catch (error) {
+      console.error('Login error:', error);
       toast({
         title: "Error",
-        description: "Invalid credentials. Please try again.",
+        description: error instanceof Error ? error.message : "Invalid credentials. Please try again.",
         variant: "destructive",
       });
     } finally {
