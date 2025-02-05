@@ -27,20 +27,15 @@ const Login = () => {
     setIsLoading(true);
     
     try {
-      console.log('Login attempt with:', email)
       await login(email, password);
       
       toast({
         title: "Success",
         description: "Welcome back!",
       });
-
-      // Determine redirect based on user role
-      const basePath = email.includes('admin') ? '/admin' :
-                      email.includes('pharmacist') ? '/pharm' :
-                      email.includes('cashier') ? '/cashier' : '/';
       
-      navigate(basePath);
+      // User will be redirected based on their role via the AuthContext
+      navigate('/dashboard');
     } catch (error) {
       console.error('Login error:', error);
       toast({
