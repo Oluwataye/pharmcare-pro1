@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { supabase } from "@/integrations/supabase/client";
 import { User } from "@/lib/types";
 
 export const signIn = async (email: string, password: string) => {
@@ -48,11 +48,29 @@ export const getCurrentUserProfile = async () => {
       .from('profiles')
       .select('*')
       .eq('id', user.id)
-      .single();
+      .maybeSingle(); // Changed from .single() to .maybeSingle()
 
     if (error) {
       console.error('Get profile error:', error);
       throw error;
+    }
+    
+    if (!data) {
+      console.log('No profile found, creating one...');
+      const { data: newProfile, error: createError } = await supabase
+        .from('profiles')
+        .insert([
+          { 
+            id: user.id,
+            full_name: user.email?.split('@')[0] || 'User',
+            role: 'CASHIER'
+          }
+        ])
+        .select()
+        .single();
+
+      if (createError) throw createError;
+      return newProfile;
     }
     
     console.log('User profile retrieved:', data);
