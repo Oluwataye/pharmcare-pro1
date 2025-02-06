@@ -7,7 +7,7 @@ export const getMockUser = (email: string): User => {
       email,
       name: 'Admin User',
       role: 'ADMIN',
-      lastLogin: new Date().toISOString(),
+      lastLogin: new Date().toISOString()
     };
   } else if (email.includes('pharmacist')) {
     return {
@@ -15,7 +15,7 @@ export const getMockUser = (email: string): User => {
       email,
       name: 'Pharmacist User',
       role: 'PHARMACIST',
-      lastLogin: new Date().toISOString(),
+      lastLogin: new Date().toISOString()
     };
   } else if (email.includes('cashier')) {
     return {
@@ -23,7 +23,7 @@ export const getMockUser = (email: string): User => {
       email,
       name: 'Cashier User',
       role: 'CASHIER',
-      lastLogin: new Date().toISOString(),
+      lastLogin: new Date().toISOString()
     };
   }
   throw new Error('Invalid credentials');
