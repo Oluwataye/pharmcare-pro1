@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { DashboardStat } from "@/lib/types";
+import { LucideIcon } from "lucide-react";
 
 interface DashboardStatCardProps {
   stat: DashboardStat;
@@ -7,14 +8,12 @@ interface DashboardStatCardProps {
 
 const DashboardStatCard = ({ stat }: DashboardStatCardProps) => {
   return (
-    <Card className="p-6 hover:shadow-md transition-shadow">
+    <Card className="p-6">
       <div className="flex items-center justify-between">
-        <div className="p-2 rounded-lg bg-primary/10">
-          <stat.icon className="h-6 w-6 text-primary" />
-        </div>
+        <stat.icon className="h-8 w-8 text-primary" />
         {stat.trend && (
           <span
-            className={`text-sm font-medium ${
+            className={`text-sm ${
               stat.trendUp ? "text-green-600" : "text-red-600"
             }`}
           >
@@ -26,7 +25,7 @@ const DashboardStatCard = ({ stat }: DashboardStatCardProps) => {
         <h3 className="text-sm font-medium text-muted-foreground">
           {stat.title}
         </h3>
-        <p className="text-2xl font-bold mt-1">{stat.value}</p>
+        <p className="text-2xl font-bold">{stat.value}</p>
       </div>
     </Card>
   );
