@@ -5,8 +5,6 @@ export interface User {
   email: string;
   name: string;
   role: UserRole;
-  createdAt?: string;
-  lastLogin?: string;
 }
 
 export interface AuthState {
