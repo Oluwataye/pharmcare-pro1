@@ -26,12 +26,24 @@ const App = () => (
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route element={<DashboardLayout />}>
-              <Route path="/" element={<Dashboard />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/sales" element={<Sales />} />
-              <Route path="/sales/new" element={<NewSale />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/settings" element={<Settings />} />
+              {/* Admin routes */}
+              <Route path="/admin" element={<Dashboard />} />
+              <Route path="/admin/inventory" element={<Inventory />} />
+              <Route path="/admin/sales" element={<Sales />} />
+              <Route path="/admin/users" element={<Users />} />
+              <Route path="/admin/settings" element={<Settings />} />
+              
+              {/* Pharmacist routes */}
+              <Route path="/pharmacist" element={<Dashboard />} />
+              <Route path="/pharmacist/inventory" element={<Inventory />} />
+              <Route path="/pharmacist/prescriptions" element={<Sales />} />
+              
+              {/* Cashier routes */}
+              <Route path="/cashier" element={<Dashboard />} />
+              <Route path="/cashier/sales" element={<Sales />} />
+              <Route path="/cashier/sales/new" element={<NewSale />} />
+              
+              {/* Catch-all route */}
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
