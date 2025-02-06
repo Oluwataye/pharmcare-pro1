@@ -1,8 +1,10 @@
+export type UserRole = 'ADMIN' | 'PHARMACIST' | 'CASHIER';
+
 export interface User {
   id: string;
   email: string;
   name: string;
-  role: 'ADMIN' | 'PHARMACIST' | 'CASHIER';
+  role: UserRole;
   last_sign_in: string | null;
 }
 
