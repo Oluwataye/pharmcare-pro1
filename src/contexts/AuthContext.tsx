@@ -1,92 +1,93 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { AuthState, User } from '@/lib/types';
+import React, { createContext, useContext, useEffect } from 'react';
+import { AuthState, User, UserRole } from '@/lib/types';
 import { useToast } from '@/hooks/use-toast';
 import { useActivityLogger } from '@/hooks/useActivityLogger';
-import { getCurrentUserProfile, signIn, signOut } from '@/services/auth';
+import { useAuthState } from '@/hooks/useAuthState';
 import { supabase } from '@/lib/supabase';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { getRedirectPath, PUBLIC_ROUTES, createUserFromSession } from '@/lib/auth-utils';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
-  logout: () => void;
-  hasPermission: (allowedRoles: User['role'][]) => boolean;
+  logout: () => Promise<void>;
+  hasPermission: (allowedRoles: UserRole[]) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [authState, setAuthState] = useState<AuthState>({
-    user: null,
-    isAuthenticated: false,
-    isLoading: true,
-  });
-  
+  const { authState, updateAuthState, setAuthState } = useAuthState();
   const { toast } = useToast();
   const { logUserActivity } = useActivityLogger();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Check active session
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        getCurrentUserProfile().then((profile) => {
-          if (profile) {
-            setAuthState({
-              user: {
-                id: profile.id,
-                email: session.user.email!,
-                name: profile.full_name || '',
-                role: profile.role,
-              },
-              isAuthenticated: true,
-              isLoading: false,
-            });
-          }
-        });
+        const user = createUserFromSession(session);
+        updateAuthState(user);
+
+        if (PUBLIC_ROUTES.includes(location.pathname)) {
+          const redirectPath = getRedirectPath(user.role);
+          navigate(redirectPath);
+        }
       } else {
         setAuthState(prev => ({ ...prev, isLoading: false }));
+        if (!PUBLIC_ROUTES.includes(location.pathname)) {
+          navigate('/login');
+        }
       }
     });
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'SIGNED_IN' && session) {
-        const profile = await getCurrentUserProfile();
-        if (profile) {
-          setAuthState({
-            user: {
-              id: profile.id,
-              email: session.user.email!,
-              name: profile.full_name || '',
-              role: profile.role,
-            },
-            isAuthenticated: true,
-            isLoading: false,
+      if (session) {
+        const user = createUserFromSession(session);
+        updateAuthState(user);
+
+        if (event === 'SIGNED_IN') {
+          const redirectPath = getRedirectPath(user.role);
+          navigate(redirectPath);
+          toast({
+            title: "Welcome back!",
+            description: `Logged in as ${user.role.toLowerCase()}`,
           });
         }
-      } else if (event === 'SIGNED_OUT') {
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
+      } else {
+        updateAuthState(null);
+
+        if (event === 'SIGNED_OUT') {
+          navigate('/login');
+          toast({
+            title: "Logged out",
+            description: "Successfully signed out",
+          });
+        }
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [navigate, location.pathname]);
 
   const login = async (email: string, password: string) => {
-    setAuthState(prev => ({ ...prev, isLoading: true }));
     try {
-      await signIn(email, password);
-      
-      toast({
-        title: "Success",
-        description: "Logged in successfully",
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
       });
+
+      if (error) throw error;
+
+      const user = createUserFromSession(data);
+      logUserActivity('LOGIN', user);
+      
+      // Redirect handled by onAuthStateChange
     } catch (error) {
-      setAuthState(prev => ({ ...prev, isLoading: false }));
+      console.error('Login error:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to login",
@@ -98,14 +99,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     try {
-      await signOut();
       logUserActivity('LOGOUT', authState.user);
-      
-      setAuthState({
-        user: null,
-        isAuthenticated: false,
-        isLoading: false,
-      });
+      await supabase.auth.signOut();
       
       toast({
         title: "Success",
@@ -120,7 +115,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const hasPermission = (allowedRoles: User['role'][]) => {
+  const hasPermission = (allowedRoles: UserRole[]) => {
     return authState.user ? allowedRoles.includes(authState.user.role) : false;
   };
 

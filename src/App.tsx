@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { RoleGuard } from "./components/auth/RoleGuard";
 import DashboardLayout from "./components/layout/DashboardLayout";
@@ -15,54 +15,52 @@ import Users from "./pages/Users";
 import Settings from "./pages/Settings";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
+import AdminDashboard from "./pages/AdminDashboard";
 
 const queryClient = new QueryClient();
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <TooltipProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+    <BrowserRouter>
+      <AuthProvider>
+        <TooltipProvider>
+          <Toaster />
+          <Sonner />
           <Routes>
             <Route path="/login" element={<Login />} />
             <Route path="/unauthorized" element={<Unauthorized />} />
             
-            {/* Admin Routes */}
-            <Route path="/admin" element={<RoleGuard allowedRoles={['ADMIN']} />}>
+            {/* Super Admin Routes */}
+            <Route element={<RoleGuard allowedRoles={['ADMIN']} />}>
               <Route element={<DashboardLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="users" element={<Users />} />
-                <Route path="settings" element={<Settings />} />
-                <Route path="inventory" element={<Inventory />} />
-                <Route path="sales" element={<Sales />} />
+                <Route path="/admin" element={<AdminDashboard />} />
+                <Route path="/users" element={<Users />} />
+                <Route path="/settings" element={<Settings />} />
               </Route>
             </Route>
 
             {/* Pharmacist Routes */}
-            <Route path="/pharm" element={<RoleGuard allowedRoles={['PHARMACIST']} />}>
+            <Route element={<RoleGuard allowedRoles={['PHARMACIST']} />}>
               <Route element={<DashboardLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="inventory" element={<Inventory />} />
+                <Route path="/inventory" element={<Inventory />} />
+                <Route path="/" element={<Dashboard />} />
               </Route>
             </Route>
 
             {/* Cashier Routes */}
-            <Route path="/cashier" element={<RoleGuard allowedRoles={['CASHIER']} />}>
+            <Route element={<RoleGuard allowedRoles={['CASHIER']} />}>
               <Route element={<DashboardLayout />}>
-                <Route index element={<Dashboard />} />
-                <Route path="sales" element={<Sales />} />
-                <Route path="sales/new" element={<NewSale />} />
+                <Route path="/sales" element={<Sales />} />
+                <Route path="/sales/new" element={<NewSale />} />
+                <Route path="/" element={<Dashboard />} />
               </Route>
             </Route>
 
-            <Route path="/" element={<Navigate to="/login" replace />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-        </BrowserRouter>
-      </TooltipProvider>
-    </AuthProvider>
+        </TooltipProvider>
+      </AuthProvider>
+    </BrowserRouter>
   </QueryClientProvider>
 );
 

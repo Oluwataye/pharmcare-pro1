@@ -10,87 +10,49 @@ import {
   Users,
   Settings,
   LogOut,
-  Menu,
-  X,
 } from "lucide-react";
-import { useState, useEffect } from "react";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user } = useAuth();
-  const [isMobile, setIsMobile] = useState(false);
-  const [isOpen, setIsOpen] = useState(false);
 
-  useEffect(() => {
-    const checkScreenSize = () => {
-      setIsMobile(window.innerWidth < 768);
-    };
+  const adminMenuItems: MenuItem[] = [
+    { icon: LayoutDashboard, label: "Dashboard", path: "/admin", roles: ['ADMIN'] },
+    { icon: Users, label: "Users", path: "/users", roles: ['ADMIN'] },
+    { icon: Settings, label: "Settings", path: "/settings", roles: ['ADMIN'] },
+  ];
 
-    checkScreenSize();
-    window.addEventListener('resize', checkScreenSize);
+  const pharmacistMenuItems: MenuItem[] = [
+    { icon: LayoutDashboard, label: "Dashboard", path: "/", roles: ['PHARMACIST'] },
+    { icon: Package, label: "Inventory", path: "/inventory", roles: ['PHARMACIST'] },
+  ];
 
-    return () => window.removeEventListener('resize', checkScreenSize);
-  }, []);
+  const cashierMenuItems: MenuItem[] = [
+    { icon: LayoutDashboard, label: "Dashboard", path: "/", roles: ['CASHIER'] },
+    { icon: ShoppingCart, label: "Sales", path: "/sales", roles: ['CASHIER'] },
+  ];
 
-  const getBasePath = () => {
+  const getMenuItems = () => {
     switch (user?.role) {
       case 'ADMIN':
-        return '/admin';
+        return adminMenuItems;
       case 'PHARMACIST':
-        return '/pharm';
+        return pharmacistMenuItems;
       case 'CASHIER':
-        return '/cashier';
+        return cashierMenuItems;
       default:
-        return '/login';
+        return [];
     }
   };
-
-  const menuItems: MenuItem[] = [
-    { 
-      icon: LayoutDashboard, 
-      label: "Dashboard", 
-      path: `${getBasePath()}`, 
-      roles: ['ADMIN', 'PHARMACIST', 'CASHIER'] 
-    },
-    { 
-      icon: Package, 
-      label: "Inventory", 
-      path: `${getBasePath()}/inventory`, 
-      roles: ['ADMIN', 'PHARMACIST'] 
-    },
-    { 
-      icon: ShoppingCart, 
-      label: "Sales", 
-      path: `${getBasePath()}/sales`, 
-      roles: ['ADMIN', 'CASHIER'] 
-    },
-    { 
-      icon: Users, 
-      label: "Users", 
-      path: `${getBasePath()}/users`, 
-      roles: ['ADMIN'] 
-    },
-    { 
-      icon: Settings, 
-      label: "Settings", 
-      path: `${getBasePath()}/settings`, 
-      roles: ['ADMIN'] 
-    },
-  ];
 
   const handleLogout = () => {
     logout();
     navigate("/login");
   };
 
-  const filteredMenuItems = menuItems.filter(item => 
-    user?.role ? item.roles.includes(user.role) : false
-  );
-
-  const SidebarContent = () => (
-    <div className="flex h-full flex-col bg-white">
+  return (
+    <div className="flex h-screen w-64 flex-col bg-white border-r">
       <div className="p-4">
         <h1 className="text-xl font-bold text-primary">PharmaCare Pro</h1>
         <p className="text-sm text-muted-foreground mt-1">
@@ -99,7 +61,7 @@ const Sidebar = () => {
       </div>
 
       <nav className="flex-1 space-y-2 p-4">
-        {filteredMenuItems.map((item) => {
+        {getMenuItems().map((item) => {
           const isActive = location.pathname === item.path;
           return (
             <Button
@@ -109,10 +71,7 @@ const Sidebar = () => {
                 "w-full justify-start gap-2",
                 isActive && "bg-primary/10"
               )}
-              onClick={() => {
-                navigate(item.path);
-                if (isMobile) setIsOpen(false);
-              }}
+              onClick={() => navigate(item.path)}
             >
               <item.icon className="h-4 w-4" />
               {item.label}
@@ -131,33 +90,6 @@ const Sidebar = () => {
           Logout
         </Button>
       </div>
-    </div>
-  );
-
-  if (isMobile) {
-    return (
-      <>
-        <Sheet open={isOpen} onOpenChange={setIsOpen}>
-          <SheetTrigger asChild>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="md:hidden fixed top-4 left-4 z-50"
-            >
-              <Menu className="h-6 w-6" />
-            </Button>
-          </SheetTrigger>
-          <SheetContent side="left" className="p-0 w-64">
-            <SidebarContent />
-          </SheetContent>
-        </Sheet>
-      </>
-    );
-  }
-
-  return (
-    <div className="hidden md:block h-screen w-64 border-r">
-      <SidebarContent />
     </div>
   );
 };
