@@ -1,14 +1,18 @@
-import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+import { createClient } from '@supabase/supabase-js'
+import { Database } from './supabase-types'
 
-// Create a dummy client if environment variables are not set
-export const supabase = supabaseUrl && supabaseAnonKey 
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : createClient('https://placeholder-url.supabase.co', 'placeholder-key');
+const supabaseUrl = 'https://vjaizhmyacnyyouiuszd.supabase.co'
+const supabaseAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZqYWl6aG15YWNueXlvdWl1c3pkIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzQ5ODE4MTEsImV4cCI6MjA1MDU1NzgxMX0.YAF4pq9AFwKpY6LGAd3AKaO5VMX1jjTy0aBvfDuPQIQ'
 
-// Log a warning if environment variables are missing
 if (!supabaseUrl || !supabaseAnonKey) {
-  console.warn('Missing Supabase environment variables. Please connect your Supabase project through the Supabase menu.');
+  throw new Error('Missing Supabase credentials')
 }
+
+export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true
+  }
+})
