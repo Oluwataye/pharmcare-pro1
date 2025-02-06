@@ -2,7 +2,6 @@ import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { MenuItem } from "@/lib/types";
 import {
   LayoutDashboard,
   Package,
@@ -17,34 +16,13 @@ const Sidebar = () => {
   const location = useLocation();
   const { logout, user } = useAuth();
 
-  const adminMenuItems: MenuItem[] = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/admin", roles: ['ADMIN'] },
-    { icon: Users, label: "Users", path: "/users", roles: ['ADMIN'] },
-    { icon: Settings, label: "Settings", path: "/settings", roles: ['ADMIN'] },
+  const menuItems = [
+    { icon: LayoutDashboard, label: "Dashboard", path: "/" },
+    { icon: Package, label: "Inventory", path: "/inventory" },
+    { icon: ShoppingCart, label: "Sales", path: "/sales" },
+    { icon: Users, label: "Users", path: "/users", adminOnly: true },
+    { icon: Settings, label: "Settings", path: "/settings" },
   ];
-
-  const pharmacistMenuItems: MenuItem[] = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/", roles: ['PHARMACIST'] },
-    { icon: Package, label: "Inventory", path: "/inventory", roles: ['PHARMACIST'] },
-  ];
-
-  const cashierMenuItems: MenuItem[] = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/", roles: ['CASHIER'] },
-    { icon: ShoppingCart, label: "Sales", path: "/sales", roles: ['CASHIER'] },
-  ];
-
-  const getMenuItems = () => {
-    switch (user?.role) {
-      case 'ADMIN':
-        return adminMenuItems;
-      case 'PHARMACIST':
-        return pharmacistMenuItems;
-      case 'CASHIER':
-        return cashierMenuItems;
-      default:
-        return [];
-    }
-  };
 
   const handleLogout = () => {
     logout();
@@ -55,13 +33,12 @@ const Sidebar = () => {
     <div className="flex h-screen w-64 flex-col bg-white border-r">
       <div className="p-4">
         <h1 className="text-xl font-bold text-primary">PharmaCare Pro</h1>
-        <p className="text-sm text-muted-foreground mt-1">
-          Logged in as {user?.role.toLowerCase()}
-        </p>
       </div>
 
       <nav className="flex-1 space-y-2 p-4">
-        {getMenuItems().map((item) => {
+        {menuItems.map((item) => {
+          if (item.adminOnly && user?.role !== "ADMIN") return null;
+          
           const isActive = location.pathname === item.path;
           return (
             <Button
