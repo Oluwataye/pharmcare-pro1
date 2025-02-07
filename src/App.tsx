@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -5,6 +6,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import DashboardLayout from "./components/layout/DashboardLayout";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
@@ -25,13 +27,64 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             <Route path="/login" element={<Login />} />
-            <Route element={<DashboardLayout />}>
+            <Route
+              element={
+                <ProtectedRoute>
+                  <DashboardLayout />
+                </ProtectedRoute>
+              }
+            >
               <Route path="/" element={<Dashboard />} />
-              <Route path="/inventory" element={<Inventory />} />
-              <Route path="/sales" element={<Sales />} />
-              <Route path="/sales/new" element={<NewSale />} />
-              <Route path="/users" element={<Users />} />
-              <Route path="/settings" element={<Settings />} />
+              <Route
+                path="/inventory"
+                element={
+                  <ProtectedRoute
+                    requiredPermission={{ action: "read", resource: "inventory" }}
+                  >
+                    <Inventory />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sales"
+                element={
+                  <ProtectedRoute
+                    requiredPermission={{ action: "read", resource: "sales" }}
+                  >
+                    <Sales />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/sales/new"
+                element={
+                  <ProtectedRoute
+                    requiredPermission={{ action: "create", resource: "sales" }}
+                  >
+                    <NewSale />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/users"
+                element={
+                  <ProtectedRoute
+                    requiredPermission={{ action: "read", resource: "users" }}
+                  >
+                    <Users />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/settings"
+                element={
+                  <ProtectedRoute
+                    requiredPermission={{ action: "update", resource: "settings" }}
+                  >
+                    <Settings />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>

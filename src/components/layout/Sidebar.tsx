@@ -1,7 +1,9 @@
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   LayoutDashboard,
   Package,
@@ -9,19 +11,57 @@ import {
   Users,
   Settings,
   LogOut,
+  FileText,
 } from "lucide-react";
 
 const Sidebar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user } = useAuth();
+  const {
+    canAccessInventory,
+    canAccessSales,
+    canAccessUsers,
+    canAccessReports,
+  } = usePermissions();
 
   const menuItems = [
-    { icon: LayoutDashboard, label: "Dashboard", path: "/" },
-    { icon: Package, label: "Inventory", path: "/inventory" },
-    { icon: ShoppingCart, label: "Sales", path: "/sales" },
-    { icon: Users, label: "Users", path: "/users", adminOnly: true },
-    { icon: Settings, label: "Settings", path: "/settings" },
+    { 
+      icon: LayoutDashboard, 
+      label: "Dashboard", 
+      path: "/",
+      condition: true 
+    },
+    { 
+      icon: Package, 
+      label: "Inventory", 
+      path: "/inventory",
+      condition: canAccessInventory()
+    },
+    { 
+      icon: ShoppingCart, 
+      label: "Sales", 
+      path: "/sales",
+      condition: canAccessSales()
+    },
+    { 
+      icon: Users, 
+      label: "Users", 
+      path: "/users",
+      condition: canAccessUsers()
+    },
+    { 
+      icon: FileText, 
+      label: "Reports", 
+      path: "/reports",
+      condition: canAccessReports()
+    },
+    { 
+      icon: Settings, 
+      label: "Settings", 
+      path: "/settings",
+      condition: user?.role === 'ADMIN'
+    },
   ];
 
   const handleLogout = () => {
@@ -33,11 +73,16 @@ const Sidebar = () => {
     <div className="flex h-screen w-64 flex-col bg-white border-r">
       <div className="p-4">
         <h1 className="text-xl font-bold text-primary">PharmaCare Pro</h1>
+        {user && (
+          <p className="text-sm text-muted-foreground mt-1">
+            {user.name} ({user.role})
+          </p>
+        )}
       </div>
 
       <nav className="flex-1 space-y-2 p-4">
         {menuItems.map((item) => {
-          if (item.adminOnly && user?.role !== "ADMIN") return null;
+          if (!item.condition) return null;
           
           const isActive = location.pathname === item.path;
           return (
