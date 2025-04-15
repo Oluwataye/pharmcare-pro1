@@ -23,13 +23,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: '1',
         email,
         name: 'John Doe',
-        role: 'ADMIN',
+        role: 'CASHIER', // This will come from your API
       };
+      
       setAuthState({
         user: mockUser,
         isAuthenticated: true,
         isLoading: false,
       });
+
+      // Return the user's role for redirection
+      return mockUser.role;
     } catch (error) {
       setAuthState(prev => ({ ...prev, isLoading: false }));
       throw error;

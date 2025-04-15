@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +14,8 @@ import NewSale from "./pages/NewSale";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import PharmacistDashboard from "./pages/PharmacistDashboard";
+import CashierDashboard from "./pages/CashierDashboard";
 
 const queryClient = new QueryClient();
 
@@ -34,7 +35,16 @@ const App = () => (
                 </ProtectedRoute>
               }
             >
-              <Route path="/" element={<Dashboard />} />
+              <Route
+                path="/"
+                element={
+                  <ProtectedRoute
+                    requiredPermission={{ action: "read", resource: "settings" }}
+                  >
+                    <Dashboard />
+                  </ProtectedRoute>
+                }
+              />
               <Route
                 path="/inventory"
                 element={
@@ -82,6 +92,26 @@ const App = () => (
                     requiredPermission={{ action: "update", resource: "settings" }}
                   >
                     <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/pharmacist"
+                element={
+                  <ProtectedRoute
+                    requiredPermission={{ action: "read", resource: "inventory" }}
+                  >
+                    <PharmacistDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/cashier"
+                element={
+                  <ProtectedRoute
+                    requiredPermission={{ action: "create", resource: "sales" }}
+                  >
+                    <CashierDashboard />
                   </ProtectedRoute>
                 }
               />

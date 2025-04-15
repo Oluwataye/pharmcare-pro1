@@ -15,8 +15,22 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await login(email, password);
-      navigate("/");
+      const role = await login(email, password);
+      
+      // Redirect based on user role
+      switch (role) {
+        case 'ADMIN':
+          navigate("/");
+          break;
+        case 'PHARMACIST':
+          navigate("/pharmacist");
+          break;
+        case 'CASHIER':
+          navigate("/cashier");
+          break;
+        default:
+          navigate("/");
+      }
     } catch (error) {
       toast({
         title: "Error",
