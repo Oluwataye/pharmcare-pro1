@@ -1,13 +1,12 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import {
-  Flask,
   AlertCircle,
   Package,
   ClipboardList,
+  TestTube
 } from "lucide-react";
 
 const PharmacistDashboard = () => {
@@ -30,7 +29,7 @@ const PharmacistDashboard = () => {
     {
       title: "Expiring Soon",
       value: "45",
-      icon: Flask,
+      icon: TestTube,
       description: "Items expiring within 30 days",
     },
     {
