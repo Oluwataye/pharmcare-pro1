@@ -77,6 +77,13 @@ const Login = () => {
               </div>
               <div className="space-y-3">
                 <div>
+                  <Badge variant="secondary" className="mb-2">Admin</Badge>
+                  <div className="text-sm space-y-1">
+                    <p>Email: admin@demo.com</p>
+                    <p>Password: admin123</p>
+                  </div>
+                </div>
+                <div>
                   <Badge variant="secondary" className="mb-2">Cashier</Badge>
                   <div className="text-sm space-y-1">
                     <p>Email: cashier@demo.com</p>

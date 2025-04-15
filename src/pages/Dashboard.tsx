@@ -1,4 +1,13 @@
-import { Card } from "@/components/ui/card";
+
+import { useAuth } from "@/contexts/AuthContext";
+import CashierDashboard from "./CashierDashboard";
+import PharmacistDashboard from "./PharmacistDashboard";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import {
   TrendingUp,
   Package,
@@ -6,7 +15,7 @@ import {
   DollarSign,
 } from "lucide-react";
 
-const Dashboard = () => {
+const AdminDashboard = () => {
   const stats = [
     {
       title: "Today's Sales",
@@ -89,6 +98,24 @@ const Dashboard = () => {
       </div>
     </div>
   );
+};
+
+const Dashboard = () => {
+  const { user } = useAuth();
+
+  if (!user) {
+    return <div>Loading...</div>;
+  }
+
+  switch (user.role) {
+    case "CASHIER":
+      return <CashierDashboard />;
+    case "PHARMACIST":
+      return <PharmacistDashboard />;
+    case "ADMIN":
+    default:
+      return <AdminDashboard />;
+  }
 };
 
 export default Dashboard;
