@@ -9,24 +9,14 @@ const Login = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
-  const { login, user } = useAuth();
+  const { login } = useAuth();
   const { toast } = useToast();
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
       await login(email, password);
-      
-      // Redirect based on user role after login is complete
-      if (user?.role === 'ADMIN') {
-        navigate("/");
-      } else if (user?.role === 'PHARMACIST') {
-        navigate("/pharmacist");
-      } else if (user?.role === 'CASHIER') {
-        navigate("/cashier");
-      } else {
-        navigate("/");
-      }
+      navigate("/");
     } catch (error) {
       toast({
         title: "Error",
