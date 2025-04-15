@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,6 +14,7 @@ import NewSale from "./pages/NewSale";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
+import Reports from "./pages/Reports";
 
 const queryClient = new QueryClient();
 
@@ -82,6 +82,16 @@ const App = () => (
                     requiredPermission={{ action: "update", resource: "settings" }}
                   >
                     <Settings />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/reports"
+                element={
+                  <ProtectedRoute
+                    requiredPermission={{ action: "read", resource: "reports" }}
+                  >
+                    <Reports />
                   </ProtectedRoute>
                 }
               />
