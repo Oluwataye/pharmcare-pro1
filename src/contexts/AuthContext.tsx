@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState } from 'react';
 import { AuthState, User } from '@/lib/types';
 
@@ -18,12 +19,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     try {
-      // TODO: Replace with actual API call
       const mockUser: User = {
         id: '1',
         email,
         name: 'John Doe',
-        role: 'CASHIER', // This will come from your API
+        role: 'CASHIER',
       };
       
       setAuthState({
@@ -31,9 +31,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         isAuthenticated: true,
         isLoading: false,
       });
-
-      // Return the user's role for redirection
-      return mockUser.role;
     } catch (error) {
       setAuthState(prev => ({ ...prev, isLoading: false }));
       throw error;
