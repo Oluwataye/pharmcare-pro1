@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useState } from 'react';
-import { AuthState, User } from '@/lib/types';
+import { AuthState, User, UserRole } from '@/lib/types';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -20,7 +20,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     try {
       // Map email to appropriate role
-      let role = "ADMIN"; // Default role
+      let role: UserRole = "ADMIN"; // Default role
       let name = "John Doe"; // Default name
       
       if (email === "cashier@demo.com" && password === "cashier123") {
