@@ -130,6 +130,14 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
               .item { margin: 5px 0; }
               .total { margin-top: 10px; border-top: 1px solid #000; }
               .customer-info { margin-top: 5px; margin-bottom: 10px; }
+              .footer { 
+                margin-top: 20px; 
+                text-align: center; 
+                border-top: 1px solid #000; 
+                padding-top: 10px; 
+                font-size: 10px; 
+                color: #666; 
+              }
             </style>
           </head>
           <body>
@@ -153,6 +161,9 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
             </div>
             <div style="text-align: center; margin-top: 20px;">
               <p>Thank you for your purchase!</p>
+            </div>
+            <div class="footer">
+              <p>Powered By T-Tech Solutions</p>
             </div>
           </body>
         </html>
