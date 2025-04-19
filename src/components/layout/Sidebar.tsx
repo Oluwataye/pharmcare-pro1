@@ -74,9 +74,11 @@ const Sidebar = () => {
       <div className="p-4">
         <h1 className="text-xl font-bold text-primary">PharmaCare Pro</h1>
         {user && (
-          <p className="text-sm text-muted-foreground mt-1">
-            {user.name} ({user.role})
-          </p>
+          <>
+            <p className="text-sm text-muted-foreground mt-1">
+              {user.role} ({user.name})
+            </p>
+          </>
         )}
       </div>
 
@@ -117,3 +119,4 @@ const Sidebar = () => {
 };
 
 export default Sidebar;
+
