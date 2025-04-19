@@ -1,3 +1,5 @@
+
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -9,11 +11,33 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Search, Plus, Printer } from "lucide-react";
+import { Search, Plus, Printer, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Calendar as CalendarComponent } from "@/components/ui/calendar";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { format } from "date-fns";
+import { useToast } from "@/hooks/use-toast";
 
 const Sales = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
+  const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+
+  // Sample data - in a real app, this would come from API
   const recentSales = [
     {
       id: 1,
@@ -22,6 +46,7 @@ const Sales = () => {
       price: 500,
       total: 1000,
       date: "2024-02-20",
+      status: "completed",
     },
     {
       id: 2,
@@ -30,8 +55,131 @@ const Sales = () => {
       price: 1500,
       total: 1500,
       date: "2024-02-20",
+      status: "completed",
+    },
+    {
+      id: 3,
+      product: "Vitamin C",
+      quantity: 3,
+      price: 800,
+      total: 2400,
+      date: "2024-02-21",
+      status: "pending",
     },
   ];
+
+  // Filter sales based on search term, date range, and status
+  const filteredSales = recentSales.filter(sale => {
+    const matchesSearch = searchTerm === "" || 
+      sale.product.toLowerCase().includes(searchTerm.toLowerCase());
+    
+    const saleDate = new Date(sale.date);
+    const matchesDateFrom = !dateFrom || saleDate >= dateFrom;
+    const matchesDateTo = !dateTo || saleDate <= dateTo;
+    
+    const matchesStatus = filterStatus === "all" || sale.status === filterStatus;
+    
+    return matchesSearch && matchesDateFrom && matchesDateTo && matchesStatus;
+  });
+
+  // Print invoice function
+  const handlePrintInvoice = (saleId: number) => {
+    const sale = recentSales.find(s => s.id === saleId);
+    if (!sale) return;
+
+    try {
+      // Create print content with proper styling
+      const printContent = `
+        <html>
+          <head>
+            <title>Sale Receipt #${sale.id}</title>
+            <style>
+              @media print {
+                body { 
+                  font-family: Arial, sans-serif;
+                  margin: 0;
+                  padding: 20px;
+                  font-size: 12px;
+                }
+                .receipt {
+                  width: 100%;
+                  max-width: 300px;
+                  margin: 0 auto;
+                }
+                .header {
+                  text-align: center;
+                  margin-bottom: 15px;
+                  border-bottom: 1px dashed #ccc;
+                  padding-bottom: 10px;
+                }
+                .item {
+                  display: flex;
+                  justify-content: space-between;
+                  margin: 5px 0;
+                }
+                .footer {
+                  margin-top: 15px;
+                  text-align: center;
+                  border-top: 1px dashed #ccc;
+                  padding-top: 10px;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <div class="receipt">
+              <div class="header">
+                <h2>PharmaCare Pro</h2>
+                <p>Receipt #${sale.id}</p>
+                <p>Date: ${sale.date}</p>
+              </div>
+              <div class="item">
+                <span>${sale.product} x ${sale.quantity}</span>
+                <span>₦${sale.price} each</span>
+              </div>
+              <div class="item" style="font-weight: bold;">
+                <span>Total:</span>
+                <span>₦${sale.total}</span>
+              </div>
+              <div class="footer">
+                <p>Thank you for your purchase!</p>
+              </div>
+            </div>
+            <script>
+              // Auto-print when loaded
+              window.onload = function() {
+                window.print();
+                setTimeout(function() {
+                  window.close();
+                }, 500);
+              };
+            </script>
+          </body>
+        </html>
+      `;
+
+      // Cross-browser compatible printing approach
+      const printWindow = window.open('', 'Print Receipt', 'height=600,width=800');
+      if (printWindow) {
+        printWindow.document.write(printContent);
+        printWindow.document.close();
+      } else {
+        throw new Error("Popup blocked. Please allow popups for printing receipts.");
+      }
+
+      toast({
+        title: "Print Initiated",
+        description: "Receipt sent to printer",
+      });
+
+    } catch (error) {
+      toast({
+        title: "Print Error",
+        description: error instanceof Error ? error.message : "Failed to print receipt",
+        variant: "destructive",
+      });
+    }
+  };
 
   return (
     <div className="p-6 space-y-6">
@@ -40,13 +188,92 @@ const Sales = () => {
         <div className="flex gap-4">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search sales..." className="pl-8" />
+            <Input 
+              placeholder="Search sales..." 
+              className="pl-8" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
           <Button onClick={() => navigate("/sales/new")}>
             <Plus className="mr-2 h-4 w-4" />
             New Sale
           </Button>
         </div>
+      </div>
+
+      <div className="flex flex-col md:flex-row gap-4 items-end">
+        <div className="space-y-2">
+          <p className="text-sm">Date From</p>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-[200px] justify-start text-left font-normal"
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                {dateFrom ? format(dateFrom, "PPP") : "Select date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <CalendarComponent
+                mode="single"
+                selected={dateFrom}
+                onSelect={setDateFrom}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-sm">Date To</p>
+          <Popover>
+            <PopoverTrigger asChild>
+              <Button
+                variant="outline"
+                className="w-[200px] justify-start text-left font-normal"
+              >
+                <Calendar className="mr-2 h-4 w-4" />
+                {dateTo ? format(dateTo, "PPP") : "Select date"}
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-auto p-0">
+              <CalendarComponent
+                mode="single"
+                selected={dateTo}
+                onSelect={setDateTo}
+                initialFocus
+              />
+            </PopoverContent>
+          </Popover>
+        </div>
+
+        <div className="space-y-2">
+          <p className="text-sm">Status</p>
+          <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <SelectTrigger className="w-[150px]">
+              <SelectValue placeholder="Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        
+        <Button 
+          variant="ghost" 
+          onClick={() => {
+            setSearchTerm("");
+            setDateFrom(undefined);
+            setDateTo(undefined);
+            setFilterStatus("all");
+          }}
+        >
+          Clear Filters
+        </Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
@@ -78,37 +305,61 @@ const Sales = () => {
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Recent Sales</CardTitle>
+          <CardTitle className="text-lg">Sales Transactions</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Price (₦)</TableHead>
-                <TableHead>Total (₦)</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {recentSales.map((sale) => (
-                <TableRow key={sale.id}>
-                  <TableCell>{sale.product}</TableCell>
-                  <TableCell>{sale.quantity}</TableCell>
-                  <TableCell>{sale.price}</TableCell>
-                  <TableCell>{sale.total}</TableCell>
-                  <TableCell>{sale.date}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm">
-                      <Printer className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+          <div className="rounded-md border">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Product</TableHead>
+                  <TableHead>Quantity</TableHead>
+                  <TableHead>Price (₦)</TableHead>
+                  <TableHead>Total (₦)</TableHead>
+                  <TableHead>Date</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredSales.length > 0 ? (
+                  filteredSales.map((sale) => (
+                    <TableRow key={sale.id}>
+                      <TableCell>{sale.product}</TableCell>
+                      <TableCell>{sale.quantity}</TableCell>
+                      <TableCell>{sale.price}</TableCell>
+                      <TableCell>{sale.total}</TableCell>
+                      <TableCell>{sale.date}</TableCell>
+                      <TableCell>
+                        <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                          sale.status === "completed" 
+                            ? "bg-green-50 text-green-700" 
+                            : "bg-yellow-50 text-yellow-700"
+                        }`}>
+                          {sale.status.charAt(0).toUpperCase() + sale.status.slice(1)}
+                        </span>
+                      </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          onClick={() => handlePrintInvoice(sale.id)}
+                        >
+                          <Printer className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={7} className="h-24 text-center">
+                      No sales found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>
