@@ -17,6 +17,13 @@ const InventoryReport = () => {
     { category: "Chronic", stock: 90 },
   ];
 
+  const chartConfig = {
+    stock: {
+      label: "Stock Level",
+      color: "var(--primary)",
+    },
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -25,7 +32,7 @@ const InventoryReport = () => {
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
-            <ChartContainer>
+            <ChartContainer config={chartConfig}>
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={inventoryData}>
                   <XAxis dataKey="category" />
@@ -35,9 +42,7 @@ const InventoryReport = () => {
                     fill="var(--primary)"
                     radius={[4, 4, 0, 0]}
                   />
-                  <ChartTooltip>
-                    <ChartTooltipContent />
-                  </ChartTooltip>
+                  <ChartTooltip content={<ChartTooltipContent />} />
                 </BarChart>
               </ResponsiveContainer>
             </ChartContainer>

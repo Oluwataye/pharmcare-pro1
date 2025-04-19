@@ -18,6 +18,13 @@ const SalesReport = () => {
     { month: "Jun", sales: 5500 },
   ];
 
+  const chartConfig = {
+    sales: {
+      label: "Sales Amount",
+      color: "var(--primary)",
+    },
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -26,7 +33,7 @@ const SalesReport = () => {
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
-            <ChartContainer>
+            <ChartContainer config={chartConfig}>
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={salesData}>
                   <XAxis dataKey="month" />
@@ -39,9 +46,7 @@ const SalesReport = () => {
                     stroke="var(--primary)"
                     strokeWidth={2}
                   />
-                  <ChartTooltip>
-                    <ChartTooltipContent />
-                  </ChartTooltip>
+                  <ChartTooltip content={<ChartTooltipContent />} />
                 </AreaChart>
               </ResponsiveContainer>
             </ChartContainer>

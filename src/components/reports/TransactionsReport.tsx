@@ -19,6 +19,13 @@ const TransactionsReport = () => {
     { date: "Sun", transactions: 20 },
   ];
 
+  const chartConfig = {
+    transactions: {
+      label: "Number of Transactions",
+      color: "var(--primary)",
+    },
+  };
+
   return (
     <div className="space-y-6">
       <Card>
@@ -27,7 +34,7 @@ const TransactionsReport = () => {
         </CardHeader>
         <CardContent>
           <div className="h-[300px]">
-            <ChartContainer>
+            <ChartContainer config={chartConfig}>
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={transactionData}>
                   <XAxis dataKey="date" />
@@ -38,9 +45,7 @@ const TransactionsReport = () => {
                     stroke="var(--primary)"
                     strokeWidth={2}
                   />
-                  <ChartTooltip>
-                    <ChartTooltipContent />
-                  </ChartTooltip>
+                  <ChartTooltip content={<ChartTooltipContent />} />
                 </LineChart>
               </ResponsiveContainer>
             </ChartContainer>
