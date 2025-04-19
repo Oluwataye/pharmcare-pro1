@@ -18,7 +18,7 @@ import {
   FormLabel,
 } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { Plus, Trash2, Search } from "lucide-react";
+import { Plus, Trash2, Search, Printer } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface NewSaleFormProps {
@@ -117,6 +117,77 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
     return items.reduce((sum, item) => sum + item.total, 0);
   };
 
+  const printReceipt = () => {
+    try {
+      // Create print content
+      const printContent = `
+        <html>
+          <head>
+            <title>Sale Receipt</title>
+            <style>
+              body { font-family: monospace; font-size: 12px; }
+              .header { text-align: center; margin-bottom: 10px; }
+              .item { margin: 5px 0; }
+              .total { margin-top: 10px; border-top: 1px solid #000; }
+              .customer-info { margin-top: 5px; margin-bottom: 10px; }
+            </style>
+          </head>
+          <body>
+            <div class="header">
+              <h2>PharmaCare Pro</h2>
+              <p>Sale Receipt</p>
+              <p>${new Date().toLocaleString()}</p>
+            </div>
+            <div class="customer-info">
+              <p>Customer: ${form.getValues().customerName || 'Walk-in Customer'}</p>
+              <p>Phone: ${form.getValues().customerPhone || 'N/A'}</p>
+            </div>
+            ${items.map(item => `
+              <div class="item">
+                ${item.name}<br/>
+                ${item.quantity} x ₦${item.price} = ₦${item.total}
+              </div>
+            `).join('')}
+            <div class="total">
+              <p>Total: ₦${calculateTotal()}</p>
+            </div>
+            <div style="text-align: center; margin-top: 20px;">
+              <p>Thank you for your purchase!</p>
+            </div>
+          </body>
+        </html>
+      `;
+
+      // Create a hidden iframe for printing
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+      
+      iframe.contentDocument?.write(printContent);
+      iframe.contentDocument?.close();
+
+      // Print and remove iframe
+      iframe.contentWindow?.print();
+      setTimeout(() => {
+        document.body.removeChild(iframe);
+      }, 1000);
+
+      toast({
+        title: "Success",
+        description: "Receipt printed successfully",
+      });
+
+      // Complete the sale after printing
+      onComplete();
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to print receipt",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmit = () => {
     if (items.length === 0) {
       toast({
@@ -127,7 +198,8 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
       return;
     }
 
-    onComplete();
+    // Trigger print receipt before completing sale
+    printReceipt();
   };
 
   return (
@@ -263,7 +335,10 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
 
       <div className="flex justify-end space-x-4">
         <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button onClick={handleSubmit}>Complete Sale</Button>
+        <Button onClick={handleSubmit}>
+          <Printer className="mr-2 h-4 w-4" />
+          Complete Sale
+        </Button>
       </div>
     </div>
   );
