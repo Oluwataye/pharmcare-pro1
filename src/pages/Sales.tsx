@@ -1,6 +1,10 @@
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Search, Plus, Printer, Calendar } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Sale } from "@/types/sales";
 import {
   Table,
   TableBody,
@@ -9,9 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Search, Plus, Printer, Calendar } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import {
   Popover,
   PopoverContent,
@@ -37,39 +38,51 @@ const Sales = () => {
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  const recentSales = [
+  const recentSales: Sale[] = [
     {
-      id: 1,
-      product: "Paracetamol",
-      quantity: 2,
-      price: 500,
+      id: "1",
+      items: [{
+        id: "1",
+        name: "Paracetamol",
+        quantity: 2,
+        price: 500,
+        total: 1000
+      }],
       total: 1000,
       date: "2024-02-20",
-      status: "completed",
+      status: "completed"
     },
     {
-      id: 2,
-      product: "Amoxicillin",
-      quantity: 1,
-      price: 1500,
+      id: "2",
+      items: [{
+        id: "2",
+        name: "Amoxicillin",
+        quantity: 1,
+        price: 1500,
+        total: 1500
+      }],
       total: 1500,
       date: "2024-02-20",
-      status: "completed",
+      status: "completed"
     },
     {
-      id: 3,
-      product: "Vitamin C",
-      quantity: 3,
-      price: 800,
+      id: "3",
+      items: [{
+        id: "3",
+        name: "Vitamin C",
+        quantity: 3,
+        price: 800,
+        total: 2400
+      }],
       total: 2400,
       date: "2024-02-21",
-      status: "pending",
-    },
+      status: "pending"
+    }
   ];
 
   const filteredSales = recentSales.filter(sale => {
     const matchesSearch = searchTerm === "" || 
-      sale.product.toLowerCase().includes(searchTerm.toLowerCase());
+      sale.items.some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
     
     const saleDate = new Date(sale.date);
     const matchesDateFrom = !dateFrom || saleDate >= dateFrom;
@@ -80,18 +93,13 @@ const Sales = () => {
     return matchesSearch && matchesDateFrom && matchesDateTo && matchesStatus;
   });
 
-  const handlePrintInvoice = async (saleId: number) => {
+  const handlePrintInvoice = async (saleId: string) => {
     const sale = recentSales.find(s => s.id === saleId);
     if (!sale) return;
 
     try {
       await printReceipt({
-        items: [{
-          name: sale.product,
-          quantity: sale.quantity,
-          price: sale.price,
-          total: sale.total
-        }],
+        items: sale.items,
         date: new Date(sale.date)
       });
 
@@ -252,10 +260,10 @@ const Sales = () => {
                 {filteredSales.length > 0 ? (
                   filteredSales.map((sale) => (
                     <TableRow key={sale.id}>
-                      <TableCell>{sale.product}</TableCell>
-                      <TableCell>{sale.quantity}</TableCell>
-                      <TableCell>{sale.price}</TableCell>
-                      <TableCell>{sale.total}</TableCell>
+                      <TableCell>{sale.items[0].name}</TableCell>
+                      <TableCell>{sale.items[0].quantity}</TableCell>
+                      <TableCell>{sale.items[0].price}</TableCell>
+                      <TableCell>{sale.items[0].total}</TableCell>
                       <TableCell>{sale.date}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${

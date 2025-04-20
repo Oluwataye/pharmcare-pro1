@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useSales } from "@/hooks/useSales";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,76 +14,22 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Search, Printer, X, Plus } from "lucide-react";
-import { printReceipt } from "@/utils/receiptPrinter";
-
-interface SaleItem {
-  id: string;
-  name: string;
-  quantity: number;
-  price: number;
-  total: number;
-}
+import { Product } from "@/types/sales";
 
 const NewSale = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const [items, setItems] = useState<SaleItem[]>([]);
+  const { items, addItem, removeItem, updateQuantity, calculateTotal, handlePrint } = useSales();
 
-  const searchProducts = (term: string) => {
+  const searchProducts = (term: string): Product[] => {
     const mockProducts = [
-      { id: "1", name: "Paracetamol", price: 500 },
-      { id: "2", name: "Amoxicillin", price: 1200 },
+      { id: "1", name: "Paracetamol", price: 500, stock: 100 },
+      { id: "2", name: "Amoxicillin", price: 1200, stock: 50 },
     ];
     return mockProducts.filter(p => 
       p.name.toLowerCase().includes(term.toLowerCase())
     );
-  };
-
-  const addItem = (product: { id: string; name: string; price: number }) => {
-    const existingItem = items.find(item => item.id === product.id);
-    if (existingItem) {
-      setItems(items.map(item =>
-        item.id === product.id
-          ? { ...item, quantity: item.quantity + 1, total: (item.quantity + 1) * item.price }
-          : item
-      ));
-    } else {
-      setItems([...items, {
-        ...product,
-        quantity: 1,
-        total: product.price
-      }]);
-    }
-  };
-
-  const removeItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
-  };
-
-  const updateQuantity = (id: string, quantity: number) => {
-    if (quantity < 1) return;
-    setItems(items.map(item =>
-      item.id === id
-        ? { ...item, quantity, total: quantity * item.price }
-        : item
-    ));
-  };
-
-  const handlePrint = async () => {
-    try {
-      await printReceipt({ items });
-      toast({
-        title: "Success",
-        description: "Receipt sent to printer",
-      });
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to print receipt",
-        variant: "destructive",
-      });
-    }
   };
 
   const handleCompleteSale = async () => {
@@ -223,9 +170,9 @@ const NewSale = () => {
             {items.length > 0 && (
               <div className="mt-4 flex justify-between items-center">
                 <div className="text-lg font-bold">
-                  Total: ₦{items.reduce((sum, item) => sum + item.total, 0)}
+                  Total: ₦{calculateTotal()}
                 </div>
-                <Button variant="outline" onClick={handlePrint}>
+                <Button variant="outline" onClick={() => handlePrint()}>
                   <Printer className="mr-2 h-4 w-4" />
                   Print Receipt
                 </Button>
