@@ -13,6 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Search, Printer, X, Plus } from "lucide-react";
+import { printReceipt } from "@/utils/receiptPrinter";
 
 interface SaleItem {
   id: string;
@@ -70,64 +71,7 @@ const NewSale = () => {
 
   const handlePrint = async () => {
     try {
-      if (!('printer' in navigator)) {
-        throw new Error('Printing is not supported in this browser');
-      }
-
-      const printContent = `
-        <html>
-          <head>
-            <title>Sale Receipt</title>
-            <style>
-              body { font-family: monospace; font-size: 12px; }
-              .header { text-align: center; margin-bottom: 10px; }
-              .item { margin: 5px 0; }
-              .total { margin-top: 10px; border-top: 1px solid #000; }
-              .footer { 
-                margin-top: 20px; 
-                text-align: center; 
-                border-top: 1px solid #000; 
-                padding-top: 10px; 
-                font-size: 10px; 
-                color: #666; 
-              }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h2>PharmaCare Pro</h2>
-              <p>Sale Receipt</p>
-              <p>${new Date().toLocaleString()}</p>
-            </div>
-            ${items.map(item => `
-              <div class="item">
-                ${item.name}<br/>
-                ${item.quantity} x ₦${item.price} = ₦${item.total}
-              </div>
-            `).join('')}
-            <div class="total">
-              <p>Total: ₦${items.reduce((sum, item) => sum + item.total, 0)}</p>
-            </div>
-            <div class="footer">
-              <p>Thank you for your purchase!</p>
-              <p>Powered By T-Tech Solutions</p>
-            </div>
-          </body>
-        </html>
-      `;
-
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      document.body.appendChild(iframe);
-      
-      iframe.contentDocument?.write(printContent);
-      iframe.contentDocument?.close();
-
-      iframe.contentWindow?.print();
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 1000);
-
+      await printReceipt({ items });
       toast({
         title: "Success",
         description: "Receipt sent to printer",

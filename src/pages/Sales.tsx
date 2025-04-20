@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -28,6 +27,7 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { useToast } from "@/hooks/use-toast";
+import { printReceipt } from "@/utils/receiptPrinter";
 
 const Sales = () => {
   const navigate = useNavigate();
@@ -37,7 +37,6 @@ const Sales = () => {
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
-  // Sample data - in a real app, this would come from API
   const recentSales = [
     {
       id: 1,
@@ -68,7 +67,6 @@ const Sales = () => {
     },
   ];
 
-  // Filter sales based on search term, date range, and status
   const filteredSales = recentSales.filter(sale => {
     const matchesSearch = searchTerm === "" || 
       sale.product.toLowerCase().includes(searchTerm.toLowerCase());
@@ -82,97 +80,25 @@ const Sales = () => {
     return matchesSearch && matchesDateFrom && matchesDateTo && matchesStatus;
   });
 
-  // Print invoice function
-  const handlePrintInvoice = (saleId: number) => {
+  const handlePrintInvoice = async (saleId: number) => {
     const sale = recentSales.find(s => s.id === saleId);
     if (!sale) return;
 
     try {
-      // Create print content with proper styling
-      const printContent = `
-        <html>
-          <head>
-            <title>Sale Receipt #${sale.id}</title>
-            <style>
-              @media print {
-                body { 
-                  font-family: Arial, sans-serif;
-                  margin: 0;
-                  padding: 20px;
-                  font-size: 12px;
-                }
-                .receipt {
-                  width: 100%;
-                  max-width: 300px;
-                  margin: 0 auto;
-                }
-                .header {
-                  text-align: center;
-                  margin-bottom: 15px;
-                  border-bottom: 1px dashed #ccc;
-                  padding-bottom: 10px;
-                }
-                .item {
-                  display: flex;
-                  justify-content: space-between;
-                  margin: 5px 0;
-                }
-                .footer {
-                  margin-top: 15px;
-                  text-align: center;
-                  border-top: 1px dashed #ccc;
-                  padding-top: 10px;
-                }
-              }
-            </style>
-          </head>
-          <body>
-            <div class="receipt">
-              <div class="header">
-                <h2>PharmaCare Pro</h2>
-                <p>Receipt #${sale.id}</p>
-                <p>Date: ${sale.date}</p>
-              </div>
-              <div class="item">
-                <span>${sale.product} x ${sale.quantity}</span>
-                <span>₦${sale.price} each</span>
-              </div>
-              <div class="item" style="font-weight: bold;">
-                <span>Total:</span>
-                <span>₦${sale.total}</span>
-              </div>
-              <div class="footer">
-                <p>Thank you for your purchase!</p>
-                <p>Powered By T-Tech Solutions</p>
-              </div>
-            </div>
-            <script>
-              // Auto-print when loaded
-              window.onload = function() {
-                window.print();
-                setTimeout(function() {
-                  window.close();
-                }, 500);
-              };
-            </script>
-          </body>
-        </html>
-      `;
-
-      // Cross-browser compatible printing approach
-      const printWindow = window.open('', 'Print Receipt', 'height=600,width=800');
-      if (printWindow) {
-        printWindow.document.write(printContent);
-        printWindow.document.close();
-      } else {
-        throw new Error("Popup blocked. Please allow popups for printing receipts.");
-      }
+      await printReceipt({
+        items: [{
+          name: sale.product,
+          quantity: sale.quantity,
+          price: sale.price,
+          total: sale.total
+        }],
+        date: new Date(sale.date)
+      });
 
       toast({
         title: "Print Initiated",
         description: "Receipt sent to printer",
       });
-
     } catch (error) {
       toast({
         title: "Print Error",
