@@ -143,6 +143,7 @@ const Sales = () => {
               </div>
               <div class="footer">
                 <p>Thank you for your purchase!</p>
+                <p>Powered By T-Tech Solutions</p>
               </div>
             </div>
             <script>

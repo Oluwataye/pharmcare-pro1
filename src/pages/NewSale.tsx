@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -29,9 +28,7 @@ const NewSale = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [items, setItems] = useState<SaleItem[]>([]);
 
-  // Mock product search - replace with actual API call
   const searchProducts = (term: string) => {
-    // Simulated product search
     const mockProducts = [
       { id: "1", name: "Paracetamol", price: 500 },
       { id: "2", name: "Amoxicillin", price: 1200 },
@@ -73,12 +70,10 @@ const NewSale = () => {
 
   const handlePrint = async () => {
     try {
-      // Check if printer is available
       if (!('printer' in navigator)) {
         throw new Error('Printing is not supported in this browser');
       }
 
-      // Create print content
       const printContent = `
         <html>
           <head>
@@ -88,6 +83,14 @@ const NewSale = () => {
               .header { text-align: center; margin-bottom: 10px; }
               .item { margin: 5px 0; }
               .total { margin-top: 10px; border-top: 1px solid #000; }
+              .footer { 
+                margin-top: 20px; 
+                text-align: center; 
+                border-top: 1px solid #000; 
+                padding-top: 10px; 
+                font-size: 10px; 
+                color: #666; 
+              }
             </style>
           </head>
           <body>
@@ -105,11 +108,14 @@ const NewSale = () => {
             <div class="total">
               <p>Total: ₦${items.reduce((sum, item) => sum + item.total, 0)}</p>
             </div>
+            <div class="footer">
+              <p>Thank you for your purchase!</p>
+              <p>Powered By T-Tech Solutions</p>
+            </div>
           </body>
         </html>
       `;
 
-      // Create a hidden iframe for printing
       const iframe = document.createElement('iframe');
       iframe.style.display = 'none';
       document.body.appendChild(iframe);
@@ -117,7 +123,6 @@ const NewSale = () => {
       iframe.contentDocument?.write(printContent);
       iframe.contentDocument?.close();
 
-      // Print and remove iframe
       iframe.contentWindow?.print();
       setTimeout(() => {
         document.body.removeChild(iframe);
@@ -147,7 +152,6 @@ const NewSale = () => {
     }
 
     try {
-      // Save sale to database (mock implementation)
       await handlePrint();
       toast({
         title: "Success",
