@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -43,6 +44,11 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
       customerPhone: "",
     },
   });
+
+  // Add the missing calculateTotal function
+  const calculateTotal = () => {
+    return items.reduce((sum, item) => sum + item.total, 0);
+  };
 
   const filteredProducts = productDatabase.filter(
     product => product.name.toLowerCase().includes(searchQuery.toLowerCase())
