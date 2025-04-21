@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState } from 'react';
 import { AuthState, User, UserRole } from '@/lib/types';
 
