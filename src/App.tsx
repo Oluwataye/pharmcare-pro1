@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -45,12 +46,11 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              {/* All roles can access sales now */}
               <Route
                 path="/sales"
                 element={
-                  <ProtectedRoute
-                    requiredPermission={{ action: "read", resource: "sales" }}
-                  >
+                  <ProtectedRoute>
                     <Sales />
                   </ProtectedRoute>
                 }
@@ -58,9 +58,7 @@ const App = () => (
               <Route
                 path="/sales/new"
                 element={
-                  <ProtectedRoute
-                    requiredPermission={{ action: "create", resource: "sales" }}
-                  >
+                  <ProtectedRoute>
                     <NewSale />
                   </ProtectedRoute>
                 }
@@ -78,9 +76,7 @@ const App = () => (
               <Route
                 path="/settings"
                 element={
-                  <ProtectedRoute
-                    requiredPermission={{ action: "update", resource: "settings" }}
-                  >
+                  <ProtectedRoute>
                     <Settings />
                   </ProtectedRoute>
                 }

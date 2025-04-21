@@ -20,7 +20,7 @@ const Sidebar = () => {
   const { logout, user } = useAuth();
   const {
     canAccessInventory,
-    canAccessSales,
+    canManageInventory,
     canAccessUsers,
     canAccessReports,
   } = usePermissions();
@@ -42,7 +42,8 @@ const Sidebar = () => {
       icon: ShoppingCart, 
       label: "Sales", 
       path: "/sales",
-      condition: canAccessSales()
+      // All users can now access sales
+      condition: true
     },
     { 
       icon: Users, 
@@ -60,7 +61,7 @@ const Sidebar = () => {
       icon: Settings, 
       label: "Settings", 
       path: "/settings",
-      condition: user?.role === 'ADMIN'
+      condition: true // All users can access settings, but their view will be restricted
     },
   ];
 
@@ -114,9 +115,12 @@ const Sidebar = () => {
           Logout
         </Button>
       </div>
+      
+      <div className="p-4 border-t text-xs text-muted-foreground text-center">
+        2025 © T-Tech Solutions
+      </div>
     </div>
   );
 };
 
 export default Sidebar;
-

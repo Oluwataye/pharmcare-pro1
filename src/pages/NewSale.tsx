@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -13,14 +14,26 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Search, Printer, X, Plus } from "lucide-react";
+import { Search, Printer, X, Plus, Percent } from "lucide-react";
 import { Product } from "@/types/sales";
+import { Label } from "@/components/ui/label";
 
 const NewSale = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const { items, addItem, removeItem, updateQuantity, calculateTotal, handlePrint } = useSales();
+  const { 
+    items, 
+    discount, 
+    addItem, 
+    removeItem, 
+    updateQuantity, 
+    setOverallDiscount,
+    calculateTotal, 
+    calculateSubtotal,
+    calculateDiscountAmount,
+    handlePrint 
+  } = useSales();
 
   const searchProducts = (term: string): Product[] => {
     const mockProducts = [
@@ -168,15 +181,49 @@ const NewSale = () => {
               </TableBody>
             </Table>
             {items.length > 0 && (
-              <div className="mt-4 flex justify-between items-center">
-                <div className="text-lg font-bold">
-                  Total: ₦{calculateTotal()}
+              <>
+                <div className="mt-4 space-y-4">
+                  <div className="flex items-center space-x-2">
+                    <Label htmlFor="discount">Overall Discount (%):</Label>
+                    <div className="flex items-center relative">
+                      <Percent className="absolute left-2 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="discount"
+                        type="number"
+                        min="0"
+                        max="100"
+                        className="pl-8 w-24"
+                        value={discount}
+                        onChange={(e) => setOverallDiscount(parseInt(e.target.value) || 0)}
+                      />
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col space-y-1">
+                    <div className="flex justify-between">
+                      <span>Subtotal:</span>
+                      <span>₦{calculateSubtotal().toFixed(2)}</span>
+                    </div>
+                    {calculateDiscountAmount() > 0 && (
+                      <div className="flex justify-between text-muted-foreground">
+                        <span>Discount:</span>
+                        <span>-₦{calculateDiscountAmount().toFixed(2)}</span>
+                      </div>
+                    )}
+                    <div className="flex justify-between font-bold">
+                      <span>Total:</span>
+                      <span>₦{calculateTotal().toFixed(2)}</span>
+                    </div>
+                  </div>
                 </div>
-                <Button variant="outline" onClick={() => handlePrint()}>
-                  <Printer className="mr-2 h-4 w-4" />
-                  Print Receipt
-                </Button>
-              </div>
+                
+                <div className="mt-4 flex justify-between items-center">
+                  <Button variant="outline" onClick={() => handlePrint()}>
+                    <Printer className="mr-2 h-4 w-4" />
+                    Print Receipt
+                  </Button>
+                </div>
+              </>
             )}
           </CardContent>
         </Card>

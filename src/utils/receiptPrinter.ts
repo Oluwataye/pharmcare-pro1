@@ -5,16 +5,23 @@ interface PrintReceiptProps {
     quantity: number;
     price: number;
     total: number;
+    discount?: number;
   }>;
   customerName?: string;
   customerPhone?: string;
   date?: Date;
+  discount?: number;
 }
 
-export const printReceipt = async ({ items, customerName, customerPhone, date = new Date() }: PrintReceiptProps) => {
+export const printReceipt = async ({ items, customerName, customerPhone, date = new Date(), discount = 0 }: PrintReceiptProps) => {
   if (!('printer' in navigator)) {
     throw new Error('Printing is not supported in this browser');
   }
+
+  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const discountAmount = (subtotal * discount / 100) + items.reduce((sum, item) => 
+    sum + (item.price * item.quantity * ((item.discount || 0) / 100)), 0);
+  const total = subtotal - discountAmount;
 
   const printContent = `
     <html>
@@ -49,15 +56,19 @@ export const printReceipt = async ({ items, customerName, customerPhone, date = 
         ${items.map(item => `
           <div class="item">
             ${item.name}<br/>
-            ${item.quantity} x ₦${item.price} = ₦${item.total}
+            ${item.quantity} x ₦${item.price} = ₦${item.quantity * item.price}
+            ${item.discount ? `<br/>Discount: ${item.discount}% (₦${(item.price * item.quantity * item.discount / 100).toFixed(2)})` : ''}
           </div>
         `).join('')}
         <div class="total">
-          <p>Total: ₦${items.reduce((sum, item) => sum + item.total, 0)}</p>
+          <p>Subtotal: ₦${subtotal.toFixed(2)}</p>
+          ${discount > 0 ? `<p>Overall Discount: ${discount}% (₦${(subtotal * discount / 100).toFixed(2)})</p>` : ''}
+          ${discountAmount > 0 ? `<p>Total Discount: ₦${discountAmount.toFixed(2)}</p>` : ''}
+          <p>Total: ₦${total.toFixed(2)}</p>
         </div>
         <div class="footer">
           <p>Thank you for your purchase!</p>
-          <p>Powered By T-Tech Solutions</p>
+          <p>2025 © T-Tech Solutions</p>
         </div>
       </body>
     </html>

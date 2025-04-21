@@ -8,6 +8,11 @@ export function usePermissions() {
   const hasPermission = (permission: Permission): boolean => {
     if (!user) return false;
     
+    // Special case: all users can access and manage sales
+    if (permission.resource === 'sales') {
+      return true;
+    }
+    
     const rolePermissions = ROLE_PERMISSIONS[user.role];
     return rolePermissions.some(
       (p) => p.action === permission.action && p.resource === permission.resource
@@ -23,11 +28,13 @@ export function usePermissions() {
   };
 
   const canAccessSales = (): boolean => {
-    return hasPermission({ action: 'read', resource: 'sales' });
+    // All users can access sales
+    return true;
   };
 
   const canManageSales = (): boolean => {
-    return hasPermission({ action: 'create', resource: 'sales' });
+    // All users can manage sales
+    return true;
   };
 
   const canAccessUsers = (): boolean => {

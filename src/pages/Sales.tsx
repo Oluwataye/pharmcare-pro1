@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { printReceipt } from "@/utils/receiptPrinter";
 import { Sale } from "@/types/sales";
 import {
@@ -20,6 +21,7 @@ import SalesStatsCards from "@/components/sales/SalesStatsCards";
 const Sales = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
@@ -189,6 +191,10 @@ const Sales = () => {
           </Table>
         </div>
       </div>
+      
+      <footer className="mt-8 pt-4 border-t text-center text-sm text-muted-foreground">
+        2025 © T-Tech Solutions
+      </footer>
     </div>
   );
 };

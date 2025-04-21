@@ -5,6 +5,7 @@ export interface SaleItem {
   quantity: number;
   price: number;
   total: number;
+  discount?: number; // Optional discount per item
 }
 
 export interface Sale {
@@ -15,6 +16,7 @@ export interface Sale {
   status: 'completed' | 'pending';
   customerName?: string;
   customerPhone?: string;
+  discount?: number; // Overall sale discount
 }
 
 export interface Product {
@@ -22,4 +24,11 @@ export interface Product {
   name: string;
   price: number;
   stock: number;
+  discount?: number; // Potential product discount
+}
+
+export interface DiscountConfig {
+  defaultDiscount: number;
+  maxDiscount: number;
+  enabled: boolean;
 }
