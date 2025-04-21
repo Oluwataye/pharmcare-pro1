@@ -90,7 +90,7 @@ const Sales = () => {
       await printReceipt({
         items: sale.items,
         date: new Date(sale.date),
-        cashierName: user ? user.name : undefined,
+        cashierName: user ? user.username || user.name : undefined,
       });
 
       toast({

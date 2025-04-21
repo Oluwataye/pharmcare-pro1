@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -34,7 +35,7 @@ const NewSale = () => {
     calculateSubtotal,
     calculateDiscountAmount,
     handlePrint,
-  } = useSales({ cashierName: user ? user.name : undefined });
+  } = useSales({ cashierName: user ? user.username || user.name : undefined });
 
   const searchProducts = (term: string): Product[] => {
     const mockProducts = [
@@ -57,7 +58,9 @@ const NewSale = () => {
     }
 
     try {
-      await handlePrint();
+      await handlePrint({
+        cashierName: user ? user.username || user.name : undefined
+      });
       toast({
         title: "Success",
         description: "Sale completed successfully",
