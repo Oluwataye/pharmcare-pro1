@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -90,7 +89,8 @@ const Sales = () => {
     try {
       await printReceipt({
         items: sale.items,
-        date: new Date(sale.date)
+        date: new Date(sale.date),
+        cashierName: user ? user.name : undefined,
       });
 
       toast({

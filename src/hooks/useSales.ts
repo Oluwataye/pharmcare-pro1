@@ -4,7 +4,7 @@ import { useToast } from '@/hooks/use-toast';
 import { SaleItem, Product } from '@/types/sales';
 import { printReceipt } from '@/utils/receiptPrinter';
 
-export const useSales = () => {
+export const useSales = (options?: { cashierName?: string }) => {
   const [items, setItems] = useState<SaleItem[]>([]);
   const [discount, setDiscount] = useState<number>(0);
   const { toast } = useToast();
@@ -108,10 +108,11 @@ export const useSales = () => {
 
   const handlePrint = async (customerInfo?: { customerName?: string; customerPhone?: string }) => {
     try {
-      await printReceipt({ 
+      await printReceipt({
         items,
         discount,
-        ...customerInfo
+        ...customerInfo,
+        cashierName: options?.cashierName,
       });
       toast({
         title: "Success",

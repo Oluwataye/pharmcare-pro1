@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
@@ -17,23 +16,25 @@ import {
 import { Search, Printer, X, Plus, Percent } from "lucide-react";
 import { Product } from "@/types/sales";
 import { Label } from "@/components/ui/label";
+import { useAuth } from "@/contexts/AuthContext";
 
 const NewSale = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
-  const { 
-    items, 
-    discount, 
-    addItem, 
-    removeItem, 
-    updateQuantity, 
+  const { user } = useAuth();
+  const {
+    items,
+    discount,
+    addItem,
+    removeItem,
+    updateQuantity,
     setOverallDiscount,
-    calculateTotal, 
+    calculateTotal,
     calculateSubtotal,
     calculateDiscountAmount,
-    handlePrint 
-  } = useSales();
+    handlePrint,
+  } = useSales({ cashierName: user ? user.name : undefined });
 
   const searchProducts = (term: string): Product[] => {
     const mockProducts = [
