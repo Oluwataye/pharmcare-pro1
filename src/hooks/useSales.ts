@@ -4,7 +4,19 @@ import { useToast } from '@/hooks/use-toast';
 import { SaleItem, Product } from '@/types/sales';
 import { printReceipt } from '@/utils/receiptPrinter';
 
-export const useSales = (options?: { cashierName?: string }) => {
+interface UseSalesOptions {
+  cashierName?: string;
+}
+
+interface HandlePrintOptions {
+  customerInfo?: {
+    customerName?: string;
+    customerPhone?: string;
+    cashierName?: string;
+  };
+}
+
+export const useSales = (options?: UseSalesOptions) => {
   const [items, setItems] = useState<SaleItem[]>([]);
   const [discount, setDiscount] = useState<number>(0);
   const { toast } = useToast();
@@ -106,14 +118,16 @@ export const useSales = (options?: { cashierName?: string }) => {
     setDiscount(value);
   };
 
-  const handlePrint = async (customerInfo?: { customerName?: string; customerPhone?: string }) => {
+  const handlePrint = async (options?: HandlePrintOptions) => {
     try {
       await printReceipt({
         items,
         discount,
-        ...customerInfo,
-        cashierName: options?.cashierName,
+        cashierName: options?.customerInfo?.cashierName || options?.customerInfo?.cashierName,
+        customerName: options?.customerInfo?.customerName,
+        customerPhone: options?.customerInfo?.customerPhone,
       });
+      
       toast({
         title: "Success",
         description: "Receipt sent to printer",

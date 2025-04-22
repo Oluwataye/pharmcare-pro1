@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState } from 'react';
 import { AuthState, User, UserRole } from '@/lib/types';
 
@@ -21,16 +22,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Map email to appropriate role
       let role: UserRole = "ADMIN"; // Default role
       let name = "John Doe"; // Default name
+      let username = "admin"; // Default username
       
       if (email === "cashier@demo.com" && password === "cashier123") {
         role = "CASHIER";
         name = "Cashier User";
+        username = "cashier1";
       } else if (email === "pharmacist@demo.com" && password === "pharmacist123") {
         role = "PHARMACIST";
         name = "Pharmacist User";
+        username = "pharmacist1";
       } else if (email === "admin@demo.com" && password === "admin123") {
         role = "ADMIN";
         name = "Admin User";
+        username = "admin";
       } else if (email !== "admin@demo.com") {
         // If email doesn't match any predefined user and it's not the default admin
         throw new Error("Invalid credentials");
@@ -40,6 +45,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: '1',
         email,
         name,
+        username,
         role,
       };
       

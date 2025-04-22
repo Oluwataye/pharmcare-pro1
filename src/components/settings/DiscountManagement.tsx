@@ -4,6 +4,7 @@ import { useToast } from "@/hooks/use-toast";
 import { DiscountSettings } from "@/components/admin/DiscountSettings";
 import { DiscountConfig } from "@/types/sales";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 // Mock initial discount configuration
 const initialDiscountConfig: DiscountConfig = {
@@ -31,10 +32,26 @@ export const DiscountManagement = () => {
         <CardTitle>Discount Management</CardTitle>
       </CardHeader>
       <CardContent>
-        <DiscountSettings 
-          initialConfig={discountConfig} 
-          onSave={handleSaveDiscountConfig} 
-        />
+        <Tabs defaultValue="settings" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="settings">Settings</TabsTrigger>
+            <TabsTrigger value="history">Discount History</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="settings">
+            <DiscountSettings 
+              initialConfig={discountConfig} 
+              onSave={handleSaveDiscountConfig} 
+            />
+          </TabsContent>
+          
+          <TabsContent value="history">
+            <div className="p-4 bg-muted rounded-lg text-center">
+              <p>Discount usage statistics will be displayed here.</p>
+              <p className="text-muted-foreground">Feature coming soon.</p>
+            </div>
+          </TabsContent>
+        </Tabs>
       </CardContent>
     </Card>
   );

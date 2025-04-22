@@ -5,6 +5,7 @@ export interface User {
   id: string;
   email: string;
   name: string;
+  username?: string; // Add optional username property
   role: UserRole;
 }
 

@@ -17,6 +17,7 @@ export interface Sale {
   customerName?: string;
   customerPhone?: string;
   discount?: number; // Overall sale discount
+  cashierName?: string; // Added cashier name
 }
 
 export interface Product {

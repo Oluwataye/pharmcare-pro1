@@ -1,26 +1,14 @@
+
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { printReceipt } from "@/utils/receiptPrinter";
 import { Sale } from "@/types/sales";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Button } from "@/components/ui/button";
-import { Printer, Plus } from "lucide-react";
+import SalesHeader from "@/components/sales/SalesHeader";
 import SalesFilters from "@/components/sales/SalesFilters";
 import SalesStatsCards from "@/components/sales/SalesStatsCards";
+import SalesTable from "@/components/sales/SalesTable";
 
 const Sales = () => {
-  const navigate = useNavigate();
   const { toast } = useToast();
-  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
@@ -38,7 +26,8 @@ const Sales = () => {
       }],
       total: 1000,
       date: "2024-02-20",
-      status: "completed"
+      status: "completed",
+      cashierName: "John Doe"
     },
     {
       id: "2",
@@ -51,7 +40,8 @@ const Sales = () => {
       }],
       total: 1500,
       date: "2024-02-20",
-      status: "completed"
+      status: "completed",
+      cashierName: "Jane Smith"
     },
     {
       id: "3",
@@ -64,7 +54,8 @@ const Sales = () => {
       }],
       total: 2400,
       date: "2024-02-21",
-      status: "pending"
+      status: "pending",
+      cashierName: "Admin User"
     }
   ];
 
@@ -81,40 +72,12 @@ const Sales = () => {
   const totalSalesToday = 25500;
   const totalTransactions = 15;
   const averageSaleValue = 1700;
-
-  const handlePrintInvoice = async (saleId: string) => {
-    const sale = recentSales.find(s => s.id === saleId);
-    if (!sale) return;
-
-    try {
-      await printReceipt({
-        items: sale.items,
-        date: new Date(sale.date),
-        cashierName: user ? user.username || user.name : undefined,
-      });
-
-      toast({
-        title: "Print Initiated",
-        description: "Receipt sent to printer",
-      });
-    } catch (error) {
-      toast({
-        title: "Print Error",
-        description: error instanceof Error ? error.message : "Failed to print receipt",
-        variant: "destructive",
-      });
-    }
-  };
+  const totalDiscounts = 1500; // Added total discounts for the stats card
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex flex-col md:flex-row justify-between gap-4 items-center">
-        <h1 className="text-2xl font-bold">Sales Management</h1>
-        <Button onClick={() => navigate("/sales/new")}>
-          <Plus className="mr-2 h-4 w-4" />
-          New Sale
-        </Button>
-      </div>
+      <SalesHeader title="Sales Management" />
+      
       <SalesFilters
         searchTerm={searchTerm}
         onSearchTermChange={setSearchTerm}
@@ -131,66 +94,15 @@ const Sales = () => {
           setFilterStatus("all");
         }}
       />
+      
       <SalesStatsCards
         totalSalesToday={totalSalesToday}
         totalTransactions={totalTransactions}
         averageSaleValue={averageSaleValue}
+        totalDiscounts={totalDiscounts}
       />
 
-      <div>
-        <div className="rounded-md border">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Product</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Price (₦)</TableHead>
-                <TableHead>Total (₦)</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredSales.length > 0 ? (
-                filteredSales.map((sale) => (
-                  <TableRow key={sale.id}>
-                    <TableCell>{sale.items[0].name}</TableCell>
-                    <TableCell>{sale.items[0].quantity}</TableCell>
-                    <TableCell>{sale.items[0].price}</TableCell>
-                    <TableCell>{sale.items[0].total}</TableCell>
-                    <TableCell>{sale.date}</TableCell>
-                    <TableCell>
-                      <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
-                        sale.status === "completed" 
-                          ? "bg-green-50 text-green-700" 
-                          : "bg-yellow-50 text-yellow-700"
-                      }`}>
-                        {sale.status.charAt(0).toUpperCase() + sale.status.slice(1)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        onClick={() => handlePrintInvoice(sale.id)}
-                      >
-                        <Printer className="h-4 w-4" />
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={7} className="h-24 text-center">
-                    No sales found
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
-        </div>
-      </div>
+      <SalesTable sales={filteredSales} />
       
       <footer className="mt-8 pt-4 border-t text-center text-sm text-muted-foreground">
         2025 © T-Tech Solutions
