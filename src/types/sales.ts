@@ -1,4 +1,3 @@
-
 export interface SaleItem {
   id: string;
   name: string;
@@ -32,4 +31,6 @@ export interface DiscountConfig {
   defaultDiscount: number;
   maxDiscount: number;
   enabled: boolean;
+  bulkDiscountEnabled?: boolean;
+  loyaltyDiscountEnabled?: boolean;
 }

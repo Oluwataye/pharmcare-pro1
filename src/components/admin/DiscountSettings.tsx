@@ -23,6 +23,10 @@ interface DiscountSettingsProps {
 
 export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProps) => {
   const [config, setConfig] = useState<DiscountConfig>(initialConfig);
+  const [advancedSettings, setAdvancedSettings] = useState({
+    bulkDiscountEnabled: true,
+    loyaltyDiscountEnabled: false,
+  });
   const { toast } = useToast();
 
   const handleSave = () => {
@@ -35,11 +39,35 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
       return;
     }
     
-    onSave(config);
+    // Include advanced settings in the save
+    const updatedConfig = {
+      ...config,
+      bulkDiscountEnabled: advancedSettings.bulkDiscountEnabled,
+      loyaltyDiscountEnabled: advancedSettings.loyaltyDiscountEnabled,
+    };
+    
+    onSave(updatedConfig);
     toast({
       title: "Success",
       description: "Discount settings saved successfully",
     });
+  };
+
+  const handleLoyaltyDiscountToggle = (checked: boolean) => {
+    setAdvancedSettings({
+      ...advancedSettings,
+      loyaltyDiscountEnabled: checked,
+    });
+    
+    // Only show toast if the discount system is enabled
+    if (config.enabled) {
+      toast({
+        title: checked ? "Loyalty Discount Enabled" : "Loyalty Discount Disabled",
+        description: checked 
+          ? "Loyalty customers will now receive special discounts" 
+          : "Loyalty discount feature has been disabled",
+      });
+    }
   };
 
   return (
@@ -108,7 +136,13 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
                   <Label htmlFor="bulk-discount-enabled">Bulk Purchase Discounts</Label>
                   <Switch
                     id="bulk-discount-enabled"
-                    checked={true}
+                    checked={advancedSettings.bulkDiscountEnabled}
+                    onCheckedChange={(checked) => 
+                      setAdvancedSettings({
+                        ...advancedSettings,
+                        bulkDiscountEnabled: checked
+                      })
+                    }
                     disabled={!config.enabled}
                   />
                 </div>
@@ -116,11 +150,29 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
                   <Label htmlFor="loyalty-discount-enabled">Loyalty Customer Discounts</Label>
                   <Switch
                     id="loyalty-discount-enabled"
-                    checked={false}
+                    checked={advancedSettings.loyaltyDiscountEnabled}
+                    onCheckedChange={handleLoyaltyDiscountToggle}
                     disabled={!config.enabled}
                   />
                 </div>
               </div>
+              
+              {advancedSettings.loyaltyDiscountEnabled && config.enabled && (
+                <div className="mt-4 border rounded-md p-4 space-y-2 bg-muted/50">
+                  <h3 className="font-medium">Loyalty Discount Settings</h3>
+                  <div className="space-y-2">
+                    <Label htmlFor="loyalty-discount-percent">Loyalty Customer Discount (%)</Label>
+                    <Input
+                      id="loyalty-discount-percent"
+                      type="number"
+                      min="0"
+                      max="100"
+                      defaultValue="10"
+                      disabled={!config.enabled || !advancedSettings.loyaltyDiscountEnabled}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
           </TabsContent>
         </Tabs>
