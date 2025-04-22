@@ -8,7 +8,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Trash, AlertTriangle, ShoppingCart, Package } from "lucide-react";
+import { Trash, AlertTriangle, Package } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface InventoryItem {
@@ -29,9 +29,25 @@ interface InventoryTableProps {
 
 export const InventoryTable = ({ inventory, onDeleteItem }: InventoryTableProps) => {
   const getStockStatus = (item: InventoryItem) => {
-    if (item.quantity <= 0) return { color: "text-red-600", message: "Out of stock" };
-    if (item.quantity <= item.reorderLevel) return { color: "text-yellow-600", message: "Low stock" };
-    return { color: "text-green-600", message: "In stock" };
+    if (item.quantity <= 0) {
+      return { 
+        color: "text-red-600", 
+        message: "Out of stock",
+        icon: <AlertTriangle className="h-4 w-4" />
+      };
+    }
+    if (item.quantity <= item.reorderLevel) {
+      return { 
+        color: "text-yellow-600", 
+        message: "Low stock",
+        icon: <AlertTriangle className="h-4 w-4" />
+      };
+    }
+    return { 
+      color: "text-green-600", 
+      message: "In stock",
+      icon: <Package className="h-4 w-4" />
+    };
   };
 
   return (
@@ -58,32 +74,24 @@ export const InventoryTable = ({ inventory, onDeleteItem }: InventoryTableProps)
                 <TableCell>{item.category}</TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
-                    {item.quantity <= item.reorderLevel ? (
-                      <TooltipProvider>
-                        <Tooltip>
-                          <TooltipTrigger asChild>
-                            <span className="flex items-center gap-1">
-                              <AlertTriangle className={`h-4 w-4 ${stockStatus.color}`} />
-                              <span className={stockStatus.color}>{stockStatus.message}</span>
-                            </span>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            <p>Reorder level: {item.reorderLevel} {item.unit}</p>
-                          </TooltipContent>
-                        </Tooltip>
-                      </TooltipProvider>
-                    ) : (
-                      <span className={`flex items-center gap-1 ${stockStatus.color}`}>
-                        <Package className="h-4 w-4" />
-                        {stockStatus.message}
-                      </span>
-                    )}
+                    <TooltipProvider>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className={`flex items-center gap-1 ${stockStatus.color}`}>
+                            {stockStatus.icon}
+                            <span>{stockStatus.message}</span>
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                          <p>Current Stock: {item.quantity} {item.unit}</p>
+                          <p>Reorder Level: {item.reorderLevel} {item.unit}</p>
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </div>
                 </TableCell>
-                <TableCell className="text-right">
-                  <span className={item.quantity <= item.reorderLevel ? stockStatus.color : ""}>
-                    {item.quantity} {item.unit}
-                  </span>
+                <TableCell className={`text-right ${stockStatus.color}`}>
+                  {item.quantity} {item.unit}
                 </TableCell>
                 <TableCell className="text-right">
                   ₦{item.price.toLocaleString()}

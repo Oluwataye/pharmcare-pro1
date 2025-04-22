@@ -43,6 +43,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { action: 'update', resource: 'inventory' },
     { action: 'delete', resource: 'inventory' },
     { action: 'read', resource: 'sales' },
+    { action: 'create', resource: 'sales' }, // Added create sales permission
+    { action: 'update', resource: 'sales' }, // Added update sales permission
   ],
   CASHIER: [
     { action: 'create', resource: 'sales' },
