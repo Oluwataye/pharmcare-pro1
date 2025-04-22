@@ -1,7 +1,7 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { DiscountSettings } from "@/components/admin/DiscountSettings";
+import { DiscountHistory } from "@/components/admin/DiscountHistory";
 import { DiscountConfig } from "@/types/sales";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -46,10 +46,7 @@ export const DiscountManagement = () => {
           </TabsContent>
           
           <TabsContent value="history">
-            <div className="p-4 bg-muted rounded-lg text-center">
-              <p>Discount usage statistics will be displayed here.</p>
-              <p className="text-muted-foreground">Feature coming soon.</p>
-            </div>
+            <DiscountHistory />
           </TabsContent>
         </Tabs>
       </CardContent>

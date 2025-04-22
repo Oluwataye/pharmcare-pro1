@@ -1,4 +1,3 @@
-
 interface PrintReceiptProps {
   items: Array<{
     name: string;
@@ -32,7 +31,6 @@ export const printReceipt = async ({
       );
     const total = subtotal - discountAmount;
 
-    // Create print-friendly content
     const printContent = `
       <html>
         <head>
@@ -60,6 +58,7 @@ export const printReceipt = async ({
         <body>
           <div class="header">
             <h2>PharmaCare Pro</h2>
+            <p>+234 123 456 7890</p>
             <p>Sale Receipt</p>
             <p>${date.toLocaleString()}</p>
           </div>
@@ -112,7 +111,6 @@ export const printReceipt = async ({
       </html>
     `;
 
-    // Create new window for cross-browser compatibility
     const printWindow = window.open('', '_blank');
     
     if (!printWindow) {
@@ -122,11 +120,9 @@ export const printReceipt = async ({
     printWindow.document.write(printContent);
     printWindow.document.close();
     
-    // Give the browser a moment to load the content before printing
     setTimeout(() => {
       printWindow.focus();
       printWindow.print();
-      // Don't close the window automatically, let the user close it after printing
     }, 500);
     
     return true;
