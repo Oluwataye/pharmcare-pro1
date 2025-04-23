@@ -6,12 +6,14 @@ import {
   FileText, 
   Package, 
   ShoppingCart, 
-  Users 
+  Users,
+  History 
 } from "lucide-react";
 import InventoryReport from "@/components/reports/InventoryReport";
 import TransactionsReport from "@/components/reports/TransactionsReport";
 import UserAuditReport from "@/components/reports/UserAuditReport";
 import SalesReport from "@/components/reports/SalesReport";
+import TransactionAuditLog from "@/components/reports/TransactionAuditLog";
 
 const Reports = () => {
   const [activeTab, setActiveTab] = useState("inventory");
@@ -43,6 +45,10 @@ const Reports = () => {
             <ShoppingCart className="h-4 w-4" />
             Sales
           </TabsTrigger>
+          <TabsTrigger value="audit" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Transaction Audit
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="inventory">
@@ -59,6 +65,10 @@ const Reports = () => {
 
         <TabsContent value="sales">
           <SalesReport />
+        </TabsContent>
+        
+        <TabsContent value="audit">
+          <TransactionAuditLog />
         </TabsContent>
       </Tabs>
     </div>

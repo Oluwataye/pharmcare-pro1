@@ -1,3 +1,4 @@
+
 export interface SaleItem {
   id: string;
   name: string;
@@ -17,6 +18,9 @@ export interface Sale {
   customerPhone?: string;
   discount?: number; // Overall sale discount
   cashierName?: string; // Added cashier name
+  cashierEmail?: string; // Added cashier email
+  cashierId?: string; // Added cashier ID for database references
+  transactionId?: string; // Unique transaction identifier
 }
 
 export interface Product {
@@ -33,4 +37,16 @@ export interface DiscountConfig {
   enabled: boolean;
   bulkDiscountEnabled?: boolean;
   loyaltyDiscountEnabled?: boolean;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  userId: string;
+  username: string;
+  email: string;
+  action: string;
+  resource: string;
+  resourceId?: string;
+  details: string;
+  timestamp: Date;
 }

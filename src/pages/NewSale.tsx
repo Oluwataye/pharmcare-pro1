@@ -26,7 +26,9 @@ const NewSale = () => {
     calculateDiscountAmount,
     handlePrint,
   } = useSales({ 
-    cashierName: user ? user.username || user.name : undefined 
+    cashierName: user ? user.username || user.name : undefined,
+    cashierEmail: user ? user.email : undefined,
+    cashierId: user ? user.id : undefined
   });
 
   const handleCompleteSale = async () => {
@@ -39,9 +41,21 @@ const NewSale = () => {
       return;
     }
 
+    if (!user) {
+      toast({
+        title: "Error",
+        description: "You must be logged in to complete a sale",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       await handlePrint({
-        customerInfo: { cashierName: user ? user.username || user.name : undefined }
+        customerInfo: { 
+          cashierName: user.username || user.name,
+          cashierEmail: user.email
+        }
       });
       toast({
         title: "Success",
@@ -106,7 +120,10 @@ const NewSale = () => {
                   <Button 
                     variant="outline" 
                     onClick={() => handlePrint({ 
-                      customerInfo: { cashierName: user ? user.username || user.name : undefined }
+                      customerInfo: { 
+                        cashierName: user ? user.username || user.name : undefined,
+                        cashierEmail: user ? user.email : undefined
+                      }
                     })}
                   >
                     <Printer className="mr-2 h-4 w-4" />

@@ -1,3 +1,4 @@
+
 interface PrintReceiptProps {
   items: Array<{
     name: string;
@@ -11,6 +12,7 @@ interface PrintReceiptProps {
   date?: Date;
   discount?: number;
   cashierName?: string;
+  cashierEmail?: string;
 }
 
 export const printReceipt = async ({
@@ -20,6 +22,7 @@ export const printReceipt = async ({
   date = new Date(),
   discount = 0,
   cashierName,
+  cashierEmail,
 }: PrintReceiptProps) => {
   try {
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -65,7 +68,7 @@ export const printReceipt = async ({
           <div class="customer-info">
             <p>Customer: ${customerName || 'Walk-in Customer'}</p>
             <p>Phone: ${customerPhone || 'N/A'}</p>
-            <p>Cashier: ${cashierName ? cashierName : 'N/A'}</p>
+            <p>Served by: ${cashierName ? cashierName + (cashierEmail ? ` (${cashierEmail})` : '') : 'N/A'}</p>
           </div>
           ${items
             .map(

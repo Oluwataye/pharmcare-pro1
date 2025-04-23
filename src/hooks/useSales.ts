@@ -6,6 +6,8 @@ import { printReceipt } from '@/utils/receiptPrinter';
 
 interface UseSalesOptions {
   cashierName?: string;
+  cashierEmail?: string;
+  cashierId?: string;
 }
 
 interface HandlePrintOptions {
@@ -13,6 +15,7 @@ interface HandlePrintOptions {
     customerName?: string;
     customerPhone?: string;
     cashierName?: string;
+    cashierEmail?: string;
   };
 }
 
@@ -124,6 +127,7 @@ export const useSales = (options?: UseSalesOptions) => {
         items,
         discount,
         cashierName: options?.customerInfo?.cashierName || options?.customerInfo?.cashierName,
+        cashierEmail: options?.customerInfo?.cashierEmail,
         customerName: options?.customerInfo?.customerName,
         customerPhone: options?.customerInfo?.customerPhone,
       });

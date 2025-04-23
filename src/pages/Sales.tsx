@@ -14,6 +14,7 @@ const Sales = () => {
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [filterStatus, setFilterStatus] = useState<string>("all");
 
+  // Updated mock data with cashier information
   const recentSales: Sale[] = [
     {
       id: "1",
@@ -27,7 +28,9 @@ const Sales = () => {
       total: 1000,
       date: "2024-02-20",
       status: "completed",
-      cashierName: "John Doe"
+      cashierName: "John Doe",
+      cashierEmail: "john.doe@pharmacy.com",
+      cashierId: "1"
     },
     {
       id: "2",
@@ -41,7 +44,9 @@ const Sales = () => {
       total: 1500,
       date: "2024-02-20",
       status: "completed",
-      cashierName: "Jane Smith"
+      cashierName: "Jane Smith",
+      cashierEmail: "jane.smith@pharmacy.com",
+      cashierId: "2"
     },
     {
       id: "3",
@@ -55,13 +60,16 @@ const Sales = () => {
       total: 2400,
       date: "2024-02-21",
       status: "pending",
-      cashierName: "Admin User"
+      cashierName: "Admin User",
+      cashierEmail: "admin@demo.com",
+      cashierId: "3"
     }
   ];
 
   const filteredSales = recentSales.filter(sale => {
     const matchesSearch = searchTerm === "" || 
-      sale.items.some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase()));
+      sale.items.some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (sale.cashierName && sale.cashierName.toLowerCase().includes(searchTerm.toLowerCase()));
     const saleDate = new Date(sale.date);
     const matchesDateFrom = !dateFrom || saleDate >= dateFrom;
     const matchesDateTo = !dateTo || saleDate <= dateTo;
@@ -72,7 +80,7 @@ const Sales = () => {
   const totalSalesToday = 25500;
   const totalTransactions = 15;
   const averageSaleValue = 1700;
-  const totalDiscounts = 1500; // Added total discounts for the stats card
+  const totalDiscounts = 1500;
 
   return (
     <div className="p-6 space-y-6">

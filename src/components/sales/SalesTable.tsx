@@ -30,7 +30,8 @@ const SalesTable = ({ sales }: SalesTableProps) => {
       await printReceipt({
         items: sale.items,
         date: new Date(sale.date),
-        cashierName: user ? user.username || user.name : undefined,
+        cashierName: sale.cashierName || (user ? user.username || user.name : undefined),
+        cashierEmail: sale.cashierEmail || (user ? user.email : undefined),
       });
 
       toast({
@@ -56,6 +57,7 @@ const SalesTable = ({ sales }: SalesTableProps) => {
             <TableHead>Price (₦)</TableHead>
             <TableHead>Total (₦)</TableHead>
             <TableHead>Date</TableHead>
+            <TableHead>Cashier</TableHead>
             <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
@@ -69,6 +71,7 @@ const SalesTable = ({ sales }: SalesTableProps) => {
                 <TableCell>{sale.items[0].price}</TableCell>
                 <TableCell>{sale.items[0].total}</TableCell>
                 <TableCell>{sale.date}</TableCell>
+                <TableCell>{sale.cashierName || 'Unknown'}</TableCell>
                 <TableCell>
                   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                     sale.status === "completed" 
@@ -91,7 +94,7 @@ const SalesTable = ({ sales }: SalesTableProps) => {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={7} className="h-24 text-center">
+              <TableCell colSpan={8} className="h-24 text-center">
                 No sales found
               </TableCell>
             </TableRow>
