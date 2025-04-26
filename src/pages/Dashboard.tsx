@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import CashierDashboard from "./CashierDashboard";
 import PharmacistDashboard from "./PharmacistDashboard";
@@ -49,51 +48,68 @@ const AdminDashboard = () => {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold">Dashboard</h1>
-        <p className="text-muted-foreground">Welcome to PharmaCare Pro</p>
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+        <p className="text-muted-foreground">
+          Welcome to PharmaCare Pro - Your pharmacy management hub
+        </p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <Card key={stat.title} className="p-6">
-            <div className="flex items-center justify-between">
-              <stat.icon className="h-8 w-8 text-primary" />
-              <span
-                className={`text-sm ${
-                  stat.trendUp ? "text-green-600" : "text-red-600"
-                }`}
-              >
-                {stat.trend}
-              </span>
-            </div>
-            <div className="mt-4">
-              <h3 className="text-sm font-medium text-muted-foreground">
-                {stat.title}
-              </h3>
-              <p className="text-2xl font-bold">{stat.value}</p>
-            </div>
+          <Card key={stat.title} className="relative overflow-hidden transition-all hover:shadow-lg">
+            <CardContent className="p-6">
+              <div className="flex items-center justify-between">
+                <div className="relative z-10">
+                  <p className="text-sm font-medium text-muted-foreground mb-1">
+                    {stat.title}
+                  </p>
+                  <p className="text-2xl font-bold">{stat.value}</p>
+                  <span
+                    className={`inline-flex items-center text-sm font-medium ${
+                      stat.trendUp ? "text-green-600" : "text-red-600"
+                    }`}
+                  >
+                    {stat.trend}
+                  </span>
+                </div>
+                <div className="relative z-10">
+                  <stat.icon className="h-8 w-8 text-primary opacity-75" />
+                </div>
+              </div>
+              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent" />
+            </CardContent>
           </Card>
         ))}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card className="p-6">
-          <h3 className="font-semibold mb-4">Recent Transactions</h3>
-          <div className="space-y-4">
-            <p className="text-muted-foreground text-sm">
-              No recent transactions
-            </p>
-          </div>
+        <Card className="relative overflow-hidden transition-all hover:shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Recent Transactions</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                No recent transactions
+              </p>
+            </div>
+          </CardContent>
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
         </Card>
 
-        <Card className="p-6">
-          <h3 className="font-semibold mb-4">Low Stock Alerts</h3>
-          <div className="space-y-4">
-            <p className="text-muted-foreground text-sm">
-              No low stock alerts
-            </p>
-          </div>
+        <Card className="relative overflow-hidden transition-all hover:shadow-lg">
+          <CardHeader>
+            <CardTitle className="text-lg font-semibold">Low Stock Alerts</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                No low stock alerts
+              </p>
+            </div>
+          </CardContent>
+          <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
         </Card>
       </div>
     </div>
