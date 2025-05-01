@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Search, Package, AlertTriangle, TestTube, Calendar, Plus } from "lucide-react";
+import { Search, Package, AlertTriangle, Calendar, Plus, TestTube, PlusCircle, RefreshCw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { MedicationForm } from "@/components/pharmacist/MedicationForm";
 import { Badge } from "@/components/ui/badge";
@@ -84,28 +84,31 @@ const PharmacistDashboard = () => {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between gap-4">
-        <h1 className="text-2xl font-bold">Pharmacist Dashboard</h1>
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight text-primary">Pharmacist Dashboard</h1>
+          <p className="text-muted-foreground mt-1">Manage medications and inventory</p>
+        </div>
         <div className="flex gap-4">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Search medications..." 
-              className="pl-8" 
+              className="pl-8 w-[200px] md:w-[300px] transition-all" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button onClick={() => setShowMedicationForm(true)}>
-            <Plus className="mr-2 h-4 w-4" />
+          <Button onClick={() => setShowMedicationForm(true)} className="bg-primary hover:bg-primary/90 transition-colors">
+            <PlusCircle className="mr-2 h-4 w-4" />
             Add Medication
           </Button>
         </div>
       </div>
 
       {showMedicationForm ? (
-        <Card>
+        <Card className="border-2 border-primary/10">
           <CardHeader>
             <CardTitle>Add New Medication</CardTitle>
           </CardHeader>
@@ -116,52 +119,71 @@ const PharmacistDashboard = () => {
       ) : (
         <>
           <div className="grid gap-4 md:grid-cols-4">
-            <Card>
+            <Card className="hover:shadow-lg transition-all duration-200 hover:border-primary/20">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Total Medications</CardTitle>
-                <Package className="h-4 w-4 text-muted-foreground" />
+                <TestTube className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{medications.length}</div>
+                <p className="text-xs text-muted-foreground">
+                  Total inventory items
+                </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="hover:shadow-lg transition-all duration-200 hover:border-primary/20">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
                 <AlertTriangle className="h-4 w-4 text-amber-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{lowStockCount}</div>
+                <p className="text-xs text-muted-foreground">
+                  Need attention soon
+                </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="hover:shadow-lg transition-all duration-200 hover:border-primary/20">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Critical Stock</CardTitle>
                 <AlertTriangle className="h-4 w-4 text-red-500" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{criticalStockCount}</div>
+                <p className="text-xs text-muted-foreground">
+                  Require immediate restock
+                </p>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="hover:shadow-lg transition-all duration-200 hover:border-primary/20">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Expiring Soon</CardTitle>
-                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <Calendar className="h-4 w-4 text-primary" />
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">{expiringSoonCount}</div>
+                <p className="text-xs text-muted-foreground">
+                  Within next 30 days
+                </p>
               </CardContent>
             </Card>
           </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Medication Inventory</CardTitle>
+          <Card className="hover:shadow-lg transition-all duration-200">
+            <CardHeader className="flex items-center justify-between">
+              <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                <Package className="h-5 w-5 text-primary" />
+                Medication Inventory
+              </CardTitle>
+              <Button variant="outline" size="sm" className="h-8 gap-1">
+                <RefreshCw className="h-3.5 w-3.5" />
+                Refresh
+              </Button>
             </CardHeader>
             <CardContent>
               <Table>
-                <TableHeader>
-                  <TableRow>
+                <TableHeader className="bg-muted/30">
+                  <TableRow className="hover:bg-muted/50">
                     <TableHead>Name</TableHead>
                     <TableHead>Category</TableHead>
                     <TableHead>Stock</TableHead>
@@ -173,12 +195,14 @@ const PharmacistDashboard = () => {
                 <TableBody>
                   {filteredMedications.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={6} className="text-center">No medications found</TableCell>
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                        No medications found matching your search
+                      </TableCell>
                     </TableRow>
                   ) : (
                     filteredMedications.map((medication) => (
-                      <TableRow key={medication.id}>
-                        <TableCell>{medication.name}</TableCell>
+                      <TableRow key={medication.id} className="hover:bg-muted/50 cursor-pointer">
+                        <TableCell className="font-medium">{medication.name}</TableCell>
                         <TableCell>{medication.category}</TableCell>
                         <TableCell>{medication.stock}</TableCell>
                         <TableCell>{medication.expiry}</TableCell>
@@ -189,7 +213,7 @@ const PharmacistDashboard = () => {
                               : medication.status === "Low Stock" 
                                 ? "outline" 
                                 : "destructive"
-                          }>
+                          } className="font-medium">
                             {medication.status}
                           </Badge>
                         </TableCell>
@@ -197,7 +221,8 @@ const PharmacistDashboard = () => {
                           <div className="flex space-x-2">
                             <Button 
                               variant="outline" 
-                              size="sm" 
+                              size="sm"
+                              className="h-8 px-3 text-xs hover:bg-muted/80" 
                               onClick={() => {
                                 toast({
                                   title: "Not Implemented",
@@ -209,7 +234,8 @@ const PharmacistDashboard = () => {
                             </Button>
                             <Button 
                               variant="outline" 
-                              size="sm" 
+                              size="sm"
+                              className="h-8 px-3 text-xs hover:bg-muted/80" 
                               onClick={() => {
                                 toast({
                                   title: "Not Implemented",
