@@ -19,6 +19,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (email: string, password: string) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     try {
+      // Simulate network delay for demonstration
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      
       // Map email to appropriate role
       let role: UserRole = "ADMIN"; // Default role
       let name = "John Doe"; // Default name
@@ -61,11 +64,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = () => {
-    setAuthState({
-      user: null,
-      isAuthenticated: false,
-      isLoading: false,
-    });
+    // Simulate logout process
+    setAuthState(prev => ({ ...prev, isLoading: true }));
+    
+    // Simulate network delay
+    setTimeout(() => {
+      setAuthState({
+        user: null,
+        isAuthenticated: false,
+        isLoading: false,
+      });
+    }, 500);
   };
 
   return (

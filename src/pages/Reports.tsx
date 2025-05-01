@@ -14,9 +14,21 @@ import TransactionsReport from "@/components/reports/TransactionsReport";
 import UserAuditReport from "@/components/reports/UserAuditReport";
 import SalesReport from "@/components/reports/SalesReport";
 import TransactionAuditLog from "@/components/reports/TransactionAuditLog";
+import { Spinner } from "@/components/ui/spinner";
 
 const Reports = () => {
   const [activeTab, setActiveTab] = useState("inventory");
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Simulate loading when changing tabs
+  const handleTabChange = (value: string) => {
+    setIsLoading(true);
+    setActiveTab(value);
+    // Simulate API call delay
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 600);
+  };
 
   return (
     <div className="space-y-6 p-4 md:p-6 animate-fade-in">
@@ -27,7 +39,7 @@ const Reports = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="inventory" className="space-y-4" onValueChange={setActiveTab}>
+      <Tabs defaultValue="inventory" className="space-y-4" onValueChange={handleTabChange}>
         <div className="overflow-x-auto pb-2">
           <TabsList className="w-auto min-w-full sm:w-fit">
             <TabsTrigger value="inventory" className="flex items-center gap-2 whitespace-nowrap">
@@ -58,25 +70,35 @@ const Reports = () => {
           </TabsList>
         </div>
 
-        <TabsContent value="inventory">
-          <InventoryReport />
-        </TabsContent>
-        
-        <TabsContent value="transactions">
-          <TransactionsReport />
-        </TabsContent>
+        {isLoading ? (
+          <Card>
+            <CardContent className="flex items-center justify-center min-h-[400px]">
+              <Spinner size="lg" />
+            </CardContent>
+          </Card>
+        ) : (
+          <>
+            <TabsContent value="inventory">
+              <InventoryReport />
+            </TabsContent>
+            
+            <TabsContent value="transactions">
+              <TransactionsReport />
+            </TabsContent>
 
-        <TabsContent value="users">
-          <UserAuditReport />
-        </TabsContent>
+            <TabsContent value="users">
+              <UserAuditReport />
+            </TabsContent>
 
-        <TabsContent value="sales">
-          <SalesReport />
-        </TabsContent>
-        
-        <TabsContent value="audit">
-          <TransactionAuditLog />
-        </TabsContent>
+            <TabsContent value="sales">
+              <SalesReport />
+            </TabsContent>
+            
+            <TabsContent value="audit">
+              <TransactionAuditLog />
+            </TabsContent>
+          </>
+        )}
       </Tabs>
     </div>
   );

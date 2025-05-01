@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -13,17 +13,45 @@ import { InventoryTable } from "@/components/inventory/InventoryTable";
 import { InventoryToolbar } from "@/components/inventory/InventoryToolbar";
 import { AddInventoryDialog } from "@/components/inventory/AddInventoryDialog";
 import { useInventory } from "@/hooks/useInventory";
+import { Spinner } from "@/components/ui/spinner";
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const { inventory, addItem, updateItem, deleteItem, handleRefresh, handlePrint } = useInventory();
+
+  // Simulate initial data loading
+  useEffect(() => {
+    // Simulate API fetch delay
+    const timer = setTimeout(() => {
+      setIsLoading(false);
+    }, 800);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   const filteredInventory = inventory.filter(
     (item) =>
       item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.sku.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const handleRefreshWithLoading = () => {
+    setIsLoading(true);
+    setTimeout(() => {
+      handleRefresh();
+      setIsLoading(false);
+    }, 800);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-[80vh]">
+        <Spinner size="lg" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6 p-4 md:p-6 animate-fade-in">
@@ -51,7 +79,7 @@ const Inventory = () => {
           <InventoryToolbar
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
-            onRefresh={handleRefresh}
+            onRefresh={handleRefreshWithLoading}
             onAddItem={() => setDialogOpen(true)}
             onPrint={handlePrint}
           />
