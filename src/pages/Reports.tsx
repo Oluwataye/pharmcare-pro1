@@ -19,37 +19,44 @@ const Reports = () => {
   const [activeTab, setActiveTab] = useState("inventory");
 
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6 p-4 md:p-6 animate-fade-in">
       <div>
-        <h1 className="text-2xl font-bold">Reports & Analytics</h1>
-        <p className="text-muted-foreground">
+        <h1 className="text-2xl md:text-3xl font-bold text-primary">Reports & Analytics</h1>
+        <p className="text-muted-foreground text-sm md:text-base">
           View detailed reports and analytics for your pharmacy
         </p>
       </div>
 
       <Tabs defaultValue="inventory" className="space-y-4" onValueChange={setActiveTab}>
-        <TabsList>
-          <TabsTrigger value="inventory" className="flex items-center gap-2">
-            <Package className="h-4 w-4" />
-            Inventory
-          </TabsTrigger>
-          <TabsTrigger value="transactions" className="flex items-center gap-2">
-            <FileText className="h-4 w-4" />
-            Transactions
-          </TabsTrigger>
-          <TabsTrigger value="users" className="flex items-center gap-2">
-            <Users className="h-4 w-4" />
-            User Audit
-          </TabsTrigger>
-          <TabsTrigger value="sales" className="flex items-center gap-2">
-            <ShoppingCart className="h-4 w-4" />
-            Sales
-          </TabsTrigger>
-          <TabsTrigger value="audit" className="flex items-center gap-2">
-            <History className="h-4 w-4" />
-            Transaction Audit
-          </TabsTrigger>
-        </TabsList>
+        <div className="overflow-x-auto pb-2">
+          <TabsList className="w-auto min-w-full sm:w-fit">
+            <TabsTrigger value="inventory" className="flex items-center gap-2 whitespace-nowrap">
+              <Package className="h-4 w-4" />
+              <span className="hidden sm:inline">Inventory</span>
+              <span className="sm:hidden">Inv</span>
+            </TabsTrigger>
+            <TabsTrigger value="transactions" className="flex items-center gap-2 whitespace-nowrap">
+              <FileText className="h-4 w-4" />
+              <span className="hidden sm:inline">Transactions</span>
+              <span className="sm:hidden">Trans</span>
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2 whitespace-nowrap">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">User Audit</span>
+              <span className="sm:hidden">Users</span>
+            </TabsTrigger>
+            <TabsTrigger value="sales" className="flex items-center gap-2 whitespace-nowrap">
+              <ShoppingCart className="h-4 w-4" />
+              <span className="hidden sm:inline">Sales</span>
+              <span className="sm:hidden">Sales</span>
+            </TabsTrigger>
+            <TabsTrigger value="audit" className="flex items-center gap-2 whitespace-nowrap">
+              <History className="h-4 w-4" />
+              <span className="hidden sm:inline">Transaction Audit</span>
+              <span className="sm:hidden">Audit</span>
+            </TabsTrigger>
+          </TabsList>
+        </div>
 
         <TabsContent value="inventory">
           <InventoryReport />

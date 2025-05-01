@@ -12,9 +12,14 @@ import {
   Settings,
   LogOut,
   FileText,
+  ChevronLeft,
 } from "lucide-react";
 
-const Sidebar = () => {
+interface SidebarProps {
+  onClose?: () => void;
+}
+
+const Sidebar = ({ onClose }: SidebarProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { logout, user } = useAuth();
@@ -42,7 +47,6 @@ const Sidebar = () => {
       icon: ShoppingCart, 
       label: "Sales", 
       path: "/sales",
-      // All users can now access sales
       condition: true
     },
     { 
@@ -61,9 +65,16 @@ const Sidebar = () => {
       icon: Settings, 
       label: "Settings", 
       path: "/settings",
-      condition: true // All users can access settings, but their view will be restricted
+      condition: true
     },
   ];
+
+  const handleNavigate = (path: string) => {
+    navigate(path);
+    if (onClose) {
+      onClose();
+    }
+  };
 
   const handleLogout = () => {
     logout();
@@ -71,19 +82,27 @@ const Sidebar = () => {
   };
 
   return (
-    <div className="flex h-screen w-64 flex-col bg-white border-r">
-      <div className="p-4">
+    <div className="flex h-full md:h-screen w-full md:w-64 flex-col bg-white border-r">
+      <div className="flex items-center justify-between p-4">
         <h1 className="text-xl font-bold text-primary">PharmaCare Pro</h1>
-        {user && (
-          <>
-            <p className="text-sm text-muted-foreground mt-1">
-              {user.role} ({user.name})
-            </p>
-          </>
-        )}
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={onClose} 
+          className="md:hidden"
+        >
+          <ChevronLeft className="h-4 w-4" />
+        </Button>
       </div>
+      {user && (
+        <div className="px-4">
+          <p className="text-sm text-muted-foreground">
+            {user.role} ({user.name})
+          </p>
+        </div>
+      )}
 
-      <nav className="flex-1 space-y-2 p-4">
+      <nav className="flex-1 space-y-2 p-4 overflow-y-auto">
         {menuItems.map((item) => {
           if (!item.condition) return null;
           
@@ -96,7 +115,7 @@ const Sidebar = () => {
                 "w-full justify-start gap-2",
                 isActive && "bg-primary/10"
               )}
-              onClick={() => navigate(item.path)}
+              onClick={() => handleNavigate(item.path)}
             >
               <item.icon className="h-4 w-4" />
               {item.label}

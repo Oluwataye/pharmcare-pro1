@@ -1,3 +1,4 @@
+
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -11,8 +12,11 @@ import {
 import { Button } from "@/components/ui/button";
 import { Search, UserCog } from "lucide-react";
 import { AddUserDialog } from "@/components/users/AddUserDialog";
+import { useState } from "react";
 
 const Users = () => {
+  const [searchTerm, setSearchTerm] = useState("");
+  
   const users = [
     {
       id: 1,
@@ -31,22 +35,33 @@ const Users = () => {
       lastLogin: "2024-02-19",
     },
   ];
+  
+  const filteredUsers = users.filter(user => 
+    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    user.role.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="p-4 md:p-6 space-y-6 animate-fade-in">
       <div className="flex flex-col md:flex-row justify-between gap-4">
-        <h1 className="text-2xl font-bold">User Management</h1>
-        <div className="flex gap-4">
-          <div className="relative">
+        <h1 className="text-2xl md:text-3xl font-bold text-primary">User Management</h1>
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input placeholder="Search users..." className="pl-8" />
+            <Input 
+              placeholder="Search users..." 
+              className="pl-8 w-full" 
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+            />
           </div>
           <AddUserDialog />
         </div>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card>
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+        <Card className="hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
           </CardHeader>
@@ -54,7 +69,7 @@ const Users = () => {
             <div className="text-2xl font-bold">10</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Users</CardTitle>
           </CardHeader>
@@ -62,7 +77,7 @@ const Users = () => {
             <div className="text-2xl font-bold">8</div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Pharmacists</CardTitle>
           </CardHeader>
@@ -72,39 +87,53 @@ const Users = () => {
         </Card>
       </div>
 
-      <Card>
-        <CardHeader>
+      <Card className="hover:shadow-lg transition-all duration-200">
+        <CardHeader className="p-4 md:p-6">
           <CardTitle className="text-lg">User List</CardTitle>
         </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Role</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Last Login</TableHead>
-                <TableHead>Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {users.map((user) => (
-                <TableRow key={user.id}>
-                  <TableCell>{user.name}</TableCell>
-                  <TableCell>{user.email}</TableCell>
-                  <TableCell>{user.role}</TableCell>
-                  <TableCell>{user.status}</TableCell>
-                  <TableCell>{user.lastLogin}</TableCell>
-                  <TableCell>
-                    <Button variant="ghost" size="sm">
-                      <UserCog className="h-4 w-4" />
-                    </Button>
-                  </TableCell>
+        <CardContent className="p-4 md:p-6">
+          <div className="responsive-table">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Name</TableHead>
+                  <TableHead className="hidden sm:table-cell">Email</TableHead>
+                  <TableHead>Role</TableHead>
+                  <TableHead className="hidden md:table-cell">Status</TableHead>
+                  <TableHead className="hidden lg:table-cell">Last Login</TableHead>
+                  <TableHead>Actions</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {filteredUsers.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                      No users found
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  filteredUsers.map((user) => (
+                    <TableRow key={user.id} className="hover:bg-muted/50">
+                      <TableCell className="font-medium">{user.name}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
+                      <TableCell>{user.role}</TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                          {user.status}
+                        </span>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">{user.lastLogin}</TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm">
+                          <UserCog className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

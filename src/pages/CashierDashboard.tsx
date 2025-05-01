@@ -71,23 +71,23 @@ const CashierDashboard = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-6 animate-fade-in px-2 md:px-0">
       <div className="flex flex-col md:flex-row justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-primary">Cashier Dashboard</h1>
-          <p className="text-muted-foreground mt-1">Manage sales and transactions</p>
+          <h1 className="text-2xl md:text-3xl font-bold tracking-tight text-primary">Cashier Dashboard</h1>
+          <p className="text-muted-foreground mt-1 text-sm md:text-base">Manage sales and transactions</p>
         </div>
-        <div className="flex gap-4">
-          <div className="relative">
+        <div className="flex flex-col sm:flex-row gap-4">
+          <div className="relative w-full sm:w-auto">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             <Input 
               placeholder="Search transactions..." 
-              className="pl-8 w-[200px] md:w-[300px] transition-all" 
+              className="pl-8 w-full transition-all" 
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-          <Button onClick={handleNewSale} className="bg-primary hover:bg-primary/90 transition-colors">
+          <Button onClick={handleNewSale} className="bg-primary hover:bg-primary/90 transition-colors w-full sm:w-auto">
             <ShoppingCart className="mr-2 h-4 w-4" />
             New Sale
           </Button>
@@ -96,16 +96,16 @@ const CashierDashboard = () => {
 
       {showNewSaleForm ? (
         <Card className="border-2 border-primary/10">
-          <CardHeader>
-            <CardTitle>New Sale</CardTitle>
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="text-xl md:text-2xl">New Sale</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 md:p-6">
             <NewSaleForm onComplete={handleSaleComplete} onCancel={() => setShowNewSaleForm(false)} />
           </CardContent>
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-3">
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
             <Card className="hover:shadow-lg transition-all duration-200 hover:border-primary/20">
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Today's Sales</CardTitle>
@@ -141,52 +141,56 @@ const CashierDashboard = () => {
             </Card>
           </div>
 
-          <Card className="hover:shadow-lg transition-all duration-200">
-            <CardHeader>
-              <CardTitle className="text-lg font-semibold flex items-center gap-2">
-                <Receipt className="h-5 w-5 text-primary" />
-                Recent Transactions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow className="hover:bg-muted/50">
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Items</TableHead>
-                    <TableHead>Amount (₦)</TableHead>
-                    <TableHead>Time</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead>Status</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredTransactions.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
-                        No transactions found
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    filteredTransactions.map((transaction) => (
-                      <TableRow key={transaction.id} className="hover:bg-muted/50 cursor-pointer">
-                        <TableCell className="font-medium">{transaction.customer}</TableCell>
-                        <TableCell>{transaction.items}</TableCell>
-                        <TableCell>₦{transaction.amount.toLocaleString()}</TableCell>
-                        <TableCell>{transaction.time}</TableCell>
-                        <TableCell>{transaction.date}</TableCell>
-                        <TableCell>
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                            {transaction.status}
-                          </span>
-                        </TableCell>
+          <div className="overflow-x-auto">
+            <Card className="hover:shadow-lg transition-all duration-200">
+              <CardHeader className="p-4 md:p-6">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <Receipt className="h-5 w-5 text-primary" />
+                  Recent Transactions
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 md:p-6">
+                <div className="responsive-table">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="hover:bg-muted/50">
+                        <TableHead>Customer</TableHead>
+                        <TableHead>Items</TableHead>
+                        <TableHead>Amount (₦)</TableHead>
+                        <TableHead className="hidden sm:table-cell">Time</TableHead>
+                        <TableHead className="hidden md:table-cell">Date</TableHead>
+                        <TableHead>Status</TableHead>
                       </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredTransactions.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                            No transactions found
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        filteredTransactions.map((transaction) => (
+                          <TableRow key={transaction.id} className="hover:bg-muted/50 cursor-pointer">
+                            <TableCell className="font-medium">{transaction.customer}</TableCell>
+                            <TableCell>{transaction.items}</TableCell>
+                            <TableCell>₦{transaction.amount.toLocaleString()}</TableCell>
+                            <TableCell className="hidden sm:table-cell">{transaction.time}</TableCell>
+                            <TableCell className="hidden md:table-cell">{transaction.date}</TableCell>
+                            <TableCell>
+                              <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                {transaction.status}
+                              </span>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </>
       )}
     </div>

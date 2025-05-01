@@ -26,13 +26,13 @@ const Inventory = () => {
   );
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
+    <div className="space-y-6 p-4 md:p-6 animate-fade-in">
+      <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">
+          <h2 className="text-2xl md:text-3xl font-bold tracking-tight text-primary">
             Inventory Management
           </h2>
-          <p className="text-muted-foreground">
+          <p className="text-muted-foreground text-sm md:text-base">
             Manage your pharmacy inventory, stock levels, and products
           </p>
         </div>
@@ -40,14 +40,14 @@ const Inventory = () => {
 
       <InventoryStats inventory={inventory} />
 
-      <Card>
-        <CardHeader>
+      <Card className="hover:shadow-lg transition-all duration-200">
+        <CardHeader className="p-4 md:p-6">
           <CardTitle>Inventory List</CardTitle>
           <CardDescription>
             View and manage all products in your inventory
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-4 md:p-6">
           <InventoryToolbar
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
@@ -55,11 +55,13 @@ const Inventory = () => {
             onAddItem={() => setDialogOpen(true)}
             onPrint={handlePrint}
           />
-          <InventoryTable
-            inventory={filteredInventory}
-            onDeleteItem={deleteItem}
-            onUpdateItem={updateItem}
-          />
+          <div className="responsive-table">
+            <InventoryTable
+              inventory={filteredInventory}
+              onDeleteItem={deleteItem}
+              onUpdateItem={updateItem}
+            />
+          </div>
         </CardContent>
       </Card>
 
