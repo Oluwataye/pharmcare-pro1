@@ -7,11 +7,13 @@ import { PharmacistHeader } from "@/components/pharmacist/PharmacistHeader";
 import { MedicationStats } from "@/components/pharmacist/MedicationStats";
 import { MedicationTable } from "@/components/pharmacist/MedicationTable";
 import { medications } from "@/data/mockMedications";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const PharmacistDashboard = () => {
   const { toast } = useToast();
   const [searchQuery, setSearchQuery] = useState("");
   const [showMedicationForm, setShowMedicationForm] = useState(false);
+  const isMobile = useIsMobile();
 
   const filteredMedications = medications.filter(
     med => 
@@ -33,7 +35,7 @@ const PharmacistDashboard = () => {
   };
 
   return (
-    <div className="space-y-6 animate-fade-in">
+    <div className="space-y-4 md:space-y-6 animate-fade-in px-2 md:px-0">
       <PharmacistHeader 
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
@@ -42,10 +44,10 @@ const PharmacistDashboard = () => {
 
       {showMedicationForm ? (
         <Card className="border-2 border-primary/10">
-          <CardHeader>
-            <CardTitle>Add New Medication</CardTitle>
+          <CardHeader className="p-4 md:p-6">
+            <CardTitle className="text-xl md:text-2xl">Add New Medication</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 md:p-6">
             <MedicationForm 
               onComplete={(isNew) => handleMedicationComplete(isNew)} 
               onCancel={() => setShowMedicationForm(false)} 
@@ -61,10 +63,12 @@ const PharmacistDashboard = () => {
             expiringSoonCount={expiringSoonCount}
           />
 
-          <MedicationTable 
-            medications={medications}
-            filteredMedications={filteredMedications}
-          />
+          <div className="overflow-x-auto">
+            <MedicationTable 
+              medications={medications}
+              filteredMedications={filteredMedications}
+            />
+          </div>
         </>
       )}
     </div>

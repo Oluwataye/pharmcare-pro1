@@ -28,10 +28,10 @@ const Login = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
+    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 md:px-8">
       <div className="w-full max-w-md">
-        <div className="bg-white p-8 rounded-lg shadow-lg">
-          <h1 className="text-2xl font-bold text-center mb-6 text-primary">
+        <div className="bg-white p-6 md:p-8 rounded-lg shadow-lg">
+          <h1 className="text-xl md:text-2xl font-bold text-center mb-6 text-primary">
             PharmaCare Pro
           </h1>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -45,6 +45,7 @@ const Login = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
+                className="w-full"
               />
             </div>
             <div>
@@ -57,6 +58,7 @@ const Login = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                className="w-full"
               />
             </div>
             <Button type="submit" className="w-full">
