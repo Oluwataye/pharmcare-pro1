@@ -11,7 +11,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
-import { Search, ShoppingCart, DollarSign, Receipt, Users, TrendingUp } from "lucide-react";
+import { Search, ShoppingCart, DollarSign, Receipt, Users, TrendingUp, AlertTriangle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { NewSaleForm } from "@/components/cashier/NewSaleForm";
@@ -52,6 +52,12 @@ const CashierDashboard = () => {
     },
   ];
 
+  // Mock low stock items for cashier view
+  const lowStockItems = [
+    { id: 1, product: "Paracetamol", category: "Pain Relief", quantity: 10, reorderLevel: 15 },
+    { id: 2, product: "Amoxicillin", category: "Antibiotics", quantity: 5, reorderLevel: 20 },
+  ];
+
   const filteredTransactions = recentTransactions.filter(
     transaction => 
       transaction.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -69,6 +75,50 @@ const CashierDashboard = () => {
     });
     setShowNewSaleForm(false);
   };
+
+  const handleCardClick = (route: string) => {
+    navigate(route);
+  };
+
+  const handleItemClick = (route: string, id: number) => {
+    // For future implementation: navigate to specific item detail
+    navigate(route);
+  };
+
+  const statsCards = [
+    {
+      title: "Today's Sales",
+      value: "₦9,050",
+      icon: DollarSign,
+      description: "+8% from yesterday",
+      iconColor: "text-primary",
+      route: "/sales"
+    },
+    {
+      title: "Transactions",
+      value: "12",
+      icon: Receipt,
+      description: "+2 since last shift",
+      iconColor: "text-primary",
+      route: "/sales"
+    },
+    {
+      title: "Customers",
+      value: "8",
+      icon: Users,
+      description: "Unique customers today",
+      iconColor: "text-primary",
+      route: "/sales"
+    },
+    {
+      title: "Low Stock Items",
+      value: lowStockItems.length.toString(),
+      icon: AlertTriangle,
+      description: "Needs attention",
+      iconColor: "text-amber-500",
+      route: "/inventory"
+    }
+  ];
 
   return (
     <div className="space-y-6 animate-fade-in px-2 md:px-0">
@@ -105,38 +155,112 @@ const CashierDashboard = () => {
         </Card>
       ) : (
         <>
-          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
-            <Card className="hover:shadow-lg transition-all duration-200 hover:border-primary/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Today's Sales</CardTitle>
-                <DollarSign className="h-4 w-4 text-primary" />
+          <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-4">
+            {statsCards.map((card, index) => (
+              <Card 
+                key={index} 
+                className="hover:shadow-lg transition-all duration-200 hover:border-primary/20 cursor-pointer"
+                onClick={() => handleCardClick(card.route)}
+              >
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-medium">{card.title}</CardTitle>
+                  <card.icon className={`h-4 w-4 ${card.iconColor}`} />
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{card.value}</div>
+                  <p className="text-xs text-muted-foreground flex items-center gap-1">
+                    {card.title === "Today's Sales" && <TrendingUp className="h-3 w-3 text-green-500" />}
+                    {card.description}
+                  </p>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2">
+            <Card className="hover:shadow-lg transition-all duration-200">
+              <CardHeader className="p-4 md:p-6">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <Receipt className="h-5 w-5 text-primary" />
+                  Recent Transactions
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">₦9,050</div>
-                <p className="text-xs text-muted-foreground flex items-center gap-1">
-                  <TrendingUp className="h-3 w-3 text-green-500" />
-                  +8% from yesterday
-                </p>
+              <CardContent className="p-4 md:p-6">
+                <div className="space-y-4">
+                  {filteredTransactions.length > 0 ? (
+                    <div className="space-y-3">
+                      {filteredTransactions.slice(0, 3).map(transaction => (
+                        <div 
+                          key={transaction.id}
+                          className="flex items-center justify-between p-3 hover:bg-muted rounded-md cursor-pointer transition-colors"
+                          onClick={() => handleItemClick('/sales', transaction.id)}
+                        >
+                          <div>
+                            <p className="font-medium text-sm">{transaction.customer}</p>
+                            <p className="text-xs text-muted-foreground">{transaction.items} items</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium">₦{transaction.amount.toLocaleString()}</p>
+                            <p className="text-xs text-muted-foreground">{transaction.time}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No transactions found
+                    </p>
+                  )}
+                  <div 
+                    className="text-sm text-primary font-medium cursor-pointer hover:underline"
+                    onClick={() => handleCardClick('/sales')}
+                  >
+                    View all transactions
+                  </div>
+                </div>
               </CardContent>
             </Card>
-            <Card className="hover:shadow-lg transition-all duration-200 hover:border-primary/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Transactions</CardTitle>
-                <Receipt className="h-4 w-4 text-primary" />
+
+            <Card className="hover:shadow-lg transition-all duration-200">
+              <CardHeader className="p-4 md:p-6">
+                <CardTitle className="text-lg font-semibold flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-amber-500" />
+                  Low Stock Alerts
+                </CardTitle>
               </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">12</div>
-                <p className="text-xs text-muted-foreground">+2 since last shift</p>
-              </CardContent>
-            </Card>
-            <Card className="hover:shadow-lg transition-all duration-200 hover:border-primary/20">
-              <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                <CardTitle className="text-sm font-medium">Customers</CardTitle>
-                <Users className="h-4 w-4 text-primary" />
-              </CardHeader>
-              <CardContent>
-                <div className="text-2xl font-bold">8</div>
-                <p className="text-xs text-muted-foreground">Unique customers today</p>
+              <CardContent className="p-4 md:p-6">
+                <div className="space-y-4">
+                  {lowStockItems.length > 0 ? (
+                    <div className="space-y-3">
+                      {lowStockItems.map(item => (
+                        <div 
+                          key={item.id}
+                          className="flex items-center justify-between p-3 hover:bg-muted rounded-md cursor-pointer transition-colors"
+                          onClick={() => handleItemClick('/inventory', item.id)}
+                        >
+                          <div>
+                            <p className="font-medium text-sm">{item.product}</p>
+                            <p className="text-xs text-muted-foreground">{item.category}</p>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-medium text-red-500">{item.quantity} left</p>
+                            <p className="text-xs text-muted-foreground">Reorder: {item.reorderLevel}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">
+                      No low stock alerts
+                    </p>
+                  )}
+                  <div 
+                    className="text-sm text-primary font-medium cursor-pointer hover:underline"
+                    onClick={() => handleCardClick('/inventory')}
+                  >
+                    View all low stock items
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -171,7 +295,11 @@ const CashierDashboard = () => {
                         </TableRow>
                       ) : (
                         filteredTransactions.map((transaction) => (
-                          <TableRow key={transaction.id} className="hover:bg-muted/50 cursor-pointer">
+                          <TableRow 
+                            key={transaction.id} 
+                            className="hover:bg-muted/50 cursor-pointer"
+                            onClick={() => handleItemClick('/sales', transaction.id)}
+                          >
                             <TableCell className="font-medium">{transaction.customer}</TableCell>
                             <TableCell>{transaction.items}</TableCell>
                             <TableCell>₦{transaction.amount.toLocaleString()}</TableCell>

@@ -7,6 +7,7 @@ interface MedicationStatsProps {
   lowStockCount: number;
   criticalStockCount: number;
   expiringSoonCount: number;
+  onCardClick?: (route: string) => void;
 }
 
 export const MedicationStats = ({
@@ -14,10 +15,20 @@ export const MedicationStats = ({
   lowStockCount,
   criticalStockCount,
   expiringSoonCount,
+  onCardClick,
 }: MedicationStatsProps) => {
+  const handleClick = (route: string) => {
+    if (onCardClick) {
+      onCardClick(route);
+    }
+  };
+
   return (
     <div className="grid gap-4 md:grid-cols-4">
-      <Card className="hover:shadow-lg transition-all duration-200 hover:border-primary/20">
+      <Card 
+        className="hover:shadow-lg transition-all duration-200 hover:border-primary/20 cursor-pointer"
+        onClick={() => handleClick('/inventory')}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Total Medications</CardTitle>
           <TestTube className="h-4 w-4 text-primary" />
@@ -29,7 +40,10 @@ export const MedicationStats = ({
           </p>
         </CardContent>
       </Card>
-      <Card className="hover:shadow-lg transition-all duration-200 hover:border-primary/20">
+      <Card 
+        className="hover:shadow-lg transition-all duration-200 hover:border-primary/20 cursor-pointer"
+        onClick={() => handleClick('/inventory')}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
           <AlertTriangle className="h-4 w-4 text-amber-500" />
@@ -41,7 +55,10 @@ export const MedicationStats = ({
           </p>
         </CardContent>
       </Card>
-      <Card className="hover:shadow-lg transition-all duration-200 hover:border-primary/20">
+      <Card 
+        className="hover:shadow-lg transition-all duration-200 hover:border-primary/20 cursor-pointer"
+        onClick={() => handleClick('/inventory')}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Critical Stock</CardTitle>
           <AlertTriangle className="h-4 w-4 text-red-500" />
@@ -53,7 +70,10 @@ export const MedicationStats = ({
           </p>
         </CardContent>
       </Card>
-      <Card className="hover:shadow-lg transition-all duration-200 hover:border-primary/20">
+      <Card 
+        className="hover:shadow-lg transition-all duration-200 hover:border-primary/20 cursor-pointer"
+        onClick={() => handleClick('/inventory')}
+      >
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">Expiring Soon</CardTitle>
           <Calendar className="h-4 w-4 text-primary" />
