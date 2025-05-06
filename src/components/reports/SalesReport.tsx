@@ -20,7 +20,7 @@ const SalesReport = () => {
 
   const chartConfig = {
     sales: {
-      label: "Sales Amount",
+      label: "Sales Amount (₦)",
       color: "var(--primary)",
     },
   };
