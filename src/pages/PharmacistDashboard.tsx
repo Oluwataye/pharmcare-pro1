@@ -41,7 +41,7 @@ const PharmacistDashboard = () => {
       id: index + 1,
       product: med.name,
       category: med.category,
-      quantity: med.quantity,
+      quantity: med.stock, // Updated from 'quantity' to 'stock' to match the Medication interface
       reorderLevel: 20, // Mock reorder level
     }));
 
