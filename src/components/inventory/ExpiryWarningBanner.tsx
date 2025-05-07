@@ -20,11 +20,11 @@ export const ExpiryWarningBanner = ({ expiringItems }: ExpiryWarningBannerProps)
   }, null as Date | null);
   
   return (
-    <Alert variant="warning" className="bg-amber-50 border-amber-300">
-      <AlertTriangle className="h-5 w-5 text-amber-600" />
+    <Alert variant="warning">
+      <AlertTriangle className="h-5 w-5" />
       <div className="flex-1">
-        <AlertTitle className="text-amber-800">Expiring Inventory Warning</AlertTitle>
-        <AlertDescription className="text-amber-700">
+        <AlertTitle>Expiring Inventory Warning</AlertTitle>
+        <AlertDescription>
           {itemCount} {itemCount === 1 ? 'product is' : 'products are'} expiring within the next 90 days.
           {nearestExpiryDate && (
             <span className="font-medium"> Nearest expiry: {nearestExpiryDate.toLocaleDateString()}</span>
