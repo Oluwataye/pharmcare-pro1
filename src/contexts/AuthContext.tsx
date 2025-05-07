@@ -1,5 +1,5 @@
 
-import React, { createContext, useContext, useState } from 'react';
+import * as React from 'react';
 import { AuthState, User, UserRole } from '@/lib/types';
 
 interface AuthContextType extends AuthState {
@@ -7,10 +7,10 @@ interface AuthContextType extends AuthState {
   logout: () => void;
 }
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [authState, setAuthState] = useState<AuthState>({
+  const [authState, setAuthState] = React.useState<AuthState>({
     user: null,
     isAuthenticated: false,
     isLoading: false,
@@ -85,7 +85,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 }
 
 export function useAuth() {
-  const context = useContext(AuthContext);
+  const context = React.useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
