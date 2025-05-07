@@ -1,9 +1,11 @@
+
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
 import { UserRole } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { usePermissions } from "@/hooks/usePermissions";
 import {
   Dialog,
   DialogContent,
@@ -18,6 +20,7 @@ import {
   FormItem,
   FormLabel,
   FormMessage,
+  FormDescription,
 } from "@/components/ui/form";
 import {
   Select,
@@ -28,11 +31,12 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus } from "lucide-react";
+import { Plus, Loader2 } from "lucide-react";
 
 const userSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
+  username: z.string().min(3, "Username must be at least 3 characters").optional(),
   password: z.string().min(6, "Password must be at least 6 characters"),
   role: z.enum(["ADMIN", "PHARMACIST", "CASHIER"] as const),
 });
@@ -41,22 +45,44 @@ type UserFormValues = z.infer<typeof userSchema>;
 
 export function AddUserDialog() {
   const [open, setOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
+  const { canManageUsers } = usePermissions();
 
   const form = useForm<UserFormValues>({
     resolver: zodResolver(userSchema),
     defaultValues: {
       name: "",
       email: "",
+      username: "",
       password: "",
       role: "CASHIER",
     },
   });
 
   const onSubmit = async (data: UserFormValues) => {
+    if (!canManageUsers()) {
+      toast({
+        title: "Permission Denied",
+        description: "You don't have permission to create users.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsSubmitting(true);
     try {
+      // Simulate checking for existing email
+      const existingEmails = ["john@example.com", "jane@example.com"];
+      if (existingEmails.includes(data.email)) {
+        throw new Error("Email already exists");
+      }
+
       // TODO: Replace with actual API call
       console.log("Creating user:", data);
+      
+      // Simulate API delay
+      await new Promise(resolve => setTimeout(resolve, 1000));
       
       toast({
         title: "Success",
@@ -66,11 +92,14 @@ export function AddUserDialog() {
       setOpen(false);
       form.reset();
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Failed to create user. Please try again.";
       toast({
         title: "Error",
-        description: "Failed to create user. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -110,6 +139,22 @@ export function AddUserDialog() {
                   <FormControl>
                     <Input placeholder="john@example.com" type="email" {...field} />
                   </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+            <FormField
+              control={form.control}
+              name="username"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Username (Optional)</FormLabel>
+                  <FormControl>
+                    <Input placeholder="johndoe" {...field} />
+                  </FormControl>
+                  <FormDescription>
+                    Choose a unique username for the user
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
@@ -157,7 +202,10 @@ export function AddUserDialog() {
               >
                 Cancel
               </Button>
-              <Button type="submit">Create User</Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                {isSubmitting ? "Creating..." : "Create User"}
+              </Button>
             </div>
           </form>
         </Form>

@@ -10,12 +10,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Search, UserCog } from "lucide-react";
+import { Search, UserCog, UserX, UserPen } from "lucide-react";
 import { AddUserDialog } from "@/components/users/AddUserDialog";
 import { useState } from "react";
+import { usePermissions } from "@/hooks/usePermissions";
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const { canManageUsers, canEditUsers, canDeleteUsers } = usePermissions();
   
   const users = [
     {
@@ -56,7 +58,7 @@ const Users = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          <AddUserDialog />
+          {canManageUsers() && <AddUserDialog />}
         </div>
       </div>
 
@@ -124,9 +126,23 @@ const Users = () => {
                       </TableCell>
                       <TableCell className="hidden lg:table-cell">{user.lastLogin}</TableCell>
                       <TableCell>
-                        <Button variant="ghost" size="sm">
-                          <UserCog className="h-4 w-4" />
-                        </Button>
+                        <div className="flex space-x-2">
+                          {canEditUsers() && (
+                            <Button variant="ghost" size="sm" title="Edit User">
+                              <UserPen className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canManageUsers() && (
+                            <Button variant="ghost" size="sm" title="Manage User Permissions">
+                              <UserCog className="h-4 w-4" />
+                            </Button>
+                          )}
+                          {canDeleteUsers() && (
+                            <Button variant="ghost" size="sm" title="Delete User">
+                              <UserX className="h-4 w-4" />
+                            </Button>
+                          )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))

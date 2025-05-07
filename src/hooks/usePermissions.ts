@@ -41,6 +41,18 @@ export function usePermissions() {
     return hasPermission({ action: 'read', resource: 'users' });
   };
 
+  const canManageUsers = (): boolean => {
+    return hasPermission({ action: 'create', resource: 'users' });
+  };
+
+  const canEditUsers = (): boolean => {
+    return hasPermission({ action: 'update', resource: 'users' });
+  };
+
+  const canDeleteUsers = (): boolean => {
+    return hasPermission({ action: 'delete', resource: 'users' });
+  };
+
   const canAccessReports = (): boolean => {
     return hasPermission({ action: 'read', resource: 'reports' });
   };
@@ -52,6 +64,9 @@ export function usePermissions() {
     canAccessSales,
     canManageSales,
     canAccessUsers,
+    canManageUsers,
+    canEditUsers,
+    canDeleteUsers,
     canAccessReports,
   };
 }
