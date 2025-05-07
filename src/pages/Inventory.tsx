@@ -18,7 +18,7 @@ import { ExpiryWarningBanner } from "@/components/inventory/ExpiryWarningBanner"
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [categoryFilter, setCategoryFilter] = useState<string>("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const { 
@@ -54,7 +54,7 @@ const Inventory = () => {
     (item) => {
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
                             item.sku.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesCategory = categoryFilter === "" || item.category === categoryFilter;
+      const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
       return matchesSearch && matchesCategory;
     }
   );
