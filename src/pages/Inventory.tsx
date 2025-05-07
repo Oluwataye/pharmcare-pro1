@@ -14,12 +14,30 @@ import { InventoryToolbar } from "@/components/inventory/InventoryToolbar";
 import { AddInventoryDialog } from "@/components/inventory/AddInventoryDialog";
 import { useInventory } from "@/hooks/useInventory";
 import { Spinner } from "@/components/ui/spinner";
+import { ExpiryWarningBanner } from "@/components/inventory/ExpiryWarningBanner";
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState<string>("");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const { inventory, addItem, updateItem, deleteItem, handleRefresh, handlePrint } = useInventory();
+  const { 
+    inventory, 
+    addItem, 
+    updateItem, 
+    deleteItem, 
+    batchDelete,
+    getCategories,
+    getExpiringItems,
+    handleRefresh, 
+    handlePrint 
+  } = useInventory();
+
+  // Get all categories for filtering
+  const categories = getCategories();
+  
+  // Get expiring items
+  const expiringItems = getExpiringItems(90);
 
   // Simulate initial data loading
   useEffect(() => {
@@ -31,10 +49,14 @@ const Inventory = () => {
     return () => clearTimeout(timer);
   }, []);
 
+  // Apply filters (search and category)
   const filteredInventory = inventory.filter(
-    (item) =>
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.sku.toLowerCase().includes(searchTerm.toLowerCase())
+    (item) => {
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            item.sku.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = categoryFilter === "" || item.category === categoryFilter;
+      return matchesSearch && matchesCategory;
+    }
   );
 
   const handleRefreshWithLoading = () => {
@@ -43,6 +65,10 @@ const Inventory = () => {
       handleRefresh();
       setIsLoading(false);
     }, 800);
+  };
+
+  const handleCategoryChange = (category: string) => {
+    setCategoryFilter(category);
   };
 
   if (isLoading) {
@@ -66,6 +92,8 @@ const Inventory = () => {
         </div>
       </div>
 
+      {expiringItems.length > 0 && <ExpiryWarningBanner expiringItems={expiringItems} />}
+
       <InventoryStats inventory={inventory} />
 
       <Card className="hover:shadow-lg transition-all duration-200">
@@ -79,6 +107,9 @@ const Inventory = () => {
           <InventoryToolbar
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
+            categoryFilter={categoryFilter}
+            categories={categories}
+            onCategoryChange={handleCategoryChange}
             onRefresh={handleRefreshWithLoading}
             onAddItem={() => setDialogOpen(true)}
             onPrint={handlePrint}
@@ -88,6 +119,7 @@ const Inventory = () => {
               inventory={filteredInventory}
               onDeleteItem={deleteItem}
               onUpdateItem={updateItem}
+              onBatchDelete={batchDelete}
             />
           </div>
         </CardContent>
@@ -97,6 +129,7 @@ const Inventory = () => {
         open={dialogOpen}
         onOpenChange={setDialogOpen}
         onAddItem={addItem}
+        categories={categories}
       />
     </div>
   );
