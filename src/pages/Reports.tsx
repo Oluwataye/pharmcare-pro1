@@ -1,24 +1,53 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useLocation } from "react-router-dom";
 import { 
   FileText, 
   Package, 
   ShoppingCart, 
   Users,
-  History 
+  History,
+  Calendar
 } from "lucide-react";
 import InventoryReport from "@/components/reports/InventoryReport";
 import TransactionsReport from "@/components/reports/TransactionsReport";
 import UserAuditReport from "@/components/reports/UserAuditReport";
 import SalesReport from "@/components/reports/SalesReport";
 import TransactionAuditLog from "@/components/reports/TransactionAuditLog";
+import ExpiringDrugsReport from "@/components/reports/ExpiringDrugsReport";
+import { ExpiryNotificationModal } from "@/components/reports/ExpiryNotificationModal";
 import { Spinner } from "@/components/ui/spinner";
+import { useInventory } from "@/hooks/useInventory";
 
 const Reports = () => {
   const [activeTab, setActiveTab] = useState("inventory");
   const [isLoading, setIsLoading] = useState(false);
+  const [showExpiryModal, setShowExpiryModal] = useState(false);
+  const location = useLocation();
+  const { getExpiringItems } = useInventory();
+
+  // Check if there are critical expiring items
+  const criticalItems = getExpiringItems(30);
+  const hasExpiringItems = criticalItems.length > 0;
+
+  // Check if we should open a specific tab based on navigation state
+  useEffect(() => {
+    if (location.state?.activeTab) {
+      handleTabChange(location.state.activeTab);
+      
+      // Clear the state to avoid reopening the tab on re-renders
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  // Show expiry modal if there are critical items and we're not already on the expiring tab
+  useEffect(() => {
+    if (hasExpiringItems && activeTab !== "expiring") {
+      setShowExpiryModal(true);
+    }
+  }, []);
 
   // Simulate loading when changing tabs
   const handleTabChange = (value: string) => {
@@ -30,6 +59,12 @@ const Reports = () => {
     }, 600);
   };
 
+  // Handle viewing the expiry report from the modal
+  const handleViewExpiryReport = () => {
+    setShowExpiryModal(false);
+    handleTabChange("expiring");
+  };
+
   return (
     <div className="space-y-6 p-4 md:p-6 animate-fade-in">
       <div>
@@ -39,7 +74,7 @@ const Reports = () => {
         </p>
       </div>
 
-      <Tabs defaultValue="inventory" className="space-y-4" onValueChange={handleTabChange}>
+      <Tabs value={activeTab} className="space-y-4" onValueChange={handleTabChange}>
         <div className="overflow-x-auto pb-2">
           <TabsList className="w-auto min-w-full sm:w-fit">
             <TabsTrigger value="inventory" className="flex items-center gap-2 whitespace-nowrap">
@@ -66,6 +101,16 @@ const Reports = () => {
               <History className="h-4 w-4" />
               <span className="hidden sm:inline">Transaction Audit</span>
               <span className="sm:hidden">Audit</span>
+            </TabsTrigger>
+            <TabsTrigger value="expiring" className="flex items-center gap-2 whitespace-nowrap">
+              <Calendar className="h-4 w-4" />
+              <span className="hidden sm:inline">Expiring Drugs</span>
+              <span className="sm:hidden">Expiry</span>
+              {hasExpiringItems && (
+                <span className="bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center">
+                  !
+                </span>
+              )}
             </TabsTrigger>
           </TabsList>
         </div>
@@ -97,9 +142,19 @@ const Reports = () => {
             <TabsContent value="audit">
               <TransactionAuditLog />
             </TabsContent>
+            
+            <TabsContent value="expiring">
+              <ExpiringDrugsReport />
+            </TabsContent>
           </>
         )}
       </Tabs>
+      
+      <ExpiryNotificationModal 
+        open={showExpiryModal} 
+        onOpenChange={setShowExpiryModal}
+        onViewReport={handleViewExpiryReport}
+      />
     </div>
   );
 };

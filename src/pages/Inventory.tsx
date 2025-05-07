@@ -1,6 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useLocation } from "react-router-dom";
 import {
   Card,
   CardContent,
@@ -15,12 +16,14 @@ import { AddInventoryDialog } from "@/components/inventory/AddInventoryDialog";
 import { useInventory } from "@/hooks/useInventory";
 import { Spinner } from "@/components/ui/spinner";
 import { ExpiryWarningBanner } from "@/components/inventory/ExpiryWarningBanner";
+import { ExpiryNotificationBanner } from "@/components/notifications/ExpiryNotificationBanner";
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+  const [showNotification, setShowNotification] = useState(true);
   const { 
     inventory, 
     addItem, 
@@ -32,12 +35,15 @@ const Inventory = () => {
     handleRefresh, 
     handlePrint 
   } = useInventory();
+  const location = useLocation();
 
   // Get all categories for filtering
   const categories = getCategories();
   
   // Get expiring items
   const expiringItems = getExpiringItems(90);
+  // Get critical items (30 days)
+  const criticalItems = getExpiringItems(30);
 
   // Simulate initial data loading
   useEffect(() => {
@@ -71,6 +77,10 @@ const Inventory = () => {
     setCategoryFilter(category);
   };
 
+  const handleDismissNotification = () => {
+    setShowNotification(false);
+  };
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
@@ -91,6 +101,10 @@ const Inventory = () => {
           </p>
         </div>
       </div>
+
+      {criticalItems.length > 0 && showNotification && (
+        <ExpiryNotificationBanner onDismiss={handleDismissNotification} />
+      )}
 
       {expiringItems.length > 0 && <ExpiryWarningBanner expiringItems={expiringItems} />}
 
