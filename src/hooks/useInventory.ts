@@ -3,9 +3,9 @@ import { useInventoryCore } from "@/hooks/inventory/useInventoryCore";
 import { useInventoryCRUD } from "@/hooks/inventory/useInventoryCRUD";
 import { useInventoryFilters } from "@/hooks/inventory/useInventoryFilters";
 import { useInventoryPrint } from "@/hooks/useInventoryPrint";
-import { InventoryItem } from "@/types/inventory";
+import type { InventoryItem } from "@/types/inventory";
 
-export { InventoryItem };
+export type { InventoryItem };
 
 export const useInventory = () => {
   const { inventory, isLoading, error, handleRefresh } = useInventoryCore();
