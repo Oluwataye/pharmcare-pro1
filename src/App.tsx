@@ -17,7 +17,7 @@ import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Reports from "./pages/Reports";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { Persister } from "@tanstack/query-sync-storage-persister";
+import type { Persister } from "@tanstack/react-query-persist-client";
 
 interface AppProps {
   queryClient: QueryClient;
