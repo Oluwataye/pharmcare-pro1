@@ -1,8 +1,10 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { SaleItem, Product } from '@/types/sales';
 import { printReceipt } from '@/utils/receiptPrinter';
+import { useOffline } from '@/contexts/OfflineContext';
+import { useOfflineData } from '@/hooks/useOfflineData';
 
 interface UseSalesOptions {
   cashierName?: string;
@@ -20,9 +22,26 @@ interface HandlePrintOptions {
 }
 
 export const useSales = (options?: UseSalesOptions) => {
-  const [items, setItems] = useState<SaleItem[]>([]);
-  const [discount, setDiscount] = useState<number>(0);
+  const [items, setItems] = useState<SaleItem[]>(() => {
+    // Try to restore any in-progress sale from localStorage
+    const savedSale = localStorage.getItem('CURRENT_SALE_ITEMS');
+    return savedSale ? JSON.parse(savedSale) : [];
+  });
+  
+  const [discount, setDiscount] = useState<number>(() => {
+    const savedDiscount = localStorage.getItem('CURRENT_SALE_DISCOUNT');
+    return savedDiscount ? parseFloat(savedDiscount) : 0;
+  });
+  
   const { toast } = useToast();
+  const { isOnline } = useOffline();
+  const { createOfflineItem } = useOfflineData();
+
+  // Save the current sale to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('CURRENT_SALE_ITEMS', JSON.stringify(items));
+    localStorage.setItem('CURRENT_SALE_DISCOUNT', discount.toString());
+  }, [items, discount]);
 
   const addItem = (product: Product, quantity: number = 1) => {
     if (quantity <= 0) {
@@ -37,22 +56,25 @@ export const useSales = (options?: UseSalesOptions) => {
     const existingItem = items.find(item => item.id === product.id);
     const itemDiscount = product.discount || 0;
     
+    let newItems;
     if (existingItem) {
-      setItems(items.map(item =>
+      newItems = items.map(item =>
         item.id === product.id
           ? { ...item, quantity: item.quantity + quantity, total: (item.quantity + quantity) * item.price * (1 - (item.discount || 0) / 100) }
           : item
-      ));
+      );
     } else {
-      setItems([...items, {
+      newItems = [...items, {
         id: product.id,
         name: product.name,
         quantity,
         price: product.price,
         discount: itemDiscount,
         total: product.price * quantity * (1 - itemDiscount / 100)
-      }]);
+      }];
     }
+    
+    setItems(newItems);
   };
 
   const removeItem = (id: string) => {
@@ -145,9 +167,73 @@ export const useSales = (options?: UseSalesOptions) => {
     }
   };
 
+  const completeSale = async (customerInfo?: { 
+    customerName?: string;
+    customerPhone?: string;
+  }) => {
+    if (items.length === 0) {
+      toast({
+        title: "Error",
+        description: "Cannot complete sale with no items",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    try {
+      const saleData = {
+        items: [...items],
+        total: calculateTotal(),
+        date: new Date().toISOString(),
+        status: 'completed',
+        discount,
+        customerName: customerInfo?.customerName,
+        customerPhone: customerInfo?.customerPhone,
+        cashierName: options?.cashierName,
+        cashierEmail: options?.cashierEmail,
+        cashierId: options?.cashierId,
+        transactionId: `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`
+      };
+
+      // If offline, save this sale for later sync
+      if (!isOnline) {
+        createOfflineItem('sales', saleData);
+        toast({
+          title: "Offline Sale Completed",
+          description: "Sale has been saved offline and will sync when you're back online",
+        });
+      } else {
+        // In online mode, would normally send to server
+        // For now, just store locally
+        const savedSales = localStorage.getItem('COMPLETED_SALES');
+        const sales = savedSales ? JSON.parse(savedSales) : [];
+        sales.push(saleData);
+        localStorage.setItem('COMPLETED_SALES', JSON.stringify(sales));
+        
+        toast({
+          title: "Sale Completed",
+          description: "Sale has been successfully recorded",
+        });
+      }
+      
+      // Clear the current sale
+      clearItems();
+      return true;
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to complete sale",
+        variant: "destructive",
+      });
+      return false;
+    }
+  };
+
   const clearItems = () => {
     setItems([]);
     setDiscount(0);
+    localStorage.removeItem('CURRENT_SALE_ITEMS');
+    localStorage.removeItem('CURRENT_SALE_DISCOUNT');
   };
 
   return {
@@ -162,6 +248,8 @@ export const useSales = (options?: UseSalesOptions) => {
     calculateDiscountAmount,
     calculateTotal,
     handlePrint,
-    clearItems
+    completeSale,
+    clearItems,
+    isOfflineMode: !isOnline
   };
 };

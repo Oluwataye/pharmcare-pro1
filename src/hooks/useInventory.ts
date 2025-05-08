@@ -1,7 +1,8 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { useOfflineData } from "@/hooks/useOfflineData";
+import { useOffline } from "@/contexts/OfflineContext";
 
 // Enhanced inventory item type with expiry date and more fields
 export interface InventoryItem {
@@ -55,11 +56,27 @@ const mockInventory = [
 ];
 
 export const useInventory = () => {
-  const [inventory, setInventory] = useState<InventoryItem[]>(mockInventory);
+  const [inventory, setInventory] = useState<InventoryItem[]>(() => {
+    // Try to get saved inventory from localStorage first
+    const savedInventory = localStorage.getItem('INVENTORY_DATA');
+    return savedInventory ? JSON.parse(savedInventory) : mockInventory;
+  });
+  
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isOnline } = useOffline();
+  const { 
+    createOfflineItem, 
+    updateOfflineItem, 
+    deleteOfflineItem 
+  } = useOfflineData();
+
+  // Save inventory to local storage whenever it changes
+  const saveInventoryToLocalStorage = (newInventory: InventoryItem[]) => {
+    localStorage.setItem('INVENTORY_DATA', JSON.stringify(newInventory));
+  };
 
   // Enhanced validation for inventory items
   const validateItem = (item: Partial<InventoryItem>): { valid: boolean; message: string } => {
@@ -112,10 +129,21 @@ export const useInventory = () => {
         lastUpdatedBy: user ? user.username || user.name : 'Unknown',
         lastUpdatedAt: new Date().toISOString(),
       };
-      setInventory([...inventory, item]);
+
+      // If offline, queue the operation for later sync
+      if (!isOnline) {
+        createOfflineItem('inventory', item);
+      }
+      
+      const updatedInventory = [...inventory, item];
+      setInventory(updatedInventory);
+      saveInventoryToLocalStorage(updatedInventory);
+      
       toast({
         title: "Success",
-        description: "Product added successfully",
+        description: isOnline 
+          ? "Product added successfully" 
+          : "Product added successfully (offline mode)",
       });
     } catch (error) {
       toast({
@@ -139,16 +167,27 @@ export const useInventory = () => {
         return;
       }
       
-      setInventory(inventory.map(item => 
+      // If offline, queue the update operation
+      if (!isOnline) {
+        updateOfflineItem('inventory', id, updatedItem);
+      }
+      
+      const newInventory = inventory.map(item => 
         item.id === id ? {
           ...updatedItem,
           lastUpdatedBy: user ? user.username || user.name : 'Unknown',
           lastUpdatedAt: new Date().toISOString(),
         } : item
-      ));
+      );
+      
+      setInventory(newInventory);
+      saveInventoryToLocalStorage(newInventory);
+      
       toast({
         title: "Success",
-        description: "Product updated successfully",
+        description: isOnline 
+          ? "Product updated successfully" 
+          : "Product updated successfully (offline mode)",
       });
     } catch (error) {
       toast({
@@ -161,10 +200,20 @@ export const useInventory = () => {
 
   const deleteItem = (id: string) => {
     try {
-      setInventory(inventory.filter((item) => item.id !== id));
+      // If offline, queue the delete operation
+      if (!isOnline) {
+        deleteOfflineItem('inventory', id);
+      }
+      
+      const newInventory = inventory.filter((item) => item.id !== id);
+      setInventory(newInventory);
+      saveInventoryToLocalStorage(newInventory);
+      
       toast({
         title: "Success",
-        description: "Product deleted successfully",
+        description: isOnline 
+          ? "Product deleted successfully" 
+          : "Product deleted successfully (offline mode)",
       });
     } catch (error) {
       toast({
@@ -178,10 +227,20 @@ export const useInventory = () => {
   // Added batch operations
   const batchDelete = (ids: string[]) => {
     try {
-      setInventory(inventory.filter((item) => !ids.includes(item.id)));
+      // If offline, queue each delete operation
+      if (!isOnline) {
+        ids.forEach(id => deleteOfflineItem('inventory', id));
+      }
+      
+      const newInventory = inventory.filter((item) => !ids.includes(item.id));
+      setInventory(newInventory);
+      saveInventoryToLocalStorage(newInventory);
+      
       toast({
         title: "Success",
-        description: `${ids.length} products deleted successfully`,
+        description: isOnline 
+          ? `${ids.length} products deleted successfully`
+          : `${ids.length} products deleted successfully (offline mode)`,
       });
     } catch (error) {
       toast({
@@ -214,6 +273,24 @@ export const useInventory = () => {
   const handleRefresh = () => {
     setIsLoading(true);
     setError(null);
+    
+    if (!isOnline) {
+      // Just reload from local storage in offline mode
+      const savedInventory = localStorage.getItem('INVENTORY_DATA');
+      if (savedInventory) {
+        setInventory(JSON.parse(savedInventory));
+      }
+      
+      setTimeout(() => {
+        setIsLoading(false);
+        toast({
+          title: "Offline Mode",
+          description: "Loaded inventory from local storage. Changes will sync when you're back online.",
+          variant: "warning",
+        });
+      }, 800);
+      return;
+    }
     
     // In a real app, this would fetch fresh data from the API
     setTimeout(() => {

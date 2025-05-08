@@ -5,15 +5,18 @@ import { useSales } from "@/hooks/useSales";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Printer } from "lucide-react";
+import { Printer, Save } from "lucide-react";
 import ProductSearchSection from "@/components/sales/ProductSearchSection";
 import CurrentSaleTable from "@/components/sales/CurrentSaleTable";
 import SaleTotals from "@/components/sales/SaleTotals";
+import { useOffline } from "@/contexts/OfflineContext";
 
 const NewSale = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { user } = useAuth();
+  const { isOnline } = useOffline();
+  
   const {
     items,
     discount,
@@ -25,6 +28,8 @@ const NewSale = () => {
     calculateSubtotal,
     calculateDiscountAmount,
     handlePrint,
+    completeSale,
+    isOfflineMode
   } = useSales({ 
     cashierName: user ? user.username || user.name : undefined,
     cashierEmail: user ? user.email : undefined,
@@ -51,17 +56,25 @@ const NewSale = () => {
     }
 
     try {
-      await handlePrint({
-        customerInfo: { 
-          cashierName: user.username || user.name,
-          cashierEmail: user.email
+      const success = await completeSale({
+        // Can add customer info here if we have a form for it
+      });
+      
+      if (success) {
+        try {
+          await handlePrint({
+            customerInfo: { 
+              cashierName: user.username || user.name,
+              cashierEmail: user.email
+            }
+          });
+        } catch (error) {
+          // Continue even if printing fails
+          console.error("Print failed but sale was completed", error);
         }
-      });
-      toast({
-        title: "Success",
-        description: "Sale completed successfully",
-      });
-      navigate("/sales");
+        
+        navigate("/sales");
+      }
     } catch (error) {
       toast({
         title: "Error",
@@ -74,13 +87,25 @@ const NewSale = () => {
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">New Sale</h1>
+        <div>
+          <h1 className="text-2xl font-bold">New Sale</h1>
+          {!isOnline && (
+            <p className="text-sm text-amber-600">Working in offline mode - sale will sync when you're back online</p>
+          )}
+        </div>
         <div className="flex gap-2">
           <Button variant="outline" onClick={() => navigate("/sales")}>
             Cancel
           </Button>
           <Button onClick={handleCompleteSale}>
-            Complete Sale
+            {isOfflineMode ? (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Save Offline
+              </>
+            ) : (
+              "Complete Sale"
+            )}
           </Button>
         </div>
       </div>

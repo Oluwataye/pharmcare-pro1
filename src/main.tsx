@@ -6,19 +6,31 @@ import { createSyncStoragePersister } from '@tanstack/query-sync-storage-persist
 import App from './App.tsx'
 import './index.css'
 
-// Create a client
+// Create a client with enhanced offline capabilities
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      gcTime: 1000 * 60 * 60 * 24, // 24 hours
-      staleTime: 1000 * 60 * 5, // 5 minutes
+      gcTime: 1000 * 60 * 60 * 24 * 30, // 30 days (increased from 24 hours)
+      staleTime: 1000 * 60 * 30, // 30 minutes (increased from 5 minutes)
+      retry: 3,
+      retryDelay: attempt => Math.min(attempt > 1 ? 2 ** attempt * 1000 : 1000, 30000),
+      networkMode: 'always', // Try online first, then fall back to cache
     },
+    mutations: {
+      retry: 3,
+      networkMode: 'online',
+    }
   },
 });
 
-// Create a persister
+// Create an enhanced persister with increased storage capacity
 const persister = createSyncStoragePersister({
   storage: window.localStorage,
+  key: 'PHARMACARE_CACHE', // Specific key for our app cache
+  throttleTime: 1000, // Save at most once per second
+  serialize: data => JSON.stringify(data),
+  deserialize: data => JSON.parse(data),
+  maxAge: 1000 * 60 * 60 * 24 * 14, // 14 days (2 weeks) cache retention
 });
 
 createRoot(document.getElementById("root")!).render(
