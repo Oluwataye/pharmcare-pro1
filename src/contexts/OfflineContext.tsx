@@ -69,7 +69,6 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
       toast({
         title: "Connection Lost",
         description: "You are now working offline. Changes will sync when connection returns.",
-        variant: "warning",
       });
     };
 
@@ -87,7 +86,6 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
       toast({
         title: "Cannot Sync",
         description: "You are currently offline. Data will sync automatically when you're back online.",
-        variant: "warning",
       });
       return;
     }

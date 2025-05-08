@@ -30,7 +30,6 @@ const persister = createSyncStoragePersister({
   throttleTime: 1000, // Save at most once per second
   serialize: data => JSON.stringify(data),
   deserialize: data => JSON.parse(data),
-  maxAge: 1000 * 60 * 60 * 24 * 14, // 14 days (2 weeks) cache retention
 });
 
 createRoot(document.getElementById("root")!).render(
