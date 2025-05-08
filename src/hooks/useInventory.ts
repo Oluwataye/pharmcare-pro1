@@ -1,10 +1,9 @@
-
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { useOfflineData } from "@/hooks/useOfflineData";
 import { useOffline } from "@/contexts/OfflineContext";
-import { InventoryItem } from "@/types/inventory";
+import type { InventoryItem } from "@/types/inventory";
 import { mockInventory } from "@/utils/mockInventoryData";
 import { 
   saveInventoryToLocalStorage, 
@@ -15,7 +14,7 @@ import {
 } from "@/utils/inventoryUtils";
 import { useInventoryPrint } from "@/hooks/useInventoryPrint";
 
-export { InventoryItem };
+export type { InventoryItem };
 
 export const useInventory = () => {
   const [inventory, setInventory] = useState<InventoryItem[]>(() => {
