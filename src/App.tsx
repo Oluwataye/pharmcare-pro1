@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,11 +16,19 @@ import Users from "./pages/Users";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 import Reports from "./pages/Reports";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { Persister } from "@tanstack/query-sync-storage-persister";
 
-const queryClient = new QueryClient();
+interface AppProps {
+  queryClient: QueryClient;
+  persister: Persister;
+}
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
+const App = ({ queryClient, persister }: AppProps) => (
+  <PersistQueryClientProvider
+    client={queryClient}
+    persistOptions={{ persister }}
+  >
     <AuthProvider>
       <TooltipProvider>
         <Toaster />
@@ -96,7 +105,7 @@ const App = () => (
         </BrowserRouter>
       </TooltipProvider>
     </AuthProvider>
-  </QueryClientProvider>
+  </PersistQueryClientProvider>
 );
 
 export default App;
