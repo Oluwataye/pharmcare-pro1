@@ -1,13 +1,16 @@
 
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { InventoryItem } from "@/types/inventory";
 import { generateInventoryReport } from "@/utils/inventoryUtils";
 
 export const useInventoryPrint = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
 
-  const handlePrint = async (inventory: InventoryItem[], username: string) => {
+  const handlePrint = async (inventory: InventoryItem[]) => {
     try {
+      const username = user ? user.username || user.name : 'Unknown';
       // Create print content
       const printContent = generateInventoryReport(inventory, username);
 
