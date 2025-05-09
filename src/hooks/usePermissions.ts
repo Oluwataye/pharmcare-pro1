@@ -52,6 +52,10 @@ export function usePermissions() {
   const canDeleteUsers = (): boolean => {
     return hasPermission({ action: 'delete', resource: 'users' });
   };
+  
+  const canResetPassword = (): boolean => {
+    return hasPermission({ action: 'update', resource: 'users' });
+  };
 
   const canAccessReports = (): boolean => {
     return hasPermission({ action: 'read', resource: 'reports' });
@@ -67,6 +71,7 @@ export function usePermissions() {
     canManageUsers,
     canEditUsers,
     canDeleteUsers,
+    canResetPassword,
     canAccessReports,
   };
 }

@@ -17,6 +17,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { EditUserDialog } from "@/components/users/EditUserDialog";
 import { UserPermissionsDialog } from "@/components/users/UserPermissionsDialog";
 import { DeleteUserDialog } from "@/components/users/DeleteUserDialog";
+import { ResetPasswordDialog } from "@/components/users/ResetPasswordDialog";
 import { User } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 
@@ -167,7 +168,10 @@ const Users = () => {
                       <TableCell>
                         <div className="flex space-x-2">
                           {canEditUsers() && (
-                            <EditUserDialog user={user} onUserUpdated={handleUserUpdated} />
+                            <>
+                              <EditUserDialog user={user} onUserUpdated={handleUserUpdated} />
+                              <ResetPasswordDialog user={user} />
+                            </>
                           )}
                           {canManageUsers() && (
                             <UserPermissionsDialog user={user} />
