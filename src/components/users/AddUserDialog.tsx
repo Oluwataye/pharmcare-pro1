@@ -3,7 +3,7 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
-import { UserRole } from "@/lib/types";
+import { User, UserRole } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
 import {
@@ -43,7 +43,11 @@ const userSchema = z.object({
 
 type UserFormValues = z.infer<typeof userSchema>;
 
-export function AddUserDialog() {
+interface AddUserDialogProps {
+  onUserAdded: (user: User) => void;
+}
+
+export function AddUserDialog({ onUserAdded }: AddUserDialogProps) {
   const [open, setOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
@@ -78,11 +82,20 @@ export function AddUserDialog() {
         throw new Error("Email already exists");
       }
 
-      // TODO: Replace with actual API call
-      console.log("Creating user:", data);
+      // Create a new user with an ID
+      const newUser: User = {
+        id: `user-${Date.now()}`, // Generate a temporary ID
+        name: data.name,
+        email: data.email,
+        username: data.username || undefined,
+        role: data.role as UserRole,
+      };
       
       // Simulate API delay
       await new Promise(resolve => setTimeout(resolve, 1000));
+      
+      // Call the callback with the new user
+      onUserAdded(newUser);
       
       toast({
         title: "Success",
