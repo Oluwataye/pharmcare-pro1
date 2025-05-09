@@ -6,7 +6,6 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogFooter,
 } from "@/components/ui/dialog";
 import { InventoryItem } from "@/types/inventory";
 import { EditInventoryForm } from "./dialog/EditInventoryForm";

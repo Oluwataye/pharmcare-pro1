@@ -9,6 +9,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { AddInventoryForm } from "./dialog/AddInventoryForm";
+import { initialInventoryFormState } from "./form/formUtils";
 
 interface AddInventoryDialogProps {
   open: boolean;
@@ -34,18 +35,7 @@ export const AddInventoryDialog = ({
   categories = [],
   onAddItem,
 }: AddInventoryDialogProps) => {
-  const [formData, setFormData] = useState({
-    name: "",
-    sku: "",
-    category: "",
-    quantity: 0,
-    unit: "units",
-    price: 0,
-    reorderLevel: 0,
-    expiryDate: "",
-    manufacturer: "",
-    batchNumber: "",
-  });
+  const [formData, setFormData] = useState(initialInventoryFormState);
 
   const [expiryDate, setExpiryDate] = useState<Date | undefined>(undefined);
   const [customCategory, setCustomCategory] = useState<string>("");
@@ -67,18 +57,7 @@ export const AddInventoryDialog = ({
     onOpenChange(false);
     
     // Reset form
-    setFormData({
-      name: "",
-      sku: "",
-      category: "",
-      quantity: 0,
-      unit: "units",
-      price: 0,
-      reorderLevel: 0,
-      expiryDate: "",
-      manufacturer: "",
-      batchNumber: "",
-    });
+    setFormData(initialInventoryFormState);
     setExpiryDate(undefined);
     setCustomCategory("");
     setIsAddingCategory(false);

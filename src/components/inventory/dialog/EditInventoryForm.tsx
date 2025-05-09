@@ -1,21 +1,10 @@
 
-import { useState, useEffect } from "react";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { InventoryItem } from "@/types/inventory";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar as CalendarIcon } from "lucide-react";
-import { format } from "date-fns";
-import { cn } from "@/lib/utils";
+import { TextField, SelectField } from "@/components/inventory/form/FormField";
+import { DatePickerField } from "@/components/inventory/form/DatePickerField";
+import { UNIT_OPTIONS } from "@/components/inventory/form/formUtils";
+import { SelectItem } from "@/components/ui/select";
 
 interface EditInventoryFormProps {
   formData: InventoryItem;
@@ -32,145 +21,103 @@ export const EditInventoryForm = ({
   setExpiryDate,
   onSubmit,
 }: EditInventoryFormProps) => {
+  
+  const handleInputChange = (field: string, value: string | number) => {
+    setFormData({ ...formData, [field]: value });
+  };
+  
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <div className="grid grid-cols-2 gap-4">
-        <div className="space-y-2">
-          <Label htmlFor="edit-name">Product Name *</Label>
-          <Input
-            id="edit-name"
-            value={formData.name}
-            onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-            required
-          />
-        </div>
-
-        <div className="space-y-2">
-          <Label htmlFor="edit-sku">SKU *</Label>
-          <Input
-            id="edit-sku"
-            value={formData.sku}
-            onChange={(e) => setFormData({ ...formData, sku: e.target.value })}
-            required
-          />
-        </div>
+        <TextField
+          id="edit-name"
+          label="Product Name"
+          value={formData.name}
+          onChange={(value) => handleInputChange("name", value)}
+          required
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="edit-category">Category *</Label>
-          <Input
-            id="edit-category"
-            value={formData.category}
-            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-            required
-          />
-        </div>
+        <TextField
+          id="edit-sku"
+          label="SKU"
+          value={formData.sku}
+          onChange={(value) => handleInputChange("sku", value)}
+          required
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="edit-expiryDate">Expiry Date</Label>
-          <Popover>
-            <PopoverTrigger asChild>
-              <Button
-                id="edit-expiryDate"
-                variant={"outline"}
-                className={cn(
-                  "w-full justify-start text-left font-normal",
-                  !expiryDate && "text-muted-foreground"
-                )}
-              >
-                <CalendarIcon className="mr-2 h-4 w-4" />
-                {expiryDate ? format(expiryDate, "PPP") : "Select date"}
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-auto p-0">
-              <Calendar
-                mode="single"
-                selected={expiryDate}
-                onSelect={setExpiryDate}
-                initialFocus
-                disabled={(date) => date < new Date()}
-              />
-            </PopoverContent>
-          </Popover>
-        </div>
+        <TextField
+          id="edit-category"
+          label="Category"
+          value={formData.category}
+          onChange={(value) => handleInputChange("category", value)}
+          required
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="edit-quantity">Quantity *</Label>
-          <Input
-            id="edit-quantity"
-            type="number"
-            value={formData.quantity}
-            onChange={(e) => setFormData({ ...formData, quantity: parseInt(e.target.value) })}
-            required
-            min="0"
-          />
-        </div>
+        <DatePickerField
+          id="edit-expiryDate"
+          label="Expiry Date"
+          date={expiryDate}
+          onDateChange={setExpiryDate}
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="edit-unit">Unit *</Label>
-          <Select
-            value={formData.unit}
-            onValueChange={(value) => setFormData({ ...formData, unit: value })}
-          >
-            <SelectTrigger id="edit-unit">
-              <SelectValue placeholder="Select unit" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="tablets">Tablets</SelectItem>
-              <SelectItem value="capsules">Capsules</SelectItem>
-              <SelectItem value="bottles">Bottles</SelectItem>
-              <SelectItem value="vials">Vials</SelectItem>
-              <SelectItem value="boxes">Boxes</SelectItem>
-              <SelectItem value="units">Units</SelectItem>
-              <SelectItem value="ml">ml</SelectItem>
-              <SelectItem value="l">l</SelectItem>
-              <SelectItem value="mg">mg</SelectItem>
-              <SelectItem value="g">g</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
+        <TextField
+          id="edit-quantity"
+          label="Quantity"
+          type="number"
+          value={formData.quantity}
+          onChange={(value) => handleInputChange("quantity", parseInt(value) || 0)}
+          required
+          min="0"
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="edit-price">Price (₦) *</Label>
-          <Input
-            id="edit-price"
-            type="number"
-            value={formData.price}
-            onChange={(e) => setFormData({ ...formData, price: parseFloat(e.target.value) })}
-            required
-            min="0"
-            step="0.01"
-          />
-        </div>
+        <SelectField
+          id="edit-unit"
+          label="Unit"
+          value={formData.unit}
+          onValueChange={(value) => handleInputChange("unit", value)}
+          required
+        >
+          {UNIT_OPTIONS.map((option) => (
+            <SelectItem key={option.value} value={option.value}>
+              {option.label}
+            </SelectItem>
+          ))}
+        </SelectField>
         
-        <div className="space-y-2">
-          <Label htmlFor="edit-reorderLevel">Reorder Level *</Label>
-          <Input
-            id="edit-reorderLevel"
-            type="number"
-            value={formData.reorderLevel}
-            onChange={(e) => setFormData({ ...formData, reorderLevel: parseInt(e.target.value) })}
-            required
-            min="0"
-          />
-        </div>
+        <TextField
+          id="edit-price"
+          label="Price (₦)"
+          type="number"
+          value={formData.price}
+          onChange={(value) => handleInputChange("price", parseFloat(value) || 0)}
+          required
+          min="0"
+          step="0.01"
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="edit-manufacturer">Manufacturer</Label>
-          <Input
-            id="edit-manufacturer"
-            value={formData.manufacturer || ""}
-            onChange={(e) => setFormData({ ...formData, manufacturer: e.target.value })}
-          />
-        </div>
+        <TextField
+          id="edit-reorderLevel"
+          label="Reorder Level"
+          type="number"
+          value={formData.reorderLevel}
+          onChange={(value) => handleInputChange("reorderLevel", parseInt(value) || 0)}
+          required
+          min="0"
+        />
         
-        <div className="space-y-2">
-          <Label htmlFor="edit-batchNumber">Batch Number</Label>
-          <Input
-            id="edit-batchNumber"
-            value={formData.batchNumber || ""}
-            onChange={(e) => setFormData({ ...formData, batchNumber: e.target.value })}
-          />
-        </div>
+        <TextField
+          id="edit-manufacturer"
+          label="Manufacturer"
+          value={formData.manufacturer || ""}
+          onChange={(value) => handleInputChange("manufacturer", value)}
+        />
+        
+        <TextField
+          id="edit-batchNumber"
+          label="Batch Number"
+          value={formData.batchNumber || ""}
+          onChange={(value) => handleInputChange("batchNumber", value)}
+        />
       </div>
       
       <Button type="submit" className="mt-4">Save Changes</Button>
