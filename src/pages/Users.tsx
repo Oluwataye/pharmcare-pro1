@@ -1,4 +1,5 @@
 
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -10,39 +11,71 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Search, UserCog, UserX, UserPen } from "lucide-react";
+import { Search } from "lucide-react";
 import { AddUserDialog } from "@/components/users/AddUserDialog";
-import { useState } from "react";
 import { usePermissions } from "@/hooks/usePermissions";
+import { EditUserDialog } from "@/components/users/EditUserDialog";
+import { UserPermissionsDialog } from "@/components/users/UserPermissionsDialog";
+import { DeleteUserDialog } from "@/components/users/DeleteUserDialog";
+import { User } from "@/lib/types";
+import { useToast } from "@/hooks/use-toast";
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const { canManageUsers, canEditUsers, canDeleteUsers } = usePermissions();
+  const { toast } = useToast();
   
-  const users = [
+  const [users, setUsers] = useState<User[]>([
     {
-      id: 1,
+      id: "1",
       name: "John Doe",
       email: "john@example.com",
-      role: "Admin",
-      status: "Active",
-      lastLogin: "2024-02-20",
+      username: "johndoe",
+      role: "ADMIN",
     },
     {
-      id: 2,
+      id: "2",
       name: "Jane Smith",
       email: "jane@example.com",
-      role: "Pharmacist",
-      status: "Active",
-      lastLogin: "2024-02-19",
+      username: "janesmith",
+      role: "PHARMACIST",
     },
-  ];
+    {
+      id: "3",
+      name: "Mike Johnson",
+      email: "mike@example.com",
+      username: "mikej",
+      role: "CASHIER",
+    },
+  ]);
   
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase())
+    user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  const handleUserUpdated = (updatedUser: User) => {
+    setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
+  };
+
+  const handleUserDeleted = (userId: string) => {
+    setUsers(users.filter(user => user.id !== userId));
+  };
+
+  const handleAddUser = (user: User) => {
+    setUsers([...users, user]);
+    toast({
+      title: "User added",
+      description: "New user has been added successfully.",
+    });
+  };
+
+  // Calculate user statistics for the cards
+  const totalUsers = users.length;
+  const activeUsers = users.length; // Assuming all users are active for this example
+  const pharmacists = users.filter(user => user.role === "PHARMACIST").length;
 
   return (
     <div className="p-4 md:p-6 space-y-6 animate-fade-in">
@@ -58,7 +91,9 @@ const Users = () => {
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          {canManageUsers() && <AddUserDialog />}
+          {canManageUsers() && (
+            <AddUserDialog onUserAdded={handleAddUser} />
+          )}
         </div>
       </div>
 
@@ -68,7 +103,7 @@ const Users = () => {
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">10</div>
+            <div className="text-2xl font-bold">{totalUsers}</div>
           </CardContent>
         </Card>
         <Card className="hover:shadow-lg transition-all duration-200">
@@ -76,7 +111,7 @@ const Users = () => {
             <CardTitle className="text-sm font-medium">Active Users</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">8</div>
+            <div className="text-2xl font-bold">{activeUsers}</div>
           </CardContent>
         </Card>
         <Card className="hover:shadow-lg transition-all duration-200">
@@ -84,7 +119,7 @@ const Users = () => {
             <CardTitle className="text-sm font-medium">Pharmacists</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">5</div>
+            <div className="text-2xl font-bold">{pharmacists}</div>
           </CardContent>
         </Card>
       </div>
@@ -101,15 +136,14 @@ const Users = () => {
                   <TableHead>Name</TableHead>
                   <TableHead className="hidden sm:table-cell">Email</TableHead>
                   <TableHead>Role</TableHead>
-                  <TableHead className="hidden md:table-cell">Status</TableHead>
-                  <TableHead className="hidden lg:table-cell">Last Login</TableHead>
+                  <TableHead className="hidden md:table-cell">Username</TableHead>
                   <TableHead>Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {filteredUsers.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
                       No users found
                     </TableCell>
                   </TableRow>
@@ -118,29 +152,28 @@ const Users = () => {
                     <TableRow key={user.id} className="hover:bg-muted/50">
                       <TableCell className="font-medium">{user.name}</TableCell>
                       <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
-                      <TableCell>{user.role}</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
-                          {user.status}
+                      <TableCell>
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          user.role === "ADMIN" 
+                            ? "bg-purple-100 text-purple-800" 
+                            : user.role === "PHARMACIST" 
+                            ? "bg-green-100 text-green-800"
+                            : "bg-blue-100 text-blue-800"
+                        }`}>
+                          {user.role}
                         </span>
                       </TableCell>
-                      <TableCell className="hidden lg:table-cell">{user.lastLogin}</TableCell>
+                      <TableCell className="hidden md:table-cell">{user.username || "-"}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
                           {canEditUsers() && (
-                            <Button variant="ghost" size="sm" title="Edit User">
-                              <UserPen className="h-4 w-4" />
-                            </Button>
+                            <EditUserDialog user={user} onUserUpdated={handleUserUpdated} />
                           )}
                           {canManageUsers() && (
-                            <Button variant="ghost" size="sm" title="Manage User Permissions">
-                              <UserCog className="h-4 w-4" />
-                            </Button>
+                            <UserPermissionsDialog user={user} />
                           )}
                           {canDeleteUsers() && (
-                            <Button variant="ghost" size="sm" title="Delete User">
-                              <UserX className="h-4 w-4" />
-                            </Button>
+                            <DeleteUserDialog user={user} onUserDeleted={handleUserDeleted} />
                           )}
                         </div>
                       </TableCell>
