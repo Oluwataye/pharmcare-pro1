@@ -11,6 +11,7 @@ interface HandlePrintOptions {
     cashierEmail?: string;
     businessName?: string;
     businessAddress?: string;
+    cashierId?: string;
   };
 }
 
@@ -33,6 +34,8 @@ export const useSalesPrinting = (
         businessName: options?.customerInfo?.businessName,
         businessAddress: options?.customerInfo?.businessAddress,
         saleType,
+        date: new Date(),
+        cashierId: options?.customerInfo?.cashierId,
       });
       
       toast({

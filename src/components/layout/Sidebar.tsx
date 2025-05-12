@@ -41,7 +41,8 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       icon: Package, 
       label: "Inventory", 
       path: "/inventory",
-      condition: canAccessInventory()
+      // Changed condition to only show Inventory for non-cashier roles
+      condition: user?.role !== "CASHIER" && canAccessInventory()
     },
     { 
       icon: ShoppingCart, 

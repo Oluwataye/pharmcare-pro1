@@ -1,4 +1,3 @@
-
 import { useAuth } from "@/contexts/AuthContext";
 import { Permission, ROLE_PERMISSIONS } from "@/lib/types";
 
@@ -13,6 +12,11 @@ export function usePermissions() {
       return true;
     }
     
+    // Special case: CASHIER can't access inventory
+    if (user.role === 'CASHIER' && permission.resource === 'inventory') {
+      return false;
+    }
+    
     const rolePermissions = ROLE_PERMISSIONS[user.role];
     return rolePermissions.some(
       (p) => p.action === permission.action && p.resource === permission.resource
@@ -20,10 +24,14 @@ export function usePermissions() {
   };
 
   const canAccessInventory = (): boolean => {
+    // Explicitly prevent CASHIER from accessing inventory
+    if (user?.role === 'CASHIER') return false;
     return hasPermission({ action: 'read', resource: 'inventory' });
   };
 
   const canManageInventory = (): boolean => {
+    // Explicitly prevent CASHIER from managing inventory
+    if (user?.role === 'CASHIER') return false;
     return hasPermission({ action: 'create', resource: 'inventory' });
   };
 
