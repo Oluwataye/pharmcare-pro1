@@ -61,6 +61,18 @@ export function usePermissions() {
     return hasPermission({ action: 'read', resource: 'reports' });
   };
 
+  const canCreateWholesale = (): boolean => {
+    return hasPermission({ action: 'create', resource: 'wholesale' });
+  };
+
+  const canReadWholesale = (): boolean => {
+    return hasPermission({ action: 'read', resource: 'wholesale' });
+  };
+
+  const canManageWholesale = (): boolean => {
+    return hasPermission({ action: 'update', resource: 'wholesale' });
+  };
+
   return {
     hasPermission,
     canAccessInventory,
@@ -73,5 +85,8 @@ export function usePermissions() {
     canDeleteUsers,
     canResetPassword,
     canAccessReports,
+    canCreateWholesale,
+    canReadWholesale,
+    canManageWholesale,
   };
 }

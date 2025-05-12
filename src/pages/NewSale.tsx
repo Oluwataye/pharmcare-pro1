@@ -1,11 +1,16 @@
 
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useSales } from "@/hooks/useSales";
 import { useAuth } from "@/contexts/AuthContext";
+import { usePermissions } from "@/hooks/usePermissions"; 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Printer, Save } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Printer, Save, ShoppingBag, Package } from "lucide-react";
 import ProductSearchSection from "@/components/sales/ProductSearchSection";
 import CurrentSaleTable from "@/components/sales/CurrentSaleTable";
 import SaleTotals from "@/components/sales/SaleTotals";
@@ -16,14 +21,23 @@ const NewSale = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const { isOnline } = useOffline();
+  const { canCreateWholesale } = usePermissions();
+  
+  const [customerName, setCustomerName] = useState("");
+  const [customerPhone, setCustomerPhone] = useState("");
+  const [businessName, setBusinessName] = useState("");
+  const [businessAddress, setBusinessAddress] = useState("");
   
   const {
     items,
     discount,
+    saleType,
     addItem,
     removeItem,
     updateQuantity,
+    toggleItemPriceType,
     setOverallDiscount,
+    setSaleType,
     calculateTotal,
     calculateSubtotal,
     calculateDiscountAmount,
@@ -55,9 +69,23 @@ const NewSale = () => {
       return;
     }
 
+    // For wholesale, business name is required
+    if (saleType === 'wholesale' && !businessName) {
+      toast({
+        title: "Error",
+        description: "Business name is required for wholesale orders",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const success = await completeSale({
-        // Can add customer info here if we have a form for it
+        customerName,
+        customerPhone,
+        businessName: saleType === 'wholesale' ? businessName : undefined,
+        businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
+        saleType
       });
       
       if (success) {
@@ -65,7 +93,11 @@ const NewSale = () => {
           await handlePrint({
             customerInfo: { 
               cashierName: user.username || user.name,
-              cashierEmail: user.email
+              cashierEmail: user.email,
+              customerName,
+              customerPhone,
+              businessName: saleType === 'wholesale' ? businessName : undefined,
+              businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
             }
           });
         } catch (error) {
@@ -110,25 +142,98 @@ const NewSale = () => {
         </div>
       </div>
 
+      {canCreateWholesale && (
+        <Tabs 
+          defaultValue={saleType} 
+          onValueChange={(value) => setSaleType(value as 'retail' | 'wholesale')}
+          className="w-full"
+        >
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="retail" className="flex items-center">
+              <ShoppingBag className="mr-2 h-4 w-4" />
+              Retail Sale
+            </TabsTrigger>
+            <TabsTrigger value="wholesale" className="flex items-center">
+              <Package className="mr-2 h-4 w-4" />
+              Wholesale
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+      )}
+
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Add Products</CardTitle>
+            <CardTitle>{saleType === 'wholesale' ? 'Wholesale Order' : 'Customer Info'}</CardTitle>
           </CardHeader>
           <CardContent>
-            <ProductSearchSection onAddProduct={addItem} />
+            <div className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label htmlFor="customer-name">
+                    {saleType === 'wholesale' ? 'Contact Person' : 'Customer Name'}
+                  </Label>
+                  <Input 
+                    id="customer-name" 
+                    value={customerName}
+                    onChange={(e) => setCustomerName(e.target.value)}
+                    placeholder={saleType === 'wholesale' ? 'Contact person name' : 'Customer name'}
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="customer-phone">Phone Number</Label>
+                  <Input 
+                    id="customer-phone" 
+                    value={customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value)}
+                    placeholder="Phone number" 
+                  />
+                </div>
+              </div>
+              
+              {saleType === 'wholesale' && (
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <Label htmlFor="business-name" className="text-red-500">Business Name*</Label>
+                    <Input 
+                      id="business-name" 
+                      value={businessName}
+                      onChange={(e) => setBusinessName(e.target.value)}
+                      placeholder="Business name"
+                      required 
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="business-address">Business Address</Label>
+                    <Input 
+                      id="business-address" 
+                      value={businessAddress}
+                      onChange={(e) => setBusinessAddress(e.target.value)}
+                      placeholder="Business address" 
+                    />
+                  </div>
+                </div>
+              )}
+              
+              <ProductSearchSection 
+                onAddProduct={(product, quantity) => addItem(product, quantity, saleType === 'wholesale')} 
+                isWholesale={saleType === 'wholesale'}
+              />
+            </div>
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Current Sale</CardTitle>
+            <CardTitle>{saleType === 'wholesale' ? 'Wholesale Order Items' : 'Current Sale'}</CardTitle>
           </CardHeader>
           <CardContent>
             <CurrentSaleTable 
               items={items} 
               onUpdateQuantity={updateQuantity} 
               onRemoveItem={removeItem}
+              onTogglePriceType={canCreateWholesale ? toggleItemPriceType : undefined}
+              isWholesale={saleType === 'wholesale'}
             />
             
             {items.length > 0 && (
@@ -139,6 +244,7 @@ const NewSale = () => {
                   total={calculateTotal()}
                   discountAmount={calculateDiscountAmount()}
                   onDiscountChange={setOverallDiscount}
+                  isWholesale={saleType === 'wholesale'}
                 />
                 
                 <div className="mt-4 flex justify-between items-center">
@@ -147,7 +253,11 @@ const NewSale = () => {
                     onClick={() => handlePrint({ 
                       customerInfo: { 
                         cashierName: user ? user.username || user.name : undefined,
-                        cashierEmail: user ? user.email : undefined
+                        cashierEmail: user ? user.email : undefined,
+                        customerName,
+                        customerPhone,
+                        businessName: saleType === 'wholesale' ? businessName : undefined,
+                        businessAddress: saleType === 'wholesale' ? businessAddress : undefined
                       }
                     })}
                   >

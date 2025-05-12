@@ -8,16 +8,25 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { X } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { X, Tag, Package } from "lucide-react";
 import { SaleItem } from "@/types/sales";
 
 interface CurrentSaleTableProps {
   items: SaleItem[];
   onUpdateQuantity: (id: string, quantity: number) => void;
   onRemoveItem: (id: string) => void;
+  onTogglePriceType?: (id: string) => void;
+  isWholesale?: boolean;
 }
 
-const CurrentSaleTable = ({ items, onUpdateQuantity, onRemoveItem }: CurrentSaleTableProps) => {
+const CurrentSaleTable = ({ 
+  items, 
+  onUpdateQuantity, 
+  onRemoveItem, 
+  onTogglePriceType,
+  isWholesale = false
+}: CurrentSaleTableProps) => {
   return (
     <Table>
       <TableHeader>
@@ -32,7 +41,17 @@ const CurrentSaleTable = ({ items, onUpdateQuantity, onRemoveItem }: CurrentSale
       <TableBody>
         {items.map((item) => (
           <TableRow key={item.id}>
-            <TableCell>{item.name}</TableCell>
+            <TableCell>
+              <div>
+                {item.name}
+                {item.isWholesale && (
+                  <Badge variant="outline" className="ml-2 bg-blue-50">
+                    <Package className="h-3 w-3 mr-1" /> 
+                    Wholesale
+                  </Badge>
+                )}
+              </div>
+            </TableCell>
             <TableCell>
               <div className="flex items-center gap-2">
                 <Button
@@ -57,14 +76,27 @@ const CurrentSaleTable = ({ items, onUpdateQuantity, onRemoveItem }: CurrentSale
             <TableCell className="text-right">₦{item.price}</TableCell>
             <TableCell className="text-right">₦{item.total}</TableCell>
             <TableCell>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => onRemoveItem(item.id)}
-                className="h-6 w-6 text-destructive hover:text-destructive"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center space-x-1">
+                {onTogglePriceType && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => onTogglePriceType(item.id)}
+                    className="h-6 w-6 text-blue-500"
+                    title={item.isWholesale ? "Switch to retail price" : "Switch to wholesale price"}
+                  >
+                    <Tag className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => onRemoveItem(item.id)}
+                  className="h-6 w-6 text-destructive hover:text-destructive"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
             </TableCell>
           </TableRow>
         ))}

@@ -12,13 +12,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Printer } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Printer, Package } from "lucide-react";
 
 interface SalesTableProps {
   sales: Sale[];
+  showBusinessInfo?: boolean;
 }
 
-const SalesTable = ({ sales }: SalesTableProps) => {
+const SalesTable = ({ sales, showBusinessInfo = false }: SalesTableProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
 
@@ -32,6 +34,11 @@ const SalesTable = ({ sales }: SalesTableProps) => {
         date: new Date(sale.date),
         cashierName: sale.cashierName || (user ? user.username || user.name : undefined),
         cashierEmail: sale.cashierEmail || (user ? user.email : undefined),
+        customerName: sale.customerName,
+        customerPhone: sale.customerPhone,
+        businessName: sale.businessName,
+        businessAddress: sale.businessAddress,
+        saleType: sale.saleType,
       });
 
       toast({
@@ -53,11 +60,13 @@ const SalesTable = ({ sales }: SalesTableProps) => {
         <TableHeader>
           <TableRow>
             <TableHead>Product</TableHead>
+            <TableHead>Type</TableHead>
             <TableHead>Quantity</TableHead>
             <TableHead>Price (₦)</TableHead>
             <TableHead>Total (₦)</TableHead>
             <TableHead>Date</TableHead>
             <TableHead>Cashier</TableHead>
+            {showBusinessInfo && <TableHead>Customer/Business</TableHead>}
             <TableHead>Status</TableHead>
             <TableHead>Actions</TableHead>
           </TableRow>
@@ -66,12 +75,27 @@ const SalesTable = ({ sales }: SalesTableProps) => {
           {sales.length > 0 ? (
             sales.map((sale) => (
               <TableRow key={sale.id}>
-                <TableCell>{sale.items[0].name}</TableCell>
+                <TableCell>{sale.items[0].name}{sale.items.length > 1 ? ` +${sale.items.length - 1} more` : ''}</TableCell>
+                <TableCell>
+                  {sale.saleType === 'wholesale' ? (
+                    <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
+                      <Package className="h-3 w-3 mr-1" />
+                      Wholesale
+                    </Badge>
+                  ) : (
+                    <Badge variant="outline">Retail</Badge>
+                  )}
+                </TableCell>
                 <TableCell>{sale.items[0].quantity}</TableCell>
                 <TableCell>{sale.items[0].price}</TableCell>
-                <TableCell>{sale.items[0].total}</TableCell>
+                <TableCell>{sale.total}</TableCell>
                 <TableCell>{sale.date}</TableCell>
                 <TableCell>{sale.cashierName || 'Unknown'}</TableCell>
+                {showBusinessInfo && (
+                  <TableCell>
+                    {sale.businessName || sale.customerName || 'Walk-in Customer'}
+                  </TableCell>
+                )}
                 <TableCell>
                   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                     sale.status === "completed" 
@@ -94,7 +118,7 @@ const SalesTable = ({ sales }: SalesTableProps) => {
             ))
           ) : (
             <TableRow>
-              <TableCell colSpan={8} className="h-24 text-center">
+              <TableCell colSpan={showBusinessInfo ? 10 : 9} className="h-24 text-center">
                 No sales found
               </TableCell>
             </TableRow>
