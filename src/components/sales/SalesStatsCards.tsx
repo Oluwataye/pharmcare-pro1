@@ -7,6 +7,8 @@ interface SalesStatsCardsProps {
   totalTransactions: number;
   averageSaleValue: number;
   totalDiscounts?: number;
+  totalRetailSales?: number;
+  totalWholesaleSales?: number;
 }
 
 const SalesStatsCards = ({
@@ -14,6 +16,8 @@ const SalesStatsCards = ({
   totalTransactions,
   averageSaleValue,
   totalDiscounts = 0,
+  totalRetailSales,
+  totalWholesaleSales,
 }: SalesStatsCardsProps) => {
   return (
     <div className="grid gap-4 md:grid-cols-4">
@@ -55,3 +59,4 @@ const SalesStatsCards = ({
 };
 
 export default SalesStatsCards;
+
