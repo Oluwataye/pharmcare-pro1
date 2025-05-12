@@ -1,3 +1,4 @@
+
 import { useAuth } from "@/contexts/AuthContext";
 import { Permission, ROLE_PERMISSIONS } from "@/lib/types";
 
@@ -7,8 +8,8 @@ export function usePermissions() {
   const hasPermission = (permission: Permission): boolean => {
     if (!user) return false;
     
-    // Special case: all users can access and manage sales
-    if (permission.resource === 'sales') {
+    // Special case: all users can access and manage sales (both retail and wholesale)
+    if (permission.resource === 'sales' || permission.resource === 'wholesale') {
       return true;
     }
     
@@ -70,15 +71,18 @@ export function usePermissions() {
   };
 
   const canCreateWholesale = (): boolean => {
-    return hasPermission({ action: 'create', resource: 'wholesale' });
+    // All users can create wholesale transactions
+    return true;
   };
 
   const canReadWholesale = (): boolean => {
-    return hasPermission({ action: 'read', resource: 'wholesale' });
+    // All users can read wholesale transactions
+    return true;
   };
 
   const canManageWholesale = (): boolean => {
-    return hasPermission({ action: 'update', resource: 'wholesale' });
+    // All users can manage wholesale transactions
+    return true;
   };
 
   return {

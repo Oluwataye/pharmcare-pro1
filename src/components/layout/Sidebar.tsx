@@ -1,4 +1,3 @@
-
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -25,7 +24,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   const { logout, user } = useAuth();
   const {
     canAccessInventory,
-    canManageInventory,
     canAccessUsers,
     canAccessReports,
   } = usePermissions();
@@ -41,8 +39,8 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       icon: Package, 
       label: "Inventory", 
       path: "/inventory",
-      // Changed condition to only show Inventory for non-cashier roles
-      condition: user?.role !== "CASHIER" && canAccessInventory()
+      // Only show Inventory for users with proper permissions
+      condition: canAccessInventory()
     },
     { 
       icon: ShoppingCart, 

@@ -4,30 +4,26 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { Plus, Printer } from "lucide-react";
+import { Plus, Printer, Tag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductSearch } from "./ProductSearch";
 import { SaleItemsTable } from "./SaleItemsTable";
+import { useSalesPrinting } from "@/hooks/sales/useSalesPrinting";
+import { SaleItem } from "@/types/sales";
+import SaleTotals from "../sales/SaleTotals";
+import { Badge } from "../ui/badge";
 
 interface NewSaleFormProps {
   onComplete: () => void;
   onCancel: () => void;
 }
 
-interface SaleItem {
-  id: string;
-  name: string;
-  quantity: number;
-  price: number;
-  total: number;
-}
-
 const productDatabase = [
-  { id: '1', name: 'Paracetamol', price: 500, stock: 100 },
-  { id: '2', name: 'Amoxicillin', price: 1500, stock: 50 },
-  { id: '3', name: 'Vitamin C', price: 800, stock: 75 },
-  { id: '4', name: 'Ibuprofen', price: 600, stock: 60 },
-  { id: '5', name: 'Aspirin', price: 450, stock: 80 },
+  { id: '1', name: 'Paracetamol', price: 500, wholesalePrice: 450, stock: 100 },
+  { id: '2', name: 'Amoxicillin', price: 1500, wholesalePrice: 1350, stock: 50 },
+  { id: '3', name: 'Vitamin C', price: 800, wholesalePrice: 720, stock: 75 },
+  { id: '4', name: 'Ibuprofen', price: 600, wholesalePrice: 540, stock: 60 },
+  { id: '5', name: 'Aspirin', price: 450, wholesalePrice: 400, stock: 80 },
 ];
 
 export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
@@ -36,7 +32,10 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
   const [selectedProduct, setSelectedProduct] = useState<typeof productDatabase[0] | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [showSearch, setShowSearch] = useState(false);
+  const [discount, setDiscount] = useState(0);
+  const [isWholesale, setIsWholesale] = useState(false);
   const { toast } = useToast();
+  const { handlePrint } = useSalesPrinting(items, discount, isWholesale ? 'wholesale' : 'retail');
   
   const form = useForm({
     defaultValues: {
@@ -45,10 +44,10 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
     },
   });
 
-  // Add the missing calculateTotal function
-  const calculateTotal = () => {
-    return items.reduce((sum, item) => sum + item.total, 0);
-  };
+  // Calculate total and discount amounts
+  const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+  const discountAmount = subtotal * (discount / 100);
+  const total = subtotal - discountAmount;
 
   const filteredProducts = productDatabase.filter(
     product => product.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -73,7 +72,8 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
       return;
     }
 
-    const existingItemIndex = items.findIndex(item => item.id === selectedProduct.id);
+    const price = isWholesale ? selectedProduct.wholesalePrice : selectedProduct.price;
+    const existingItemIndex = items.findIndex(item => item.id === selectedProduct.id && item.isWholesale === isWholesale);
     
     if (existingItemIndex >= 0) {
       const newItems = [...items];
@@ -87,8 +87,9 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
           id: selectedProduct.id,
           name: selectedProduct.name,
           quantity: quantity,
-          price: selectedProduct.price,
-          total: selectedProduct.price * quantity,
+          price: price,
+          total: price * quantity,
+          isWholesale: isWholesale
         },
       ]);
     }
@@ -99,72 +100,59 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
     setShowSearch(false);
   };
 
+  const handleToggleWholesale = () => {
+    setIsWholesale(!isWholesale);
+  };
+
+  const handleToggleItemPriceType = (id: string) => {
+    const itemIndex = items.findIndex(item => item.id === id);
+    if (itemIndex === -1) return;
+    
+    const item = items[itemIndex];
+    const product = productDatabase.find(p => p.id === id);
+    if (!product) return;
+    
+    const newPrice = item.isWholesale ? product.price : product.wholesalePrice;
+    const newItems = [...items];
+    newItems[itemIndex] = {
+      ...item,
+      isWholesale: !item.isWholesale,
+      price: newPrice,
+      total: newPrice * item.quantity
+    };
+    
+    setItems(newItems);
+  };
+
+  const handleUpdateQuantity = (id: string, newQuantity: number) => {
+    if (newQuantity <= 0) {
+      setItems(items.filter(item => item.id !== id));
+      return;
+    }
+    
+    const newItems = items.map(item => {
+      if (item.id === id) {
+        return {
+          ...item,
+          quantity: newQuantity,
+          total: item.price * newQuantity
+        };
+      }
+      return item;
+    });
+    
+    setItems(newItems);
+  };
+
   const printReceipt = () => {
     try {
-      const printContent = `
-        <html>
-          <head>
-            <title>Sale Receipt</title>
-            <style>
-              body { font-family: monospace; font-size: 12px; }
-              .header { text-align: center; margin-bottom: 10px; }
-              .item { margin: 5px 0; }
-              .total { margin-top: 10px; border-top: 1px solid #000; }
-              .customer-info { margin-top: 5px; margin-bottom: 10px; }
-              .footer { 
-                margin-top: 20px; 
-                text-align: center; 
-                border-top: 1px solid #000; 
-                padding-top: 10px; 
-                font-size: 10px; 
-                color: #666; 
-              }
-            </style>
-          </head>
-          <body>
-            <div class="header">
-              <h2>PharmaCare Pro</h2>
-              <p>Sale Receipt</p>
-              <p>${new Date().toLocaleString()}</p>
-            </div>
-            <div class="customer-info">
-              <p>Customer: ${form.getValues().customerName || 'Walk-in Customer'}</p>
-              <p>Phone: ${form.getValues().customerPhone || 'N/A'}</p>
-            </div>
-            ${items.map(item => `
-              <div class="item">
-                ${item.name}<br/>
-                ${item.quantity} x ₦${item.price} = ₦${item.total}
-              </div>
-            `).join('')}
-            <div class="total">
-              <p>Total: ₦${calculateTotal()}</p>
-            </div>
-            <div style="text-align: center; margin-top: 20px;">
-              <p>Thank you for your purchase!</p>
-            </div>
-            <div class="footer">
-              <p>Powered By T-Tech Solutions</p>
-            </div>
-          </body>
-        </html>
-      `;
-
-      const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
-      document.body.appendChild(iframe);
-      
-      iframe.contentDocument?.write(printContent);
-      iframe.contentDocument?.close();
-
-      iframe.contentWindow?.print();
-      setTimeout(() => {
-        document.body.removeChild(iframe);
-      }, 1000);
-
-      toast({
-        title: "Success",
-        description: "Receipt printed successfully",
+      handlePrint({
+        customerInfo: {
+          customerName: form.getValues().customerName || 'Walk-in Customer',
+          customerPhone: form.getValues().customerPhone || 'N/A',
+          businessName: 'PharmaCare Pro',
+          businessAddress: '123 Main Street, City',
+        }
       });
 
       onComplete();
@@ -177,21 +165,20 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
     }
   };
 
-  const handleSubmit = () => {
-    if (items.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please add at least one item to the sale",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    printReceipt();
-  };
-
   return (
     <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-bold">{isWholesale ? 'New Wholesale Sale' : 'New Retail Sale'}</h2>
+        <Button 
+          variant="outline" 
+          onClick={handleToggleWholesale}
+          className="flex items-center gap-2"
+        >
+          <Tag className="h-4 w-4" />
+          {isWholesale ? 'Switch to Retail' : 'Switch to Wholesale'}
+        </Button>
+      </div>
+
       <Form {...form}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <FormField
@@ -257,7 +244,19 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
 
         <SaleItemsTable 
           items={items} 
-          onRemoveItem={(id) => setItems(items.filter(item => item.id !== id))} 
+          onRemoveItem={(id) => setItems(items.filter(item => item.id !== id))}
+          onUpdateQuantity={handleUpdateQuantity}
+          onTogglePriceType={handleToggleItemPriceType}
+          isWholesale={isWholesale}
+        />
+        
+        <SaleTotals
+          subtotal={subtotal}
+          discount={discount}
+          total={total}
+          discountAmount={discountAmount}
+          onDiscountChange={setDiscount}
+          isWholesale={isWholesale}
         />
       </div>
 
