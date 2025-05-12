@@ -50,4 +50,3 @@ export const useSalesPrinting = (
 
   return { handlePrint };
 };
-

@@ -23,4 +23,3 @@ export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> =
   
   return true;
 };
-

@@ -59,4 +59,3 @@ const SalesStatsCards = ({
 };
 
 export default SalesStatsCards;
-

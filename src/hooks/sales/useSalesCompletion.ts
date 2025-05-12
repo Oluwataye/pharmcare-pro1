@@ -97,4 +97,3 @@ export const useSalesCompletion = (
 
   return { completeSale, isOfflineMode: !isOnline };
 };
-
