@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -11,14 +10,21 @@ import { SaleItemsTable } from "./SaleItemsTable";
 import { useSalesPrinting } from "@/hooks/sales/useSalesPrinting";
 import { SaleItem } from "@/types/sales";
 import SaleTotals from "../sales/SaleTotals";
-import { Badge } from "../ui/badge";
 
 interface NewSaleFormProps {
   onComplete: () => void;
   onCancel: () => void;
 }
 
-const productDatabase = [
+interface Product {
+  id: string;
+  name: string;
+  price: number;
+  wholesalePrice: number;
+  stock: number;
+}
+
+const productDatabase: Product[] = [
   { id: '1', name: 'Paracetamol', price: 500, wholesalePrice: 450, stock: 100 },
   { id: '2', name: 'Amoxicillin', price: 1500, wholesalePrice: 1350, stock: 50 },
   { id: '3', name: 'Vitamin C', price: 800, wholesalePrice: 720, stock: 75 },
@@ -29,7 +35,7 @@ const productDatabase = [
 export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
   const [items, setItems] = useState<SaleItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<typeof productDatabase[0] | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [showSearch, setShowSearch] = useState(false);
   const [discount, setDiscount] = useState(0);
