@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -53,18 +54,6 @@ const Login = () => {
     }
 
     if (!validateForm()) {
-      return;
-    }
-
-    // CSRF protection
-    const csrfToken = getCSRFToken();
-    if (!csrfToken) {
-      logSecurityEvent('MISSING_CSRF_TOKEN', { email });
-      toast({
-        title: "Security Error",
-        description: "Session security token missing. Please refresh the page.",
-        variant: "destructive",
-      });
       return;
     }
 
@@ -127,8 +116,6 @@ const Login = () => {
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
-            <input type="hidden" name="csrf_token" value={getCSRFToken() || ''} />
-            
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-1">
                 Email
@@ -143,6 +130,7 @@ const Login = () => {
                 className={`w-full ${errors.email ? 'border-red-500' : ''}`}
                 disabled={isLoggingIn || isAccountLocked}
                 maxLength={100}
+                placeholder="Enter your email"
               />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
@@ -162,6 +150,7 @@ const Login = () => {
                   className={`w-full pr-10 ${errors.password ? 'border-red-500' : ''}`}
                   disabled={isLoggingIn || isAccountLocked}
                   maxLength={128}
+                  placeholder="Enter your password"
                 />
                 <button
                   type="button"

@@ -65,12 +65,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Simulate network delay for demonstration
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // In production, this would authenticate against a secure backend
-      // For demo purposes, we'll use a basic check but log it as a security event
-      const isDemoLogin = validation.data!.email.includes('@demo.com') && 
-                         validation.data!.password.includes('123!');
+      // For demo purposes, accept any email/password combination that follows the pattern
+      // This is temporary until proper backend authentication is implemented
+      const isValidLogin = validation.data!.email.includes('@') && 
+                          validation.data!.password.length >= 6;
 
-      if (!isDemoLogin) {
+      if (!isValidLogin) {
         setLoginAttempts(prev => {
           const newAttempts = prev + 1;
           if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
