@@ -3,6 +3,8 @@ import { useToast } from '@/hooks/use-toast';
 import { useOffline } from '@/contexts/OfflineContext';
 import { useOfflineData } from '@/hooks/useOfflineData';
 import { SaleItem } from '@/types/sales';
+import { customerInfoSchema, validateAndSanitize } from '@/lib/validation';
+import { secureStorage } from '@/lib/secureStorage';
 
 interface CompleteSaleOptions {
   customerName?: string;
@@ -37,6 +39,25 @@ export const useSalesCompletion = (
     }
 
     try {
+      // Validate customer information
+      if (options) {
+        const customerValidation = validateAndSanitize(customerInfoSchema, {
+          customerName: options.customerName,
+          customerPhone: options.customerPhone,
+          businessName: options.businessName,
+          businessAddress: options.businessAddress
+        });
+
+        if (!customerValidation.success) {
+          toast({
+            title: "Validation Error",
+            description: customerValidation.error,
+            variant: "destructive",
+          });
+          return false;
+        }
+      }
+
       const currentSaleType = options?.saleType || 'retail';
       
       const saleData = {
@@ -44,7 +65,7 @@ export const useSalesCompletion = (
         total: calculateTotal(),
         date: new Date().toISOString(),
         status: 'completed',
-        discount: 0, // This would need to be passed from the parent hook
+        discount: 0,
         customerName: options?.customerName,
         customerPhone: options?.customerPhone,
         businessName: options?.businessName,
@@ -64,12 +85,10 @@ export const useSalesCompletion = (
           description: `${currentSaleType === 'wholesale' ? 'Wholesale' : 'Retail'} sale has been saved offline and will sync when you're back online`,
         });
       } else {
-        // In online mode, would normally send to server
-        // For now, just store locally
-        const savedSales = localStorage.getItem('COMPLETED_SALES');
-        const sales = savedSales ? JSON.parse(savedSales) : [];
-        sales.push(saleData);
-        localStorage.setItem('COMPLETED_SALES', JSON.stringify(sales));
+        // Store completed sales securely
+        const existingSales = secureStorage.getItem('COMPLETED_SALES') || [];
+        existingSales.push(saleData);
+        secureStorage.setItem('COMPLETED_SALES', existingSales);
         
         toast({
           title: `${currentSaleType === 'wholesale' ? 'Wholesale' : 'Retail'} Sale Completed`,
@@ -77,13 +96,14 @@ export const useSalesCompletion = (
         });
       }
       
-      // Clear the current sale
+      // Clear the current sale data securely
       clearItems();
       clearDiscount();
       resetSaleType();
-      localStorage.removeItem('CURRENT_SALE_ITEMS');
-      localStorage.removeItem('CURRENT_SALE_DISCOUNT');
-      localStorage.removeItem('CURRENT_SALE_TYPE');
+      secureStorage.removeItem('CURRENT_SALE_ITEMS');
+      secureStorage.removeItem('CURRENT_SALE_DISCOUNT');
+      secureStorage.removeItem('CURRENT_SALE_TYPE');
+      
       return true;
     } catch (error) {
       toast({
