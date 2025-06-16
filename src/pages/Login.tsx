@@ -1,4 +1,3 @@
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -126,15 +125,6 @@ const Login = () => {
               </AlertDescription>
             </Alert>
           )}
-          
-          <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-            <h3 className="font-semibold text-sm mb-2">Demo Credentials:</h3>
-            <div className="text-xs space-y-1">
-              <div><strong>Admin:</strong> admin@demo.com / Admin123!</div>
-              <div><strong>Pharmacist:</strong> pharmacist@demo.com / Pharmacist123!</div>
-              <div><strong>Cashier:</strong> cashier@demo.com / Cashier123!</div>
-            </div>
-          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <input type="hidden" name="csrf_token" value={getCSRFToken() || ''} />
