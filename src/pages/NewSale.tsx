@@ -10,11 +10,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Printer, Save, ShoppingBag, Package } from "lucide-react";
+import { Printer, Save, ShoppingBag, Package, Shield } from "lucide-react";
 import ProductSearchSection from "@/components/sales/ProductSearchSection";
 import CurrentSaleTable from "@/components/sales/CurrentSaleTable";
 import SaleTotals from "@/components/sales/SaleTotals";
 import { useOffline } from "@/contexts/OfflineContext";
+import { customerInfoSchema, validateAndSanitize } from "@/lib/validation";
+import { logSecurityEvent } from "@/components/security/SecurityProvider";
 
 const NewSale = () => {
   const navigate = useNavigate();
@@ -27,6 +29,7 @@ const NewSale = () => {
   const [customerPhone, setCustomerPhone] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   
   const {
     items,
@@ -50,6 +53,56 @@ const NewSale = () => {
     cashierId: user ? user.id : undefined
   });
 
+  const validateCustomerInfo = () => {
+    const customerData = {
+      customerName,
+      customerPhone,
+      businessName: saleType === 'wholesale' ? businessName : undefined,
+      businessAddress: saleType === 'wholesale' ? businessAddress : undefined
+    };
+
+    const validation = validateAndSanitize(customerInfoSchema, customerData);
+    
+    if (!validation.success) {
+      setValidationErrors({ general: validation.error || 'Invalid customer information' });
+      return false;
+    }
+
+    // Additional validation for wholesale
+    if (saleType === 'wholesale' && !businessName.trim()) {
+      setValidationErrors({ businessName: 'Business name is required for wholesale orders' });
+      return false;
+    }
+
+    setValidationErrors({});
+    return true;
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    // Sanitize input and limit length
+    const sanitizedValue = value.replace(/[<>'"&]/g, '').substring(0, 200);
+    
+    switch (field) {
+      case 'customerName':
+        setCustomerName(sanitizedValue);
+        break;
+      case 'customerPhone':
+        setCustomerPhone(sanitizedValue.replace(/[^0-9+\-\s\(\)]/g, ''));
+        break;
+      case 'businessName':
+        setBusinessName(sanitizedValue);
+        break;
+      case 'businessAddress':
+        setBusinessAddress(sanitizedValue);
+        break;
+    }
+
+    // Clear validation error for this field
+    if (validationErrors[field]) {
+      setValidationErrors(prev => ({ ...prev, [field]: undefined }));
+    }
+  };
+
   const handleCompleteSale = async () => {
     if (items.length === 0) {
       toast({
@@ -69,17 +122,23 @@ const NewSale = () => {
       return;
     }
 
-    // For wholesale, business name is required
-    if (saleType === 'wholesale' && !businessName) {
+    if (!validateCustomerInfo()) {
       toast({
-        title: "Error",
-        description: "Business name is required for wholesale orders",
+        title: "Validation Error",
+        description: "Please check customer information",
         variant: "destructive",
       });
       return;
     }
 
     try {
+      logSecurityEvent('SALE_COMPLETION_ATTEMPT', {
+        userId: user.id,
+        saleType,
+        itemCount: items.length,
+        total: calculateTotal()
+      });
+
       const success = await completeSale({
         customerName,
         customerPhone,
@@ -89,6 +148,12 @@ const NewSale = () => {
       });
       
       if (success) {
+        logSecurityEvent('SALE_COMPLETED', {
+          userId: user.id,
+          saleType,
+          total: calculateTotal()
+        });
+
         try {
           await handlePrint({
             customerInfo: { 
@@ -101,13 +166,17 @@ const NewSale = () => {
             }
           });
         } catch (error) {
-          // Continue even if printing fails
           console.error("Print failed but sale was completed", error);
         }
         
         navigate("/sales");
       }
     } catch (error) {
+      logSecurityEvent('SALE_COMPLETION_FAILED', {
+        userId: user.id,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      });
+      
       toast({
         title: "Error",
         description: "Failed to complete sale",
@@ -164,10 +233,17 @@ const NewSale = () => {
       <div className="grid gap-6 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>{saleType === 'wholesale' ? 'Wholesale Order' : 'Customer Info'}</CardTitle>
+            <CardTitle className="flex items-center">
+              <Shield className="mr-2 h-4 w-4" />
+              {saleType === 'wholesale' ? 'Wholesale Order' : 'Customer Info'}
+            </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="sensitive-data">
             <div className="space-y-4">
+              {validationErrors.general && (
+                <div className="text-red-500 text-sm">{validationErrors.general}</div>
+              )}
+              
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <Label htmlFor="customer-name">
@@ -176,18 +252,28 @@ const NewSale = () => {
                   <Input 
                     id="customer-name" 
                     value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
+                    onChange={(e) => handleInputChange('customerName', e.target.value)}
                     placeholder={saleType === 'wholesale' ? 'Contact person name' : 'Customer name'}
+                    className={validationErrors.customerName ? 'border-red-500' : ''}
+                    maxLength={100}
                   />
+                  {validationErrors.customerName && (
+                    <p className="text-red-500 text-xs mt-1">{validationErrors.customerName}</p>
+                  )}
                 </div>
                 <div>
                   <Label htmlFor="customer-phone">Phone Number</Label>
                   <Input 
                     id="customer-phone" 
                     value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value)}
-                    placeholder="Phone number" 
+                    onChange={(e) => handleInputChange('customerPhone', e.target.value)}
+                    placeholder="Phone number"
+                    className={validationErrors.customerPhone ? 'border-red-500' : ''}
+                    maxLength={20}
                   />
+                  {validationErrors.customerPhone && (
+                    <p className="text-red-500 text-xs mt-1">{validationErrors.customerPhone}</p>
+                  )}
                 </div>
               </div>
               
@@ -198,19 +284,29 @@ const NewSale = () => {
                     <Input 
                       id="business-name" 
                       value={businessName}
-                      onChange={(e) => setBusinessName(e.target.value)}
+                      onChange={(e) => handleInputChange('businessName', e.target.value)}
                       placeholder="Business name"
-                      required 
+                      required
+                      className={validationErrors.businessName ? 'border-red-500' : ''}
+                      maxLength={200}
                     />
+                    {validationErrors.businessName && (
+                      <p className="text-red-500 text-xs mt-1">{validationErrors.businessName}</p>
+                    )}
                   </div>
                   <div>
                     <Label htmlFor="business-address">Business Address</Label>
                     <Input 
                       id="business-address" 
                       value={businessAddress}
-                      onChange={(e) => setBusinessAddress(e.target.value)}
-                      placeholder="Business address" 
+                      onChange={(e) => handleInputChange('businessAddress', e.target.value)}
+                      placeholder="Business address"
+                      className={validationErrors.businessAddress ? 'border-red-500' : ''}
+                      maxLength={500}
                     />
+                    {validationErrors.businessAddress && (
+                      <p className="text-red-500 text-xs mt-1">{validationErrors.businessAddress}</p>
+                    )}
                   </div>
                 </div>
               )}

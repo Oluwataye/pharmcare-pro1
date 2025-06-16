@@ -6,8 +6,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Spinner } from "@/components/ui/spinner";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, Shield, AlertTriangle } from "lucide-react";
 import { loginSchema, validateAndSanitize } from "@/lib/validation";
+import { logSecurityEvent, getCSRFToken } from "@/components/security/SecurityProvider";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -16,13 +18,12 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const navigate = useNavigate();
-  const { login } = useAuth();
+  const { login, loginAttempts, isAccountLocked } = useAuth();
   const { toast } = useToast();
 
   const validateForm = () => {
     const validation = validateAndSanitize(loginSchema, { email, password });
     if (!validation.success) {
-      // Parse validation errors
       const newErrors: { email?: string; password?: string } = {};
       if (validation.error?.includes('email')) {
         newErrors.email = validation.error;
@@ -30,6 +31,10 @@ const Login = () => {
         newErrors.password = validation.error;
       }
       setErrors(newErrors);
+      logSecurityEvent('FORM_VALIDATION_FAILED', { 
+        email, 
+        error: validation.error 
+      });
       return false;
     }
     setErrors({});
@@ -39,7 +44,28 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    if (isAccountLocked) {
+      toast({
+        title: "Account Locked",
+        description: "Too many failed login attempts. Please try again later.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!validateForm()) {
+      return;
+    }
+
+    // CSRF protection
+    const csrfToken = getCSRFToken();
+    if (!csrfToken) {
+      logSecurityEvent('MISSING_CSRF_TOKEN', { email });
+      toast({
+        title: "Security Error",
+        description: "Session security token missing. Please refresh the page.",
+        variant: "destructive",
+      });
       return;
     }
 
@@ -58,13 +84,48 @@ const Login = () => {
     }
   };
 
+  const handleInputChange = (field: 'email' | 'password', value: string) => {
+    // Basic input sanitization
+    const sanitizedValue = value.replace(/[<>'"&]/g, '');
+    
+    if (field === 'email') {
+      setEmail(sanitizedValue);
+      if (errors.email) setErrors(prev => ({ ...prev, email: undefined }));
+    } else {
+      setPassword(sanitizedValue);
+      if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
+    }
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6 md:px-8">
       <div className="w-full max-w-md">
         <div className="bg-white p-6 md:p-8 rounded-lg shadow-lg">
-          <h1 className="text-xl md:text-2xl font-bold text-center mb-6 text-primary">
-            PharmaCare Pro
-          </h1>
+          <div className="flex items-center justify-center mb-6">
+            <Shield className="h-8 w-8 text-primary mr-2" />
+            <h1 className="text-xl md:text-2xl font-bold text-primary">
+              PharmaCare Pro
+            </h1>
+          </div>
+
+          {isAccountLocked && (
+            <Alert className="mb-4 border-red-200 bg-red-50">
+              <AlertTriangle className="h-4 w-4 text-red-600" />
+              <AlertDescription className="text-red-800">
+                Account temporarily locked due to multiple failed login attempts. Please try again later.
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {loginAttempts > 0 && !isAccountLocked && (
+            <Alert className="mb-4 border-amber-200 bg-amber-50">
+              <AlertTriangle className="h-4 w-4 text-amber-600" />
+              <AlertDescription className="text-amber-800">
+                {loginAttempts} failed login attempt{loginAttempts > 1 ? 's' : ''}. 
+                {5 - loginAttempts} attempt{5 - loginAttempts > 1 ? 's' : ''} remaining.
+              </AlertDescription>
+            </Alert>
+          )}
           
           <div className="mb-6 p-4 bg-blue-50 rounded-lg">
             <h3 className="font-semibold text-sm mb-2">Demo Credentials:</h3>
@@ -76,6 +137,8 @@ const Login = () => {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <input type="hidden" name="csrf_token" value={getCSRFToken() || ''} />
+            
             <div>
               <label htmlFor="email" className="block text-sm font-medium mb-1">
                 Email
@@ -84,16 +147,16 @@ const Login = () => {
                 id="email"
                 type="email"
                 value={email}
-                onChange={(e) => {
-                  setEmail(e.target.value);
-                  if (errors.email) setErrors(prev => ({ ...prev, email: undefined }));
-                }}
+                onChange={(e) => handleInputChange('email', e.target.value)}
                 required
+                autoComplete="email"
                 className={`w-full ${errors.email ? 'border-red-500' : ''}`}
-                disabled={isLoggingIn}
+                disabled={isLoggingIn || isAccountLocked}
+                maxLength={100}
               />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
+            
             <div>
               <label htmlFor="password" className="block text-sm font-medium mb-1">
                 Password
@@ -103,13 +166,12 @@ const Login = () => {
                   id="password"
                   type={showPassword ? "text" : "password"}
                   value={password}
-                  onChange={(e) => {
-                    setPassword(e.target.value);
-                    if (errors.password) setErrors(prev => ({ ...prev, password: undefined }));
-                  }}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
                   required
+                  autoComplete="current-password"
                   className={`w-full pr-10 ${errors.password ? 'border-red-500' : ''}`}
-                  disabled={isLoggingIn}
+                  disabled={isLoggingIn || isAccountLocked}
+                  maxLength={128}
                 />
                 <button
                   type="button"
@@ -117,6 +179,7 @@ const Login = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex={-1}
                   aria-label={showPassword ? "Hide password" : "Show password"}
+                  disabled={isLoggingIn || isAccountLocked}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -127,7 +190,12 @@ const Login = () => {
               </div>
               {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
-            <Button type="submit" className="w-full" disabled={isLoggingIn}>
+            
+            <Button 
+              type="submit" 
+              className="w-full" 
+              disabled={isLoggingIn || isAccountLocked}
+            >
               {isLoggingIn ? (
                 <div className="flex items-center gap-2">
                   <Spinner size="sm" />
@@ -138,6 +206,11 @@ const Login = () => {
               )}
             </Button>
           </form>
+
+          <div className="mt-4 text-xs text-gray-500 text-center">
+            <Shield className="h-3 w-3 inline mr-1" />
+            Your session is protected with enhanced security measures
+          </div>
         </div>
       </div>
     </div>
