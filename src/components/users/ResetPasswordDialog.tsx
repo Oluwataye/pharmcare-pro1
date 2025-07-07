@@ -12,11 +12,13 @@ import { KeyRound, Loader2, Eye, EyeOff } from "lucide-react";
 import { User } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 
-// Password validation schema
+// Password validation schema - aligned with login requirements
 const passwordSchema = z.object({
   password: z.string()
     .min(8, "Password must be at least 8 characters")
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/, "Password must contain at least one uppercase letter, one lowercase letter, and one number"),
+    .max(128, "Password is too long")
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
+      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -119,9 +121,9 @@ export function ResetPasswordDialog({ user }: ResetPasswordDialogProps) {
                       </Button>
                     </div>
                   </FormControl>
-                  <FormDescription>
-                    Must be at least 8 characters with uppercase, lowercase, and number
-                  </FormDescription>
+                   <FormDescription>
+                     Must be at least 8 characters with uppercase, lowercase, number, and special character (@$!%*?&)
+                   </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}
