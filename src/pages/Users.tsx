@@ -59,6 +59,10 @@ const Users = () => {
 
   const handleUserUpdated = (updatedUser: User) => {
     setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
+    toast({
+      title: "User Updated",
+      description: `${updatedUser.name}'s profile has been updated successfully.`,
+    });
   };
 
   const handleUserDeleted = (userId: string) => {
