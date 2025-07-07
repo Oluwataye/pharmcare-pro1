@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +27,14 @@ const Settings = () => {
     email: "contact@pharmacarepro.com",
   });
 
+  // Load settings from localStorage on component mount
+  useEffect(() => {
+    const savedSettings = localStorage.getItem('storeSettings');
+    if (savedSettings) {
+      setStoreSettings(JSON.parse(savedSettings));
+    }
+  }, []);
+
   const [printSettings, setPrintSettings] = useState({
     showLogo: true,
     showAddress: true,
@@ -36,8 +44,11 @@ const Settings = () => {
   });
 
   const handleStoreSettingsSave = () => {
+    // Save settings to localStorage for receipt printing
+    localStorage.setItem('storeSettings', JSON.stringify(storeSettings));
+    
     toast({
-      title: "Settings Saved",
+      title: "Settings Saved", 
       description: "Store settings have been updated successfully.",
     });
   };

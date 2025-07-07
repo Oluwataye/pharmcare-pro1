@@ -65,10 +65,13 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
     cashierName,
     customerName,
     customerPhone,
-    businessName,
-    businessAddress,
     saleType = 'retail'
   } = props;
+  
+  // Get store settings from localStorage or use defaults
+  const storeSettings = JSON.parse(localStorage.getItem('storeSettings') || '{}');
+  const storeName = storeSettings.name || 'PharmaCare Pro';
+  const storeAddress = storeSettings.address || '123 Main Street, Lagos';
   
   // Calculate subtotal
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -145,8 +148,8 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
     </head>
     <body>
       <div class="header">
-        <div class="business-name">${businessName || 'PharmaCare Pro'}</div>
-        <div>${businessAddress || ''}</div>
+        <div class="business-name">${storeName}</div>
+        <div>${storeAddress}</div>
         <div>${saleType.toUpperCase()} RECEIPT</div>
       </div>
       
@@ -203,7 +206,8 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
       <div class="divider"></div>
       
       <div class="footer">
-        Thank you for your business!
+        Thank you for your patronage!<br>
+        <strong>POWERED BY T-TECH SOLUTIONS</strong>
       </div>
     </body>
     </html>
