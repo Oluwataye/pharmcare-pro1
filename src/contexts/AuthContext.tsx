@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       // Create mock user based on email domain for demo
       let role: UserRole = 'CASHIER';
-      if (validation.data!.email.includes('admin')) role = 'ADMIN';
+      if (validation.data!.email.includes('admin')) role = 'SUPER_ADMIN';
       else if (validation.data!.email.includes('pharmacist')) role = 'PHARMACIST';
 
       const mockUser: User = {

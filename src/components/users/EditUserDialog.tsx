@@ -19,7 +19,7 @@ const editUserSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(50, "Name must be less than 50 characters"),
   email: z.string().email("Invalid email address"),
   username: z.string().min(3, "Username must be at least 3 characters").max(20, "Username must be less than 20 characters").optional().or(z.literal("")),
-  role: z.enum(["ADMIN", "PHARMACIST", "CASHIER"] as const),
+  role: z.enum(["SUPER_ADMIN", "PHARMACIST", "CASHIER"] as const),
   phone: z.string().optional().or(z.literal("")),
   department: z.string().optional().or(z.literal("")),
   notes: z.string().max(500, "Notes must be less than 500 characters").optional().or(z.literal("")),
@@ -183,7 +183,7 @@ export function EditUserDialog({ user, onUserUpdated }: EditUserDialogProps) {
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        <SelectItem value="ADMIN">Admin</SelectItem>
+                        <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                         <SelectItem value="PHARMACIST">Pharmacist</SelectItem>
                         <SelectItem value="CASHIER">Cashier</SelectItem>
                       </SelectContent>

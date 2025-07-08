@@ -32,7 +32,7 @@ const Users = () => {
       name: "John Doe",
       email: "john@example.com",
       username: "johndoe",
-      role: "ADMIN",
+      role: "SUPER_ADMIN",
     },
     {
       id: "2",
@@ -159,7 +159,7 @@ const Users = () => {
                       <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
                       <TableCell>
                         <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.role === "ADMIN" 
+                          user.role === "SUPER_ADMIN" 
                             ? "bg-purple-100 text-purple-800" 
                             : user.role === "PHARMACIST" 
                             ? "bg-green-100 text-green-800"

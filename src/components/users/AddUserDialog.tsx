@@ -38,7 +38,7 @@ const userSchema = z.object({
   email: z.string().email("Invalid email address"),
   username: z.string().min(3, "Username must be at least 3 characters").optional(),
   password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["ADMIN", "PHARMACIST", "CASHIER"] as const),
+  role: z.enum(["SUPER_ADMIN", "PHARMACIST", "CASHIER"] as const),
 });
 
 type UserFormValues = z.infer<typeof userSchema>;
@@ -198,7 +198,7 @@ export function AddUserDialog({ onUserAdded }: AddUserDialogProps) {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      <SelectItem value="ADMIN">Admin</SelectItem>
+                      <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                       <SelectItem value="PHARMACIST">Pharmacist</SelectItem>
                       <SelectItem value="CASHIER">Cashier</SelectItem>
                     </SelectContent>

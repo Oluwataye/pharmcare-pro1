@@ -16,7 +16,7 @@ const Dashboard = () => {
       return <CashierDashboard />;
     case "PHARMACIST":
       return <PharmacistDashboard />;
-    case "ADMIN":
+    case "SUPER_ADMIN":
     default:
       return <AdminDashboardContent />;
   }

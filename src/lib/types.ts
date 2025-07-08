@@ -1,5 +1,5 @@
 
-export type UserRole = 'ADMIN' | 'PHARMACIST' | 'CASHIER';
+export type UserRole = 'SUPER_ADMIN' | 'PHARMACIST' | 'CASHIER';
 
 export interface User {
   id: string;
@@ -21,7 +21,7 @@ export interface Permission {
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-  ADMIN: [
+  SUPER_ADMIN: [
     { action: 'create', resource: 'inventory' },
     { action: 'read', resource: 'inventory' },
     { action: 'update', resource: 'inventory' },

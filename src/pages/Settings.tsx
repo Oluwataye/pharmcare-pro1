@@ -16,6 +16,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { DiscountManagement } from "@/components/settings/DiscountManagement";
+import { UserProfileSettings } from "@/components/settings/UserProfileSettings";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -60,6 +61,12 @@ const Settings = () => {
     });
   };
 
+  // Show user profile settings for cashier and pharmacist
+  if (user?.role === "CASHIER" || user?.role === "PHARMACIST") {
+    return <UserProfileSettings />;
+  }
+
+  // Show full settings for super admin
   return (
     <div className="space-y-6">
       <div>
@@ -73,7 +80,7 @@ const Settings = () => {
         <TabsList className="grid w-full md:w-1/2 grid-cols-3">
           <TabsTrigger value="store">Store</TabsTrigger>
           <TabsTrigger value="printing">Printing</TabsTrigger>
-          {user?.role === "ADMIN" && (
+          {user?.role === "SUPER_ADMIN" && (
             <TabsTrigger value="discount">Discount</TabsTrigger>
           )}
         </TabsList>
@@ -211,7 +218,7 @@ const Settings = () => {
           </Card>
         </TabsContent>
 
-        {user?.role === "ADMIN" && (
+        {user?.role === "SUPER_ADMIN" && (
           <TabsContent value="discount">
             <DiscountManagement />
           </TabsContent>
