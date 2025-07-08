@@ -65,10 +65,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Simulate network delay for demonstration
       await new Promise(resolve => setTimeout(resolve, 1000));
       
-      // For demo purposes, accept any email/password combination that follows the pattern
-      // This is temporary until proper backend authentication is implemented
-      const isValidLogin = validation.data!.email.includes('@') && 
-                          validation.data!.password.length >= 6;
+      // Only allow super-admin login with specific credentials
+      const SUPER_ADMIN_EMAIL = 'admin@pharmacarepro.com';
+      const SUPER_ADMIN_PASSWORD = '1Admin123!';
+      
+      const isValidLogin = validation.data!.email === SUPER_ADMIN_EMAIL && 
+                          validation.data!.password === SUPER_ADMIN_PASSWORD;
 
       if (!isValidLogin) {
         setLoginAttempts(prev => {
@@ -91,25 +93,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoginAttempts(0);
       setLockoutTime(null);
 
-      // Create mock user based on email domain for demo
-      let role: UserRole = 'CASHIER';
-      if (validation.data!.email.includes('admin')) role = 'SUPER_ADMIN';
-      else if (validation.data!.email.includes('pharmacist')) role = 'PHARMACIST';
-
+      // Create super-admin user
       const mockUser: User = {
-        id: Math.random().toString(36).substr(2, 9),
-        email: validation.data!.email,
-        name: `${role.charAt(0) + role.slice(1).toLowerCase()} User`,
-        username: validation.data!.email.split('@')[0],
-        role: role,
+        id: 'super-admin-001',
+        email: SUPER_ADMIN_EMAIL,
+        name: 'Super Administrator',
+        username: 'superadmin',
+        role: 'SUPER_ADMIN',
       };
       
       // Store user securely
       secureStorage.setItem('auth_user', mockUser);
       
       logSecurityEvent('SUCCESSFUL_LOGIN', { 
-        email: validation.data!.email, 
-        role: role,
+        email: SUPER_ADMIN_EMAIL, 
+        role: 'SUPER_ADMIN',
         userId: mockUser.id 
       });
       
