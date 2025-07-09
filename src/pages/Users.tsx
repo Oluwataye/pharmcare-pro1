@@ -28,25 +28,11 @@ const Users = () => {
   
   const [users, setUsers] = useState<User[]>([
     {
-      id: "1",
-      name: "John Doe",
-      email: "john@example.com",
-      username: "johndoe",
+      id: "super-admin-001",
+      name: "Super Administrator",
+      email: "admin@pharmacarepro.com",
+      username: "admin",
       role: "SUPER_ADMIN",
-    },
-    {
-      id: "2",
-      name: "Jane Smith",
-      email: "jane@example.com",
-      username: "janesmith",
-      role: "PHARMACIST",
-    },
-    {
-      id: "3",
-      name: "Mike Johnson",
-      email: "mike@example.com",
-      username: "mikej",
-      role: "CASHIER",
     },
   ]);
   
