@@ -18,7 +18,10 @@ export const useCartItems = () => {
   }, [items]);
 
   const addItem = (product: Product, quantity: number = 1, isWholesale: boolean = false) => {
+    console.log('useCartItems: addItem called', { product, quantity, isWholesale });
+    
     if (quantity <= 0) {
+      console.log('useCartItems: Invalid quantity', quantity);
       toast({
         title: "Error",
         description: "Quantity must be greater than zero",

@@ -61,7 +61,10 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
   };
 
   const handleAddItem = () => {
+    console.log('ProductSearchSection: handleAddItem called', { selectedProduct, quantity, isWholesale });
+    
     if (!selectedProduct) {
+      console.log('ProductSearchSection: No product selected');
       toast({
         title: "Error",
         description: "Please select a product first",
@@ -71,6 +74,7 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
     }
 
     if (quantity <= 0) {
+      console.log('ProductSearchSection: Invalid quantity', quantity);
       toast({
         title: "Error",
         description: "Quantity must be greater than zero",
@@ -83,16 +87,26 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
     if (isWholesale && 
         selectedProduct.minWholesaleQuantity && 
         quantity < selectedProduct.minWholesaleQuantity) {
+      console.log('ProductSearchSection: Wholesale quantity warning', {
+        quantity,
+        minRequired: selectedProduct.minWholesaleQuantity
+      });
       toast({
         title: "Wholesale Information",
         description: `Minimum quantity for wholesale pricing is ${selectedProduct.minWholesaleQuantity}`,
       });
     }
 
-    onAddProduct(selectedProduct, quantity);
-    setSelectedProduct(null);
-    setQuantity(1);
-    setSearchTerm("");
+    console.log('ProductSearchSection: About to call onAddProduct', { selectedProduct, quantity });
+    try {
+      onAddProduct(selectedProduct, quantity);
+      console.log('ProductSearchSection: onAddProduct completed successfully');
+      setSelectedProduct(null);
+      setQuantity(1);
+      setSearchTerm("");
+    } catch (error) {
+      console.error('ProductSearchSection: Error in onAddProduct', error);
+    }
   };
 
   return (

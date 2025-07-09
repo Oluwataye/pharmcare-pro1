@@ -312,7 +312,15 @@ const NewSale = () => {
               )}
               
               <ProductSearchSection 
-                onAddProduct={(product, quantity) => addItem(product, quantity, saleType === 'wholesale')} 
+                onAddProduct={(product, quantity) => {
+                  console.log('NewSale: onAddProduct called', { product, quantity, saleType });
+                  try {
+                    const result = addItem(product, quantity, saleType === 'wholesale');
+                    console.log('NewSale: addItem result', result);
+                  } catch (error) {
+                    console.error('NewSale: Error in addItem', error);
+                  }
+                }} 
                 isWholesale={saleType === 'wholesale'}
               />
             </div>
