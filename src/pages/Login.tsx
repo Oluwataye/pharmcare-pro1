@@ -115,15 +115,6 @@ const Login = () => {
             </Alert>
           )}
 
-          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-md">
-            <p className="text-sm font-medium text-blue-800 mb-1">Super Admin Access Only</p>
-            <p className="text-xs text-blue-600 mb-2">
-              Email: <code className="bg-blue-100 px-1 rounded">admin@pharmacarepro.com</code>
-            </p>
-            <p className="text-xs text-blue-600">
-              Password: <code className="bg-blue-100 px-1 rounded">1Admin123!</code>
-            </p>
-          </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
