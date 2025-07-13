@@ -67,6 +67,8 @@ const Users = () => {
   const totalUsers = users.length;
   const activeUsers = users.length; // Assuming all users are active for this example
   const pharmacists = users.filter(user => user.role === "PHARMACIST").length;
+  const cashiers = users.filter(user => user.role === "CASHIER").length;
+  const superAdmins = users.filter(user => user.role === "SUPER_ADMIN").length;
 
   return (
     <div className="p-4 md:p-6 space-y-6 animate-fade-in">
@@ -88,7 +90,7 @@ const Users = () => {
         </div>
       </div>
 
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
         <Card className="hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
@@ -99,10 +101,10 @@ const Users = () => {
         </Card>
         <Card className="hover:shadow-lg transition-all duration-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+            <CardTitle className="text-sm font-medium">Super Admins</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeUsers}</div>
+            <div className="text-2xl font-bold text-purple-600">{superAdmins}</div>
           </CardContent>
         </Card>
         <Card className="hover:shadow-lg transition-all duration-200">
@@ -110,7 +112,23 @@ const Users = () => {
             <CardTitle className="text-sm font-medium">Pharmacists</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{pharmacists}</div>
+            <div className="text-2xl font-bold text-green-600">{pharmacists}</div>
+          </CardContent>
+        </Card>
+        <Card className="hover:shadow-lg transition-all duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Cashiers</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-blue-600">{cashiers}</div>
+          </CardContent>
+        </Card>
+        <Card className="hover:shadow-lg transition-all duration-200">
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{activeUsers}</div>
           </CardContent>
         </Card>
       </div>
