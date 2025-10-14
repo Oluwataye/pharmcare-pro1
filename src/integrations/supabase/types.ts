@@ -7,275 +7,23 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instanciate createClient with right options
+  // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "12.2.3 (519615d)"
+    PostgrestVersion: "13.0.5"
   }
   public: {
     Tables: {
-      account_lockouts: {
-        Row: {
-          id: string
-          locked_at: string
-          locked_by: string | null
-          locked_until: string | null
-          reason: string | null
-          unlocked_at: string | null
-          unlocked_by: string | null
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          locked_at?: string
-          locked_by?: string | null
-          locked_until?: string | null
-          reason?: string | null
-          unlocked_at?: string | null
-          unlocked_by?: string | null
-          user_id: string
-        }
-        Update: {
-          id?: string
-          locked_at?: string
-          locked_by?: string | null
-          locked_until?: string | null
-          reason?: string | null
-          unlocked_at?: string | null
-          unlocked_by?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      login_attempts: {
-        Row: {
-          attempt_time: string
-          email: string
-          failure_reason: string | null
-          id: string
-          ip_address: unknown | null
-          success: boolean
-          user_agent: string | null
-        }
-        Insert: {
-          attempt_time?: string
-          email: string
-          failure_reason?: string | null
-          id?: string
-          ip_address?: unknown | null
-          success: boolean
-          user_agent?: string | null
-        }
-        Update: {
-          attempt_time?: string
-          email?: string
-          failure_reason?: string | null
-          id?: string
-          ip_address?: unknown | null
-          success?: boolean
-          user_agent?: string | null
-        }
-        Relationships: []
-      }
-      password_reset_tokens: {
-        Row: {
-          created_at: string
-          expires_at: string
-          id: string
-          token: string
-          used_at: string | null
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at: string
-          id?: string
-          token: string
-          used_at?: string | null
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          id?: string
-          token?: string
-          used_at?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          created_at: string
-          created_by: string | null
-          department: string | null
-          email: string
-          employee_id: string | null
-          full_name: string
-          id: string
-          is_active: boolean
-          last_login: string | null
-          phone: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string | null
-          department?: string | null
-          email: string
-          employee_id?: string | null
-          full_name: string
-          id?: string
-          is_active?: boolean
-          last_login?: string | null
-          phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          created_by?: string | null
-          department?: string | null
-          email?: string
-          employee_id?: string | null
-          full_name?: string
-          id?: string
-          is_active?: boolean
-          last_login?: string | null
-          phone?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      security_questions: {
-        Row: {
-          answer_hash: string
-          created_at: string
-          id: string
-          question: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          answer_hash: string
-          created_at?: string
-          id?: string
-          question: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          answer_hash?: string
-          created_at?: string
-          id?: string
-          question?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_activity_log: {
-        Row: {
-          action: string
-          details: Json | null
-          id: string
-          ip_address: unknown | null
-          resource: string | null
-          timestamp: string
-          user_agent: string | null
-          user_id: string
-        }
-        Insert: {
-          action: string
-          details?: Json | null
-          id?: string
-          ip_address?: unknown | null
-          resource?: string | null
-          timestamp?: string
-          user_agent?: string | null
-          user_id: string
-        }
-        Update: {
-          action?: string
-          details?: Json | null
-          id?: string
-          ip_address?: unknown | null
-          resource?: string | null
-          timestamp?: string
-          user_agent?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
-      user_sessions: {
-        Row: {
-          id: string
-          ip_address: unknown | null
-          is_active: boolean
-          login_time: string
-          logout_time: string | null
-          session_token: string
-          user_agent: string | null
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          ip_address?: unknown | null
-          is_active?: boolean
-          login_time?: string
-          logout_time?: string | null
-          session_token: string
-          user_agent?: string | null
-          user_id: string
-        }
-        Update: {
-          id?: string
-          ip_address?: unknown | null
-          is_active?: boolean
-          login_time?: string
-          logout_time?: string | null
-          session_token?: string
-          user_agent?: string | null
-          user_id?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _user_id: string
-          _role: Database["public"]["Enums"]["user_role"]
-        }
-        Returns: boolean
-      }
-      log_user_activity: {
-        Args: {
-          _user_id: string
-          _action: string
-          _resource?: string
-          _details?: Json
-        }
-        Returns: undefined
-      }
+      [_ in never]: never
     }
     Enums: {
-      user_role:
-        | "super_admin"
-        | "admin"
-        | "doctor"
-        | "pharmacist"
-        | "lab_tech"
-        | "cashier"
-        | "records_clerk"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -402,16 +150,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      user_role: [
-        "super_admin",
-        "admin",
-        "doctor",
-        "pharmacist",
-        "lab_tech",
-        "cashier",
-        "records_clerk",
-      ],
-    },
+    Enums: {},
   },
 } as const
