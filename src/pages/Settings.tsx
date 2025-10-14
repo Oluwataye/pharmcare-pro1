@@ -17,24 +17,19 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { DiscountManagement } from "@/components/settings/DiscountManagement";
 import { UserProfileSettings } from "@/components/settings/UserProfileSettings";
+import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const [storeSettings, setStoreSettings] = useState({
+    id: '',
     name: "PharmaCare Pro",
     address: "123 Main Street, Lagos",
     phone: "080-1234-5678",
     email: "contact@pharmacarepro.com",
   });
-
-  // Load settings from localStorage on component mount
-  useEffect(() => {
-    const savedSettings = localStorage.getItem('storeSettings');
-    if (savedSettings) {
-      setStoreSettings(JSON.parse(savedSettings));
-    }
-  }, []);
 
   const [printSettings, setPrintSettings] = useState({
     showLogo: true,
@@ -44,21 +39,115 @@ const Settings = () => {
     showFooter: true,
   });
 
-  const handleStoreSettingsSave = () => {
-    // Save settings to localStorage for receipt printing
-    localStorage.setItem('storeSettings', JSON.stringify(storeSettings));
-    
-    toast({
-      title: "Settings Saved", 
-      description: "Store settings have been updated successfully.",
-    });
+  // Load settings from database on component mount
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('store_settings')
+        .select('*')
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setStoreSettings({
+          id: data.id,
+          name: data.name,
+          address: data.address || '',
+          phone: data.phone || '',
+          email: data.email || '',
+        });
+        
+        setPrintSettings({
+          showLogo: data.print_show_logo ?? true,
+          showAddress: data.print_show_address ?? true,
+          showEmail: data.print_show_email ?? true,
+          showPhone: data.print_show_phone ?? true,
+          showFooter: data.print_show_footer ?? true,
+        });
+      }
+    } catch (error: any) {
+      console.error('Error fetching settings:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load settings',
+        variant: 'destructive',
+      });
+    }
   };
 
-  const handlePrintSettingsSave = () => {
-    toast({
-      title: "Settings Saved",
-      description: "Print settings have been updated successfully.",
-    });
+  const handleStoreSettingsSave = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('store_settings')
+        .update({
+          name: storeSettings.name,
+          address: storeSettings.address,
+          phone: storeSettings.phone,
+          email: storeSettings.email,
+          updated_by: user.id,
+        })
+        .eq('id', storeSettings.id);
+
+      if (error) throw error;
+      
+      // Also save to localStorage for receipt printing
+      localStorage.setItem('storeSettings', JSON.stringify(storeSettings));
+      
+      toast({
+        title: "Settings Saved", 
+        description: "Store settings have been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save settings',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handlePrintSettingsSave = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const { error } = await supabase
+        .from('store_settings')
+        .update({
+          print_show_logo: printSettings.showLogo,
+          print_show_address: printSettings.showAddress,
+          print_show_email: printSettings.showEmail,
+          print_show_phone: printSettings.showPhone,
+          print_show_footer: printSettings.showFooter,
+          updated_by: user.id,
+        })
+        .eq('id', storeSettings.id);
+
+      if (error) throw error;
+      
+      toast({
+        title: "Settings Saved",
+        description: "Print settings have been updated successfully.",
+      });
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to save settings',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   // Show user profile settings for cashier and pharmacist
@@ -147,7 +236,9 @@ const Settings = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handleStoreSettingsSave}>Save Changes</Button>
+              <Button onClick={handleStoreSettingsSave} disabled={isLoading}>
+                {isLoading ? 'Saving...' : 'Save Changes'}
+              </Button>
             </CardFooter>
           </Card>
         </TabsContent>
@@ -213,7 +304,9 @@ const Settings = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handlePrintSettingsSave}>Save Changes</Button>
+              <Button onClick={handlePrintSettingsSave} disabled={isLoading}>
+                {isLoading ? 'Saving...' : 'Save Changes'}
+              </Button>
             </CardFooter>
           </Card>
         </TabsContent>

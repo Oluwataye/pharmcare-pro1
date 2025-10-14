@@ -1,178 +1,182 @@
-
 import * as React from 'react';
-import { AuthState, User, UserRole } from '@/lib/types';
-import { loginSchema, validateAndSanitize } from '@/lib/validation';
-import { secureStorage } from '@/lib/secureStorage';
-import { logSecurityEvent } from '@/components/security/SecurityProvider';
+import { AuthState, User as AppUser, UserRole } from '@/lib/types';
+import { supabase } from '@/integrations/supabase/client';
+import { Session, User } from '@supabase/supabase-js';
+import { useToast } from '@/hooks/use-toast';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
-  loginAttempts: number;
-  isAccountLocked: boolean;
+  session: Session | null;
 }
 
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
-// Maximum login attempts before account lockout
-const MAX_LOGIN_ATTEMPTS = 5;
-const LOCKOUT_DURATION = 15 * 60 * 1000; // 15 minutes
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [authState, setAuthState] = React.useState<AuthState>(() => {
-    // Check for existing session on app start
-    const storedUser = secureStorage.getItem('auth_user');
-    return {
-      user: storedUser || null,
-      isAuthenticated: !!storedUser,
-      isLoading: false,
-    };
+  const [authState, setAuthState] = React.useState<AuthState>({
+    user: null,
+    isAuthenticated: false,
+    isLoading: true,
   });
+  const [session, setSession] = React.useState<Session | null>(null);
+  const { toast } = useToast();
 
-  const [loginAttempts, setLoginAttempts] = React.useState(0);
-  const [lockoutTime, setLockoutTime] = React.useState<number | null>(null);
+  // Fetch user profile and role from database
+  const fetchUserProfile = async (userId: string): Promise<AppUser | null> => {
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('user_id', userId)
+        .single();
 
-  // Check if account is locked
-  const isAccountLocked = React.useMemo(() => {
-    if (!lockoutTime) return false;
-    return Date.now() < lockoutTime;
-  }, [lockoutTime]);
+      if (profileError) throw profileError;
 
-  // Clear lockout after duration
-  React.useEffect(() => {
-    if (lockoutTime && Date.now() >= lockoutTime) {
-      setLockoutTime(null);
-      setLoginAttempts(0);
+      const { data: roles, error: rolesError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', userId)
+        .single();
+
+      if (rolesError) throw rolesError;
+
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      return {
+        id: userId,
+        email: user?.email || '',
+        name: profile.name,
+        username: profile.username || undefined,
+        role: roles.role as UserRole,
+      };
+    } catch (error) {
+      console.error('Error fetching user profile:', error);
+      return null;
     }
-  }, [lockoutTime]);
+  };
+
+  // Initialize auth state
+  React.useEffect(() => {
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        setSession(session);
+        
+        if (session?.user) {
+          // Defer profile fetching
+          setTimeout(async () => {
+            const userProfile = await fetchUserProfile(session.user.id);
+            setAuthState({
+              user: userProfile,
+              isAuthenticated: !!userProfile,
+              isLoading: false,
+            });
+          }, 0);
+        } else {
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        }
+      }
+    );
+
+    // Check for existing session
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setSession(session);
+      
+      if (session?.user) {
+        const userProfile = await fetchUserProfile(session.user.id);
+        setAuthState({
+          user: userProfile,
+          isAuthenticated: !!userProfile,
+          isLoading: false,
+        });
+      } else {
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const login = async (email: string, password: string) => {
-    if (isAccountLocked) {
-      const remainingTime = Math.ceil((lockoutTime! - Date.now()) / 60000);
-      throw new Error(`Account locked. Try again in ${remainingTime} minutes.`);
-    }
-
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
     try {
-      // Validate input
-      const validation = validateAndSanitize(loginSchema, { email, password });
-      if (!validation.success) {
-        logSecurityEvent('INVALID_LOGIN_INPUT', { email });
-        throw new Error(validation.error || 'Invalid input');
-      }
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
 
-      // Simulate network delay for demonstration
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Only allow super-admin login with specific credentials
-      const SUPER_ADMIN_EMAIL = 'admin@pharmacarepro.com';
-      const SUPER_ADMIN_PASSWORD = '1Admin123!';
-      
-      const isValidLogin = validation.data!.email === SUPER_ADMIN_EMAIL && 
-                          validation.data!.password === SUPER_ADMIN_PASSWORD;
+      if (error) throw error;
 
-      if (!isValidLogin) {
-        setLoginAttempts(prev => {
-          const newAttempts = prev + 1;
-          if (newAttempts >= MAX_LOGIN_ATTEMPTS) {
-            setLockoutTime(Date.now() + LOCKOUT_DURATION);
-            logSecurityEvent('ACCOUNT_LOCKED', { email: validation.data!.email, attempts: newAttempts });
-          }
-          return newAttempts;
-        });
+      if (data.user) {
+        const userProfile = await fetchUserProfile(data.user.id);
         
-        logSecurityEvent('FAILED_LOGIN_ATTEMPT', { 
-          email: validation.data!.email, 
-          attempts: loginAttempts + 1 
+        if (!userProfile) {
+          throw new Error('Unable to load user profile');
+        }
+
+        setAuthState({
+          user: userProfile,
+          isAuthenticated: true,
+          isLoading: false,
         });
-        throw new Error('Invalid credentials');
+
+        toast({
+          title: 'Login successful',
+          description: `Welcome back, ${userProfile.name}!`,
+        });
       }
-
-      // Reset login attempts on successful login
-      setLoginAttempts(0);
-      setLockoutTime(null);
-
-      // Create super-admin user
-      const mockUser: User = {
-        id: 'super-admin-001',
-        email: SUPER_ADMIN_EMAIL,
-        name: 'Super Administrator',
-        username: 'superadmin',
-        role: 'SUPER_ADMIN',
-      };
-      
-      // Store user securely
-      secureStorage.setItem('auth_user', mockUser);
-      
-      logSecurityEvent('SUCCESSFUL_LOGIN', { 
-        email: SUPER_ADMIN_EMAIL, 
-        role: 'SUPER_ADMIN',
-        userId: mockUser.id 
-      });
-      
-      setAuthState({
-        user: mockUser,
-        isAuthenticated: true,
-        isLoading: false,
-      });
-    } catch (error) {
+    } catch (error: any) {
       setAuthState(prev => ({ ...prev, isLoading: false }));
+      toast({
+        title: 'Login failed',
+        description: error.message || 'Invalid credentials',
+        variant: 'destructive',
+      });
       throw error;
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
-    if (authState.user) {
-      logSecurityEvent('USER_LOGOUT', { 
-        userId: authState.user.id,
-        email: authState.user.email 
-      });
-    }
-    
-    // Clear all secure storage
-    secureStorage.clear();
-    
-    // Simulate logout process
-    setTimeout(() => {
+    try {
+      await supabase.auth.signOut();
+      
       setAuthState({
         user: null,
         isAuthenticated: false,
         isLoading: false,
       });
-    }, 500);
-  };
 
-  // Cleanup on unmount and clear sensitive data
-  React.useEffect(() => {
-    return () => {
-      if (!authState.isAuthenticated) {
-        secureStorage.clear();
-      }
-    };
-  }, [authState.isAuthenticated]);
-
-  // Auto-logout after session timeout
-  React.useEffect(() => {
-    if (authState.isAuthenticated) {
-      const timeout = setTimeout(() => {
-        logSecurityEvent('SESSION_TIMEOUT', { userId: authState.user?.id });
-        logout();
-      }, 8 * 60 * 60 * 1000); // 8 hours
-
-      return () => clearTimeout(timeout);
+      toast({
+        title: 'Logged out',
+        description: 'You have been logged out successfully.',
+      });
+    } catch (error: any) {
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      toast({
+        title: 'Logout failed',
+        description: error.message,
+        variant: 'destructive',
+      });
     }
-  }, [authState.isAuthenticated]);
+  };
 
   return (
     <AuthContext.Provider value={{ 
       ...authState, 
       login, 
-      logout, 
-      loginAttempts, 
-      isAccountLocked 
+      logout,
+      session,
     }}>
       {children}
     </AuthContext.Provider>

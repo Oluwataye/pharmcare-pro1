@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -20,21 +19,90 @@ import { DeleteUserDialog } from "@/components/users/DeleteUserDialog";
 import { ResetPasswordDialog } from "@/components/users/ResetPasswordDialog";
 import { User } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
+  const [users, setUsers] = useState<User[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const { canManageUsers, canEditUsers, canDeleteUsers } = usePermissions();
   const { toast } = useToast();
-  
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: "super-admin-001",
-      name: "Super Administrator",
-      email: "admin@pharmacarepro.com",
-      username: "admin",
-      role: "SUPER_ADMIN",
-    },
-  ]);
+
+  // Fetch users from database
+  const fetchUsers = async () => {
+    try {
+      setIsLoading(true);
+      const { data: profiles, error: profilesError } = await supabase
+        .from('profiles')
+        .select(`
+          id,
+          user_id,
+          name,
+          username
+        `);
+
+      if (profilesError) throw profilesError;
+
+      // Get emails and roles for each user
+      const { data: { users: authUsers = [] } } = await supabase.auth.admin.listUsers();
+      
+      const usersList: User[] = await Promise.all(
+        (profiles || []).map(async (profile: any) => {
+          const authUser = authUsers.find((u: any) => u.id === profile.user_id);
+          
+          // Fetch role separately
+          const { data: roleData } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', profile.user_id)
+            .single();
+          
+          return {
+            id: profile.user_id,
+            email: authUser?.email || '',
+            name: profile.name,
+            username: profile.username || undefined,
+            role: roleData?.role || 'CASHIER',
+          };
+        })
+      );
+
+      setUsers(usersList);
+    } catch (error: any) {
+      console.error('Error fetching users:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load users',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+
+    // Set up real-time subscription
+    const channel = supabase
+      .channel('users-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          fetchUsers();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, []);
   
   const filteredUsers = users.filter(user => 
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -63,9 +131,9 @@ const Users = () => {
     });
   };
 
-  // Calculate user statistics for the cards
+  // Calculate user statistics
   const totalUsers = users.length;
-  const activeUsers = users.length; // Assuming all users are active for this example
+  const activeUsers = users.length;
   const pharmacists = users.filter(user => user.role === "PHARMACIST").length;
   const cashiers = users.filter(user => user.role === "CASHIER").length;
   const superAdmins = users.filter(user => user.role === "SUPER_ADMIN").length;
@@ -138,63 +206,67 @@ const Users = () => {
           <CardTitle className="text-lg">User List</CardTitle>
         </CardHeader>
         <CardContent className="p-4 md:p-6">
-          <div className="responsive-table">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead className="hidden sm:table-cell">Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead className="hidden md:table-cell">Username</TableHead>
-                  <TableHead>Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredUsers.length === 0 ? (
+          {isLoading ? (
+            <div className="text-center py-8 text-muted-foreground">Loading users...</div>
+          ) : (
+            <div className="responsive-table">
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
-                      No users found
-                    </TableCell>
+                    <TableHead>Name</TableHead>
+                    <TableHead className="hidden sm:table-cell">Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead className="hidden md:table-cell">Username</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
-                ) : (
-                  filteredUsers.map((user) => (
-                    <TableRow key={user.id} className="hover:bg-muted/50">
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
-                      <TableCell>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          user.role === "SUPER_ADMIN" 
-                            ? "bg-purple-100 text-purple-800" 
-                            : user.role === "PHARMACIST" 
-                            ? "bg-green-100 text-green-800"
-                            : "bg-blue-100 text-blue-800"
-                        }`}>
-                          {user.role}
-                        </span>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">{user.username || "-"}</TableCell>
-                      <TableCell>
-                        <div className="flex space-x-2">
-                          {canEditUsers() && (
-                            <>
-                              <EditUserDialog user={user} onUserUpdated={handleUserUpdated} />
-                              <ResetPasswordDialog user={user} />
-                            </>
-                          )}
-                          {canManageUsers() && (
-                            <UserPermissionsDialog user={user} />
-                          )}
-                          {canDeleteUsers() && (
-                            <DeleteUserDialog user={user} onUserDeleted={handleUserDeleted} />
-                          )}
-                        </div>
+                </TableHeader>
+                <TableBody>
+                  {filteredUsers.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                        No users found
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  ) : (
+                    filteredUsers.map((user) => (
+                      <TableRow key={user.id} className="hover:bg-muted/50">
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
+                        <TableCell>
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                            user.role === "SUPER_ADMIN" 
+                              ? "bg-purple-100 text-purple-800" 
+                              : user.role === "PHARMACIST" 
+                              ? "bg-green-100 text-green-800"
+                              : "bg-blue-100 text-blue-800"
+                          }`}>
+                            {user.role}
+                          </span>
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">{user.username || "-"}</TableCell>
+                        <TableCell>
+                          <div className="flex space-x-2">
+                            {canEditUsers() && (
+                              <>
+                                <EditUserDialog user={user} onUserUpdated={handleUserUpdated} />
+                                <ResetPasswordDialog user={user} />
+                              </>
+                            )}
+                            {canManageUsers() && (
+                              <UserPermissionsDialog user={user} />
+                            )}
+                            {canDeleteUsers() && (
+                              <DeleteUserDialog user={user} onUserDeleted={handleUserDeleted} />
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

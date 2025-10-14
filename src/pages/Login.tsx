@@ -18,7 +18,7 @@ const Login = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const navigate = useNavigate();
-  const { login, loginAttempts, isAccountLocked } = useAuth();
+  const { login } = useAuth();
   const { toast } = useToast();
 
   const validateForm = () => {
@@ -44,15 +44,6 @@ const Login = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (isAccountLocked) {
-      toast({
-        title: "Account Locked",
-        description: "Too many failed login attempts. Please try again later.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!validateForm()) {
       return;
     }
@@ -96,24 +87,6 @@ const Login = () => {
             </h1>
           </div>
 
-          {isAccountLocked && (
-            <Alert className="mb-4 border-red-200 bg-red-50">
-              <AlertTriangle className="h-4 w-4 text-red-600" />
-              <AlertDescription className="text-red-800">
-                Account temporarily locked due to multiple failed login attempts. Please try again later.
-              </AlertDescription>
-            </Alert>
-          )}
-
-          {loginAttempts > 0 && !isAccountLocked && (
-            <Alert className="mb-4 border-amber-200 bg-amber-50">
-              <AlertTriangle className="h-4 w-4 text-amber-600" />
-              <AlertDescription className="text-amber-800">
-                {loginAttempts} failed login attempt{loginAttempts > 1 ? 's' : ''}. 
-                {5 - loginAttempts} attempt{5 - loginAttempts > 1 ? 's' : ''} remaining.
-              </AlertDescription>
-            </Alert>
-          )}
 
 
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -129,7 +102,7 @@ const Login = () => {
                 required
                 autoComplete="email"
                 className={`w-full ${errors.email ? 'border-red-500' : ''}`}
-                disabled={isLoggingIn || isAccountLocked}
+                disabled={isLoggingIn}
                 maxLength={100}
                 placeholder="Enter your email"
               />
@@ -149,7 +122,7 @@ const Login = () => {
                   required
                   autoComplete="current-password"
                   className={`w-full pr-10 ${errors.password ? 'border-red-500' : ''}`}
-                  disabled={isLoggingIn || isAccountLocked}
+                  disabled={isLoggingIn}
                   maxLength={128}
                   placeholder="Enter your password"
                 />
@@ -159,7 +132,7 @@ const Login = () => {
                   onClick={() => setShowPassword(!showPassword)}
                   tabIndex={-1}
                   aria-label={showPassword ? "Hide password" : "Show password"}
-                  disabled={isLoggingIn || isAccountLocked}
+                  disabled={isLoggingIn}
                 >
                   {showPassword ? (
                     <EyeOff className="h-4 w-4" />
@@ -174,7 +147,7 @@ const Login = () => {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isLoggingIn || isAccountLocked}
+              disabled={isLoggingIn}
             >
               {isLoggingIn ? (
                 <div className="flex items-center gap-2">
