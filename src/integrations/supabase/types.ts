@@ -92,6 +92,117 @@ export type Database = {
         }
         Relationships: []
       }
+      sales: {
+        Row: {
+          business_address: string | null
+          business_name: string | null
+          cashier_email: string | null
+          cashier_id: string | null
+          cashier_name: string | null
+          created_at: string | null
+          customer_name: string | null
+          customer_phone: string | null
+          discount: number | null
+          id: string
+          sale_type: string
+          status: string
+          total: number
+          transaction_id: string
+          updated_at: string | null
+        }
+        Insert: {
+          business_address?: string | null
+          business_name?: string | null
+          cashier_email?: string | null
+          cashier_id?: string | null
+          cashier_name?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          discount?: number | null
+          id?: string
+          sale_type?: string
+          status?: string
+          total: number
+          transaction_id: string
+          updated_at?: string | null
+        }
+        Update: {
+          business_address?: string | null
+          business_name?: string | null
+          cashier_email?: string | null
+          cashier_id?: string | null
+          cashier_name?: string | null
+          created_at?: string | null
+          customer_name?: string | null
+          customer_phone?: string | null
+          discount?: number | null
+          id?: string
+          sale_type?: string
+          status?: string
+          total?: number
+          transaction_id?: string
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
+      sales_items: {
+        Row: {
+          created_at: string | null
+          discount: number | null
+          id: string
+          is_wholesale: boolean | null
+          price: number
+          product_id: string
+          product_name: string
+          quantity: number
+          sale_id: string
+          total: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string | null
+          discount?: number | null
+          id?: string
+          is_wholesale?: boolean | null
+          price: number
+          product_id: string
+          product_name: string
+          quantity: number
+          sale_id: string
+          total: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string | null
+          discount?: number | null
+          id?: string
+          is_wholesale?: boolean | null
+          price?: number
+          product_id?: string
+          product_name?: string
+          quantity?: number
+          sale_id?: string
+          total?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sales_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "inventory"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "sales_items_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_settings: {
         Row: {
           address: string | null

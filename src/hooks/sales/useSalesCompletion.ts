@@ -5,6 +5,7 @@ import { useOfflineData } from '@/hooks/useOfflineData';
 import { SaleItem } from '@/types/sales';
 import { customerInfoSchema, validateAndSanitize } from '@/lib/validation';
 import { secureStorage } from '@/lib/secureStorage';
+import { supabase } from '@/integrations/supabase/client';
 
 interface CompleteSaleOptions {
   customerName?: string;
@@ -59,12 +60,11 @@ export const useSalesCompletion = (
       }
 
       const currentSaleType = options?.saleType || 'retail';
+      const transactionId = `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
       
       const saleData = {
         items: [...items],
         total: calculateTotal(),
-        date: new Date().toISOString(),
-        status: 'completed',
         discount: 0,
         customerName: options?.customerName,
         customerPhone: options?.customerPhone,
@@ -73,7 +73,7 @@ export const useSalesCompletion = (
         cashierName: options?.cashierName,
         cashierEmail: options?.cashierEmail,
         cashierId: options?.cashierId,
-        transactionId: `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        transactionId,
         saleType: currentSaleType
       };
 
@@ -85,14 +85,22 @@ export const useSalesCompletion = (
           description: `${currentSaleType === 'wholesale' ? 'Wholesale' : 'Retail'} sale has been saved offline and will sync when you're back online`,
         });
       } else {
-        // Store completed sales securely
-        const existingSales = secureStorage.getItem('COMPLETED_SALES') || [];
-        existingSales.push(saleData);
-        secureStorage.setItem('COMPLETED_SALES', existingSales);
-        
+        // Complete sale online via edge function
+        const { data, error } = await supabase.functions.invoke('complete-sale', {
+          body: saleData
+        });
+
+        if (error) {
+          throw new Error(error.message || 'Failed to complete sale');
+        }
+
+        if (!data.success) {
+          throw new Error('Sale completion failed');
+        }
+
         toast({
           title: `${currentSaleType === 'wholesale' ? 'Wholesale' : 'Retail'} Sale Completed`,
-          description: "Sale has been successfully recorded",
+          description: `Transaction ID: ${data.transactionId}`,
         });
       }
       
@@ -106,6 +114,7 @@ export const useSalesCompletion = (
       
       return true;
     } catch (error) {
+      console.error('Sale completion error:', error);
       toast({
         title: "Error",
         description: error instanceof Error ? error.message : "Failed to complete sale",
