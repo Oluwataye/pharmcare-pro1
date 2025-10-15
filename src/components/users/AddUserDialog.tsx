@@ -6,6 +6,7 @@ import * as z from "zod";
 import { User, UserRole } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { usePermissions } from "@/hooks/usePermissions";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Dialog,
   DialogContent,
@@ -76,25 +77,45 @@ export function AddUserDialog({ onUserAdded }: AddUserDialogProps) {
 
     setIsSubmitting(true);
     try {
-      // Simulate checking for existing email
-      const existingEmails = ["john@example.com", "jane@example.com"];
-      if (existingEmails.includes(data.email)) {
-        throw new Error("Email already exists");
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        throw new Error("You must be logged in to create users");
       }
 
-      // Create a new user with an ID
+      const { data: result, error } = await supabase.functions.invoke('create-user', {
+        body: {
+          email: data.email,
+          password: data.password,
+          name: data.name,
+          username: data.username || null,
+          role: data.role
+        }
+      });
+
+      if (error) throw error;
+
+      // Fetch the complete user data including profile and role
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('id, user_id, name, username')
+        .eq('user_id', result.user.id)
+        .single();
+
+      const { data: roleData } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', result.user.id)
+        .single();
+
       const newUser: User = {
-        id: `user-${Date.now()}`, // Generate a temporary ID
-        name: data.name,
+        id: result.user.id,
+        name: profile?.name || data.name,
         email: data.email,
-        username: data.username || undefined,
-        role: data.role as UserRole,
+        username: profile?.username || data.username || undefined,
+        role: (roleData?.role as UserRole) || data.role as UserRole,
       };
       
-      // Simulate API delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      // Call the callback with the new user
       onUserAdded(newUser);
       
       toast({
