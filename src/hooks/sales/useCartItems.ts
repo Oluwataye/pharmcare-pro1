@@ -114,18 +114,12 @@ export const useCartItems = () => {
   const toggleItemPriceType = (id: string) => {
     const item = items.find(item => item.id === id);
     if (!item) return;
-
-    // Get the product to access both retail and wholesale prices
-    const mockProducts = [
-      { id: "1", name: "Paracetamol", price: 500, wholesalePrice: 400, minWholesaleQuantity: 10, stock: 100 },
-      { id: "2", name: "Amoxicillin", price: 1200, wholesalePrice: 1000, minWholesaleQuantity: 5, stock: 50 },
-    ];
     
-    const product = mockProducts.find(p => p.id === id);
-    if (!product || !product.wholesalePrice) return;
-    
+    // Toggle between retail and wholesale price
     const newIsWholesale = !item.isWholesale;
-    const newPrice = newIsWholesale ? product.wholesalePrice : product.price;
+    const newPrice = newIsWholesale 
+      ? (item.unitPrice * 0.85) // 15% discount for wholesale
+      : item.unitPrice;
     
     setItems(items.map(i => 
       i.id === id

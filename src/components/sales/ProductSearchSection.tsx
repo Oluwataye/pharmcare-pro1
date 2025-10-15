@@ -1,11 +1,12 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Product } from "@/types/sales";
 import { Search, Plus, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProductSearchSectionProps {
   onAddProduct: (product: Product, quantity: number) => void;
@@ -16,55 +17,72 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [quantity, setQuantity] = useState(1);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
 
-  // Enhanced mock products with wholesale prices
-  const mockProducts = [
-    { 
-      id: "1", 
-      name: "Paracetamol", 
-      price: 500, 
-      wholesalePrice: 400, 
-      minWholesaleQuantity: 10,
-      stock: 100 
-    },
-    { 
-      id: "2", 
-      name: "Amoxicillin", 
-      price: 1200, 
-      wholesalePrice: 1000, 
-      minWholesaleQuantity: 5,
-      stock: 50 
-    },
-    { 
-      id: "3", 
-      name: "Ibuprofen", 
-      price: 600, 
-      wholesalePrice: 500, 
-      minWholesaleQuantity: 8,
-      stock: 75 
-    },
-    { 
-      id: "4", 
-      name: "Ciprofloxacin", 
-      price: 1500, 
-      wholesalePrice: 1250, 
-      minWholesaleQuantity: 3,
-      stock: 40 
-    },
-  ];
+  // Fetch products from Supabase inventory
+  useEffect(() => {
+    const fetchProducts = async () => {
+      setIsLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('inventory')
+          .select('*')
+          .gt('quantity', 0); // Only show items in stock
+
+        if (error) throw error;
+
+        // Map inventory to Product format
+        const mappedProducts: Product[] = data.map(item => ({
+          id: item.id,
+          name: item.name,
+          price: Number(item.price),
+          wholesalePrice: Number(item.price) * 0.85, // 15% discount for wholesale
+          minWholesaleQuantity: 5, // Default minimum
+          stock: item.quantity
+        }));
+
+        setProducts(mappedProducts);
+      } catch (error) {
+        console.error('Error fetching inventory:', error);
+        toast({
+          title: "Error",
+          description: "Failed to load products",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchProducts();
+
+    // Set up realtime subscription for inventory updates
+    const channel = supabase
+      .channel('inventory-changes')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'inventory' },
+        () => {
+          fetchProducts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [toast]);
 
   const searchProducts = (term: string): Product[] => {
-    return mockProducts.filter(p => 
+    if (!term.trim()) return [];
+    return products.filter(p => 
       p.name.toLowerCase().includes(term.toLowerCase())
     );
   };
 
   const handleAddItem = () => {
-    console.log('ProductSearchSection: handleAddItem called', { selectedProduct, quantity, isWholesale });
-    
     if (!selectedProduct) {
-      console.log('ProductSearchSection: No product selected');
       toast({
         title: "Error",
         description: "Please select a product first",
@@ -74,10 +92,19 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
     }
 
     if (quantity <= 0) {
-      console.log('ProductSearchSection: Invalid quantity', quantity);
       toast({
         title: "Error",
         description: "Quantity must be greater than zero",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate stock availability
+    if (quantity > selectedProduct.stock) {
+      toast({
+        title: "Insufficient Stock",
+        description: `Only ${selectedProduct.stock} units available in stock`,
         variant: "destructive",
       });
       return;
@@ -87,26 +114,16 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
     if (isWholesale && 
         selectedProduct.minWholesaleQuantity && 
         quantity < selectedProduct.minWholesaleQuantity) {
-      console.log('ProductSearchSection: Wholesale quantity warning', {
-        quantity,
-        minRequired: selectedProduct.minWholesaleQuantity
-      });
       toast({
         title: "Wholesale Information",
         description: `Minimum quantity for wholesale pricing is ${selectedProduct.minWholesaleQuantity}`,
       });
     }
 
-    console.log('ProductSearchSection: About to call onAddProduct', { selectedProduct, quantity });
-    try {
-      onAddProduct(selectedProduct, quantity);
-      console.log('ProductSearchSection: onAddProduct completed successfully');
-      setSelectedProduct(null);
-      setQuantity(1);
-      setSearchTerm("");
-    } catch (error) {
-      console.error('ProductSearchSection: Error in onAddProduct', error);
-    }
+    onAddProduct(selectedProduct, quantity);
+    setSelectedProduct(null);
+    setQuantity(1);
+    setSearchTerm("");
   };
 
   return (
