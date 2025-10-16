@@ -11,6 +11,7 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage, FormDes
 import { KeyRound, Loader2, Eye, EyeOff } from "lucide-react";
 import { User } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 // Password validation schema - aligned with login requirements
 const passwordSchema = z.object({
@@ -59,19 +60,33 @@ export function ResetPasswordDialog({ user }: ResetPasswordDialogProps) {
     setIsSubmitting(true);
     
     try {
-      // In a real app, this would make an API call to reset the user's password
-      // Simulating API call with timeout for demo
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      const { data: result, error } = await supabase.functions.invoke('reset-user-password', {
+        body: {
+          userId: user.id,
+          newPassword: data.password
+        }
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      if (result?.error) {
+        throw new Error(result.error);
+      }
       
       toast({
         title: "Password Reset Successful",
-        description: `Password for ${user.name} has been reset successfully.`,
+        description: `Password for ${user.name} has been reset successfully. They can now login with the new password.`,
       });
       setOpen(false);
+      form.reset();
     } catch (error) {
+      console.error('Password reset error:', error);
+      const errorMessage = error instanceof Error ? error.message : "Failed to reset password. Please try again.";
       toast({
         title: "Reset Failed",
-        description: "Failed to reset password. Please try again.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
