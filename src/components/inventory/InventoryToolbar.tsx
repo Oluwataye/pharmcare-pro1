@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, RefreshCw, Plus, Printer, Filter } from "lucide-react";
+import { Search, RefreshCw, Plus, Printer, Filter, Upload } from "lucide-react";
 import {
   Select,
   SelectContent,
@@ -9,6 +9,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface InventoryToolbarProps {
   searchTerm: string;
@@ -19,6 +20,7 @@ interface InventoryToolbarProps {
   onRefresh: () => void;
   onAddItem: () => void;
   onPrint: () => void;
+  onBulkUpload?: () => void;
 }
 
 export const InventoryToolbar = ({
@@ -30,7 +32,10 @@ export const InventoryToolbar = ({
   onRefresh,
   onAddItem,
   onPrint,
+  onBulkUpload,
 }: InventoryToolbarProps) => {
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
   return (
     <div className="flex flex-col md:flex-row gap-4 mb-4">
       <div className="flex flex-1 items-center gap-2">
@@ -83,6 +88,11 @@ export const InventoryToolbar = ({
         >
           <Printer className="h-4 w-4" />
         </Button>
+        {isSuperAdmin && onBulkUpload && (
+          <Button onClick={onBulkUpload} variant="outline" className="shrink-0">
+            <Upload className="mr-2 h-4 w-4" /> Bulk Upload
+          </Button>
+        )}
         <Button onClick={onAddItem} className="shrink-0">
           <Plus className="mr-2 h-4 w-4" /> Add Product
         </Button>

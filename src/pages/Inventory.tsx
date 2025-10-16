@@ -13,6 +13,7 @@ import { InventoryStats } from "@/components/inventory/InventoryStats";
 import { InventoryTable } from "@/components/inventory/InventoryTable";
 import { InventoryToolbar } from "@/components/inventory/InventoryToolbar";
 import { AddInventoryDialog } from "@/components/inventory/AddInventoryDialog";
+import { BulkUploadDialog } from "@/components/inventory/BulkUploadDialog";
 import { useInventory } from "@/hooks/useInventory";
 import { Spinner } from "@/components/ui/spinner";
 import { ExpiryWarningBanner } from "@/components/inventory/ExpiryWarningBanner";
@@ -22,6 +23,7 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showNotification, setShowNotification] = useState(true);
   const { 
@@ -127,6 +129,7 @@ const Inventory = () => {
             onRefresh={handleRefreshWithLoading}
             onAddItem={() => setDialogOpen(true)}
             onPrint={handlePrint}
+            onBulkUpload={() => setBulkUploadOpen(true)}
           />
           <div className="responsive-table">
             <InventoryTable
@@ -144,6 +147,12 @@ const Inventory = () => {
         onOpenChange={setDialogOpen}
         onAddItem={addItem}
         categories={categories}
+      />
+
+      <BulkUploadDialog
+        open={bulkUploadOpen}
+        onOpenChange={setBulkUploadOpen}
+        onUploadComplete={handleRefreshWithLoading}
       />
     </div>
   );
