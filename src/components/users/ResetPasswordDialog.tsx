@@ -17,8 +17,8 @@ const passwordSchema = z.object({
   password: z.string()
     .min(8, "Password must be at least 8 characters")
     .max(128, "Password is too long")
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
-      "Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character"),
+    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]+$/, 
+      "Password must contain: uppercase (A-Z), lowercase (a-z), number (0-9), and special (!@#$%^&*)"),
   confirmPassword: z.string(),
 }).refine((data) => data.password === data.confirmPassword, {
   message: "Passwords don't match",
@@ -122,7 +122,7 @@ export function ResetPasswordDialog({ user }: ResetPasswordDialogProps) {
                     </div>
                   </FormControl>
                    <FormDescription>
-                     Must be at least 8 characters with uppercase, lowercase, number, and special character (@$!%*?&)
+                     Must be 8+ characters with uppercase (A-Z), lowercase (a-z), number (0-9), and special (!@#$%^&*)
                    </FormDescription>
                   <FormMessage />
                 </FormItem>

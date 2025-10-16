@@ -32,13 +32,14 @@ import {
 } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Info } from "lucide-react";
+import { passwordSchema } from "@/lib/validation";
 
 const userSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
   email: z.string().email("Invalid email address"),
   username: z.string().min(3, "Username must be at least 3 characters").optional(),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: passwordSchema,
   role: z.enum(["SUPER_ADMIN", "PHARMACIST", "CASHIER"] as const),
 });
 
@@ -202,6 +203,19 @@ export function AddUserDialog({ onUserAdded }: AddUserDialogProps) {
                   <FormControl>
                     <Input type="password" {...field} />
                   </FormControl>
+                  <FormDescription className="text-xs space-y-1">
+                    <div className="flex items-start gap-1 mt-1">
+                      <Info className="h-3 w-3 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <div>Must contain:</div>
+                        <div>• 8+ characters</div>
+                        <div>• Uppercase (A-Z)</div>
+                        <div>• Lowercase (a-z)</div>
+                        <div>• Number (0-9)</div>
+                        <div>• Special (!@#$%^&*)</div>
+                      </div>
+                    </div>
+                  </FormDescription>
                   <FormMessage />
                 </FormItem>
               )}

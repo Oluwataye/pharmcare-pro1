@@ -1,12 +1,12 @@
 
 import { z } from 'zod';
 
-// Enhanced password validation
-const passwordSchema = z.string()
+// Enhanced password validation - matching exact requirements
+export const passwordSchema = z.string()
   .min(8, 'Password must be at least 8 characters')
   .max(128, 'Password is too long')
-  .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]/, 
-    'Password must contain at least one uppercase letter, one lowercase letter, one number, and one special character')
+  .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]+$/, 
+    'Password must contain: uppercase letter (A-Z), lowercase letter (a-z), number (0-9), and special character (!@#$%^&*)')
   .refine(val => !/(.)\1{3,}/.test(val), 'Password cannot contain 4 or more repeated characters');
 
 // User validation schemas
