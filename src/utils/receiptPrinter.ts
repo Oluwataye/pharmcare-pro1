@@ -13,6 +13,7 @@ export interface PrintReceiptProps {
   businessAddress?: string;
   saleType?: 'retail' | 'wholesale';
   cashierId?: string;
+  logoUrl?: string;
 }
 
 // Cross-browser compatible receipt printing implementation
@@ -65,13 +66,15 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
     cashierName,
     customerName,
     customerPhone,
-    saleType = 'retail'
+    saleType = 'retail',
+    logoUrl
   } = props;
   
   // Get store settings from localStorage or use defaults
   const storeSettings = JSON.parse(localStorage.getItem('storeSettings') || '{}');
-  const storeName = storeSettings.name || 'PharmaCare Pro';
+  const storeName = storeSettings.name || 'PharmCare Pro';
   const storeAddress = storeSettings.address || '123 Main Street, Lagos';
+  const logo = logoUrl || storeSettings.logo_url;
   
   // Calculate subtotal
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -103,6 +106,12 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
         .header {
           text-align: center;
           margin-bottom: 10px;
+        }
+        .logo {
+          max-width: 150px;
+          max-height: 80px;
+          margin: 0 auto 10px;
+          display: block;
         }
         .business-name {
           font-size: 16px;
@@ -148,6 +157,7 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
     </head>
     <body>
       <div class="header">
+        ${logo ? `<img src="${logo}" alt="Store Logo" class="logo" />` : ''}
         <div class="business-name">${storeName}</div>
         <div>${storeAddress}</div>
         <div>${saleType.toUpperCase()} RECEIPT</div>

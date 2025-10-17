@@ -2,6 +2,8 @@
 import { useToast } from '@/hooks/use-toast';
 import { printReceipt } from '@/utils/receiptPrinter';
 import { SaleItem } from '@/types/sales';
+import { supabase } from '@/integrations/supabase/client';
+import { useState, useEffect } from 'react';
 
 interface HandlePrintOptions {
   customerInfo?: {
@@ -21,6 +23,27 @@ export const useSalesPrinting = (
   saleType: 'retail' | 'wholesale'
 ) => {
   const { toast } = useToast();
+  const [logoUrl, setLogoUrl] = useState<string>('');
+
+  useEffect(() => {
+    fetchStoreLogo();
+  }, []);
+
+  const fetchStoreLogo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('store_settings')
+        .select('logo_url')
+        .single();
+
+      if (error) throw error;
+      if (data?.logo_url) {
+        setLogoUrl(data.logo_url);
+      }
+    } catch (error) {
+      console.error('Error fetching store logo:', error);
+    }
+  };
 
   const handlePrint = async (options?: HandlePrintOptions) => {
     try {
@@ -36,6 +59,7 @@ export const useSalesPrinting = (
         saleType,
         date: new Date(),
         cashierId: options?.customerInfo?.cashierId,
+        logoUrl,
       });
       
       toast({
