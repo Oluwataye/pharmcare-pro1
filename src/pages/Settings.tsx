@@ -23,12 +23,14 @@ const Settings = () => {
   const { toast } = useToast();
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [storeSettings, setStoreSettings] = useState({
     id: '',
     name: "PharmaCare Pro",
     address: "123 Main Street, Lagos",
     phone: "080-1234-5678",
     email: "contact@pharmacarepro.com",
+    logoUrl: '',
   });
 
   const [printSettings, setPrintSettings] = useState({
@@ -60,6 +62,7 @@ const Settings = () => {
           address: data.address || '',
           phone: data.phone || '',
           email: data.email || '',
+          logoUrl: data.logo_url || '',
         });
         
         setPrintSettings({
@@ -77,6 +80,91 @@ const Settings = () => {
         description: 'Failed to load settings',
         variant: 'destructive',
       });
+    }
+  };
+
+  const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !user) return;
+
+    // Validate file type
+    const validTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      toast({
+        title: 'Invalid File Type',
+        description: 'Please upload a JPEG, PNG, or WebP image.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    // Validate file size (2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: 'File Too Large',
+        description: 'Image must be smaller than 2MB.',
+        variant: 'destructive',
+      });
+      return;
+    }
+
+    setIsUploadingLogo(true);
+    try {
+      // Delete old logo if exists
+      if (storeSettings.logoUrl) {
+        const oldPath = storeSettings.logoUrl.split('/').pop();
+        if (oldPath) {
+          await supabase.storage.from('store-logos').remove([oldPath]);
+        }
+      }
+
+      // Upload new logo
+      const fileExt = file.name.split('.').pop();
+      const fileName = `logo-${Date.now()}.${fileExt}`;
+      const { error: uploadError, data } = await supabase.storage
+        .from('store-logos')
+        .upload(fileName, file, {
+          cacheControl: '3600',
+          upsert: false,
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('store-logos')
+        .getPublicUrl(fileName);
+
+      // Update database
+      const { error: updateError } = await supabase
+        .from('store_settings')
+        .update({
+          logo_url: publicUrl,
+          updated_by: user.id,
+        })
+        .eq('id', storeSettings.id);
+
+      if (updateError) throw updateError;
+
+      setStoreSettings({ ...storeSettings, logoUrl: publicUrl });
+      
+      toast({
+        title: 'Logo Uploaded',
+        description: 'Your store logo has been updated successfully.',
+      });
+    } catch (error: any) {
+      console.error('Logo upload error:', error);
+      toast({
+        title: 'Upload Failed',
+        description: error.message || 'Failed to upload logo. Please try again.',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsUploadingLogo(false);
+      // Reset file input
+      if (event.target) {
+        event.target.value = '';
+      }
     }
   };
 
@@ -182,6 +270,36 @@ const Settings = () => {
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="store-logo">Store Logo</Label>
+                <div className="flex items-center gap-4">
+                  {storeSettings.logoUrl && (
+                    <div className="relative w-20 h-20 rounded-md overflow-hidden border-2 border-border">
+                      <img
+                        src={storeSettings.logoUrl}
+                        alt="Store Logo"
+                        className="w-full h-full object-contain bg-muted"
+                      />
+                    </div>
+                  )}
+                  <div className="flex-1">
+                    <Input
+                      id="store-logo"
+                      type="file"
+                      accept="image/jpeg,image/jpg,image/png,image/webp"
+                      onChange={handleLogoUpload}
+                      disabled={isUploadingLogo}
+                      className="cursor-pointer"
+                    />
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Upload JPEG, PNG, or WebP (max 2MB)
+                    </p>
+                    {isUploadingLogo && (
+                      <p className="text-xs text-primary mt-1">Uploading logo...</p>
+                    )}
+                  </div>
+                </div>
+              </div>
               <div className="space-y-2">
                 <Label htmlFor="store-name">Store Name</Label>
                 <Input

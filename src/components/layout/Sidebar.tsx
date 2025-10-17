@@ -3,6 +3,8 @@ import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
+import { useState, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
 import {
   LayoutDashboard,
   Package,
@@ -27,6 +29,30 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     canAccessUsers,
     canAccessReports,
   } = usePermissions();
+  const [storeLogo, setStoreLogo] = useState<string>('');
+  const [storeName, setStoreName] = useState<string>('PharmaCare Pro');
+
+  useEffect(() => {
+    fetchStoreLogo();
+  }, []);
+
+  const fetchStoreLogo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('store_settings')
+        .select('logo_url, name')
+        .single();
+
+      if (error) throw error;
+
+      if (data) {
+        setStoreLogo(data.logo_url || '');
+        setStoreName(data.name || 'PharmaCare Pro');
+      }
+    } catch (error) {
+      console.error('Error fetching store logo:', error);
+    }
+  };
 
   const menuItems = [
     { 
@@ -82,13 +108,26 @@ const Sidebar = ({ onClose }: SidebarProps) => {
 
   return (
     <div className="flex h-full md:h-screen w-full md:w-64 flex-col bg-white border-r">
-      <div className="flex items-center justify-between p-4">
-        <h1 className="text-xl font-bold text-primary">PharmaCare Pro</h1>
+      <div className="flex items-center justify-between p-4 border-b">
+        <div className="flex items-center gap-3 flex-1">
+          {storeLogo ? (
+            <div className="w-10 h-10 rounded-md overflow-hidden border border-border flex-shrink-0">
+              <img
+                src={storeLogo}
+                alt="Store Logo"
+                className="w-full h-full object-contain bg-muted"
+              />
+            </div>
+          ) : null}
+          <h1 className="text-lg font-bold text-primary truncate">
+            {storeName}
+          </h1>
+        </div>
         <Button 
           variant="ghost" 
           size="icon" 
           onClick={onClose} 
-          className="md:hidden"
+          className="md:hidden flex-shrink-0"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>

@@ -208,6 +208,7 @@ export type Database = {
           address: string | null
           email: string | null
           id: string
+          logo_url: string | null
           name: string
           phone: string | null
           print_show_address: boolean | null
@@ -222,6 +223,7 @@ export type Database = {
           address?: string | null
           email?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
           phone?: string | null
           print_show_address?: boolean | null
@@ -236,6 +238,7 @@ export type Database = {
           address?: string | null
           email?: string | null
           id?: string
+          logo_url?: string | null
           name?: string
           phone?: string | null
           print_show_address?: boolean | null
