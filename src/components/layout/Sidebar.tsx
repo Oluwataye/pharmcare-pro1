@@ -30,7 +30,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     canAccessReports,
   } = usePermissions();
   const [storeLogo, setStoreLogo] = useState<string>('');
-  const [storeName, setStoreName] = useState<string>('PharmaCare Pro');
+  const [storeName, setStoreName] = useState<string>('PharmCare Pro');
 
   useEffect(() => {
     fetchStoreLogo();
@@ -47,7 +47,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
 
       if (data) {
         setStoreLogo(data.logo_url || '');
-        setStoreName(data.name || 'PharmaCare Pro');
+        setStoreName(data.name || 'PharmCare Pro');
       }
     } catch (error) {
       console.error('Error fetching store logo:', error);
