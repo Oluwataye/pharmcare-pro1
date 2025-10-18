@@ -1,7 +1,8 @@
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useFetchSales } from "@/hooks/useFetchSales";
 import { CashierHeader } from "./CashierHeader";
 import { CashierStatsCards } from "./CashierStatsCards";
 import { RecentTransactionsCard } from "./RecentTransactionsCard";
@@ -32,38 +33,22 @@ interface LowStockItem {
 export const CashierDashboardContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { sales, refreshSales } = useFetchSales();
   const [showNewSaleForm, setShowNewSaleForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
 
-  const recentTransactions: Transaction[] = [
-    {
-      id: 1,
-      customer: "John Smith",
-      items: 3,
-      amount: 2500,
-      time: "10:30 AM",
-      date: "2023-04-15",
-      status: "Completed"
-    },
-    {
-      id: 2,
-      customer: "Sarah Wilson",
-      items: 5,
-      amount: 4750,
-      time: "11:45 AM",
-      date: "2023-04-15",
-      status: "Completed"
-    },
-    {
-      id: 3,
-      customer: "Michael Brown",
-      items: 2,
-      amount: 1800,
-      time: "01:15 PM",
-      date: "2023-04-15",
-      status: "Completed"
-    },
-  ];
+  // Transform sales to transactions format
+  const recentTransactions: Transaction[] = useMemo(() => {
+    return sales.slice(0, 10).map(sale => ({
+      id: parseInt(sale.id.substring(0, 8), 16),
+      customer: sale.customerName || sale.businessName || 'Walk-in Customer',
+      items: sale.items.length,
+      amount: sale.total,
+      time: new Date(sale.date).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+      date: new Date(sale.date).toISOString().split('T')[0],
+      status: sale.status === 'completed' ? 'Completed' : 'Pending'
+    }));
+  }, [sales]);
 
   // Mock low stock items for cashier view
   const lowStockItems: LowStockItem[] = [
@@ -87,6 +72,7 @@ export const CashierDashboardContent = () => {
       description: "The transaction was processed successfully",
     });
     setShowNewSaleForm(false);
+    refreshSales(); // Refresh sales data after completion
   };
 
   const handleCardClick = (route: string) => {
@@ -98,26 +84,44 @@ export const CashierDashboardContent = () => {
     navigate(route);
   };
 
+  // Calculate stats from real data
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  
+  const todaySales = sales.filter(sale => {
+    const saleDate = new Date(sale.date);
+    saleDate.setHours(0, 0, 0, 0);
+    return saleDate.getTime() === today.getTime();
+  });
+  
+  const totalSalesToday = todaySales.reduce((sum, sale) => sum + sale.total, 0);
+  const transactionsToday = todaySales.length;
+  const uniqueCustomersToday = new Set(
+    todaySales
+      .map(sale => sale.customerName || sale.businessName)
+      .filter(name => name && name !== 'Walk-in Customer')
+  ).size;
+
   const statsCards = [
     {
       title: "Today's Sales",
-      value: "₦9,050",
+      value: `₦${totalSalesToday.toLocaleString()}`,
       icon: DollarSign,
-      description: "+8% from yesterday",
+      description: `${transactionsToday} transactions`,
       iconColor: "text-primary",
       route: "/sales"
     },
     {
       title: "Transactions",
-      value: "12",
+      value: transactionsToday.toString(),
       icon: Receipt,
-      description: "+2 since last shift",
+      description: "Today's count",
       iconColor: "text-primary",
       route: "/sales"
     },
     {
       title: "Customers",
-      value: "8",
+      value: uniqueCustomersToday.toString(),
       icon: Users,
       description: "Unique customers today",
       iconColor: "text-primary",
