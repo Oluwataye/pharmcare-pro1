@@ -150,24 +150,21 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
     setItems(newItems);
   };
 
-  const printReceipt = () => {
+  const printReceipt = async () => {
     try {
-      handlePrint({
+      await handlePrint({
         customerInfo: {
           customerName: form.getValues().customerName || 'Walk-in Customer',
           customerPhone: form.getValues().customerPhone || 'N/A',
-          businessName: 'PharmaCare Pro',
+          businessName: 'PharmCare Pro',
           businessAddress: '123 Main Street, City',
         }
       });
 
       onComplete();
     } catch (error) {
-      toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to print receipt",
-        variant: "destructive",
-      });
+      // Error already handled by useSalesPrinting hook
+      console.error("Print receipt error:", error);
     }
   };
 

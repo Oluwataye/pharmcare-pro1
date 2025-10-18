@@ -47,7 +47,9 @@ export const useSalesPrinting = (
 
   const handlePrint = async (options?: HandlePrintOptions) => {
     try {
-      await printReceipt({
+      console.log("Starting print process with logo:", logoUrl);
+      
+      const success = await printReceipt({
         items,
         discount,
         cashierName: options?.customerInfo?.cashierName,
@@ -62,16 +64,22 @@ export const useSalesPrinting = (
         logoUrl,
       });
       
-      toast({
-        title: "Success",
-        description: "Receipt sent to printer",
-      });
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Receipt sent to printer successfully",
+        });
+      } else {
+        throw new Error("Print operation failed");
+      }
     } catch (error) {
+      console.error('Error printing receipt:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to print receipt",
+        title: "Print Error",
+        description: error instanceof Error ? error.message : "Failed to print receipt. Please check your printer connection.",
         variant: "destructive",
       });
+      throw error; // Re-throw to let caller handle it
     }
   };
 

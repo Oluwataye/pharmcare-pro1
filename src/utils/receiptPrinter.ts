@@ -20,41 +20,87 @@ export interface PrintReceiptProps {
 export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> => {
   console.log("Printing receipt", props);
   
-  try {
-    // Create a hidden iframe for printing
-    const iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    document.body.appendChild(iframe);
-    
-    // Generate receipt HTML content
-    const receiptContent = generateReceiptHTML(props);
-    
-    // Set content to iframe document
-    const iframeDocument = iframe.contentWindow?.document;
-    if (!iframeDocument) throw new Error("Unable to access iframe document");
-    
-    iframeDocument.open();
-    iframeDocument.write(receiptContent);
-    iframeDocument.close();
-    
-    // Wait for content to load before printing
-    setTimeout(() => {
-      try {
-        iframe.contentWindow?.print();
-        // Remove the iframe after printing (or after a delay)
-        setTimeout(() => document.body.removeChild(iframe), 1000);
-      } catch (err) {
-        console.error("Error during printing:", err);
+  return new Promise((resolve, reject) => {
+    try {
+      // Create a hidden iframe for printing
+      const iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      document.body.appendChild(iframe);
+      
+      // Generate receipt HTML content
+      const receiptContent = generateReceiptHTML(props);
+      
+      // Set content to iframe document
+      const iframeDocument = iframe.contentWindow?.document;
+      if (!iframeDocument) {
         document.body.removeChild(iframe);
-        return false;
+        reject(new Error("Unable to access iframe document"));
+        return;
       }
-    }, 500);
-    
-    return true;
-  } catch (error) {
-    console.error("Failed to print receipt:", error);
-    return false;
-  }
+      
+      iframeDocument.open();
+      iframeDocument.write(receiptContent);
+      iframeDocument.close();
+      
+      // Wait for content and images to load before printing
+      const checkImagesLoaded = () => {
+        const images = iframeDocument.getElementsByTagName('img');
+        let allLoaded = true;
+        
+        for (let i = 0; i < images.length; i++) {
+          if (!images[i].complete) {
+            allLoaded = false;
+            break;
+          }
+        }
+        
+        return allLoaded;
+      };
+      
+      // Wait for images to load or timeout after 3 seconds
+      let attempts = 0;
+      const maxAttempts = 30; // 3 seconds with 100ms intervals
+      
+      const checkAndPrint = () => {
+        attempts++;
+        
+        if (checkImagesLoaded() || attempts >= maxAttempts) {
+          try {
+            console.log("Initiating print dialog...");
+            iframe.contentWindow?.print();
+            
+            // Wait a bit longer before cleanup to ensure print dialog has opened
+            setTimeout(() => {
+              try {
+                document.body.removeChild(iframe);
+              } catch (cleanupErr) {
+                console.error("Error removing iframe:", cleanupErr);
+              }
+            }, 2000);
+            
+            resolve(true);
+          } catch (err) {
+            console.error("Error during printing:", err);
+            try {
+              document.body.removeChild(iframe);
+            } catch (cleanupErr) {
+              console.error("Error removing iframe:", cleanupErr);
+            }
+            reject(err);
+          }
+        } else {
+          setTimeout(checkAndPrint, 100);
+        }
+      };
+      
+      // Start checking after initial delay
+      setTimeout(checkAndPrint, 500);
+      
+    } catch (error) {
+      console.error("Failed to print receipt:", error);
+      reject(error);
+    }
+  });
 };
 
 // Helper function to generate receipt HTML

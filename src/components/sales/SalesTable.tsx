@@ -3,6 +3,8 @@ import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
 import { printReceipt } from "@/utils/receiptPrinter";
 import { Sale } from "@/types/sales";
+import { supabase } from "@/integrations/supabase/client";
+import { useState, useEffect } from "react";
 import {
   Table,
   TableBody,
@@ -23,13 +25,36 @@ interface SalesTableProps {
 const SalesTable = ({ sales, showBusinessInfo = false }: SalesTableProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const [logoUrl, setLogoUrl] = useState<string>('');
+
+  useEffect(() => {
+    fetchStoreLogo();
+  }, []);
+
+  const fetchStoreLogo = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('store_settings')
+        .select('logo_url')
+        .single();
+
+      if (error) throw error;
+      if (data?.logo_url) {
+        setLogoUrl(data.logo_url);
+      }
+    } catch (error) {
+      console.error('Error fetching store logo:', error);
+    }
+  };
 
   const handlePrintInvoice = async (saleId: string) => {
     const sale = sales.find(s => s.id === saleId);
     if (!sale) return;
 
     try {
-      await printReceipt({
+      console.log("Reprinting invoice with logo:", logoUrl);
+      
+      const success = await printReceipt({
         items: sale.items,
         date: new Date(sale.date),
         cashierName: sale.cashierName || (user ? user.username || user.name : undefined),
@@ -39,16 +64,22 @@ const SalesTable = ({ sales, showBusinessInfo = false }: SalesTableProps) => {
         businessName: sale.businessName,
         businessAddress: sale.businessAddress,
         saleType: sale.saleType,
+        logoUrl,
       });
 
-      toast({
-        title: "Print Initiated",
-        description: "Receipt sent to printer",
-      });
+      if (success) {
+        toast({
+          title: "Print Initiated",
+          description: "Receipt sent to printer successfully",
+        });
+      } else {
+        throw new Error("Print operation failed");
+      }
     } catch (error) {
+      console.error("Print error:", error);
       toast({
         title: "Print Error",
-        description: error instanceof Error ? error.message : "Failed to print receipt",
+        description: error instanceof Error ? error.message : "Failed to print receipt. Please check your printer connection.",
         variant: "destructive",
       });
     }
