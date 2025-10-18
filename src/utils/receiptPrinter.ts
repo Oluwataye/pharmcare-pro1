@@ -24,15 +24,20 @@ export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> =
     try {
       // Create a hidden iframe for printing
       const iframe = document.createElement('iframe');
-      iframe.style.display = 'none';
+      iframe.style.position = 'absolute';
+      iframe.style.width = '0';
+      iframe.style.height = '0';
+      iframe.style.border = 'none';
       document.body.appendChild(iframe);
       
       // Generate receipt HTML content
       const receiptContent = generateReceiptHTML(props);
       
       // Set content to iframe document
-      const iframeDocument = iframe.contentWindow?.document;
-      if (!iframeDocument) {
+      const iframeWindow = iframe.contentWindow;
+      const iframeDocument = iframeWindow?.document;
+      
+      if (!iframeDocument || !iframeWindow) {
         document.body.removeChild(iframe);
         reject(new Error("Unable to access iframe document"));
         return;
@@ -42,50 +47,98 @@ export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> =
       iframeDocument.write(receiptContent);
       iframeDocument.close();
       
+      // Track print dialog state
+      let printDialogOpened = false;
+      let cleanupTimer: NodeJS.Timeout | null = null;
+      
+      // Cleanup function
+      const cleanup = () => {
+        if (cleanupTimer) clearTimeout(cleanupTimer);
+        try {
+          if (iframe && iframe.parentNode) {
+            document.body.removeChild(iframe);
+          }
+        } catch (cleanupErr) {
+          console.error("Error removing iframe:", cleanupErr);
+        }
+      };
+      
+      // Listen for print events
+      const handleBeforePrint = () => {
+        console.log("Print dialog opened");
+        printDialogOpened = true;
+      };
+      
+      const handleAfterPrint = () => {
+        console.log("Print dialog closed");
+        cleanup();
+        resolve(true);
+      };
+      
+      // Add event listeners for print events
+      if (iframeWindow.matchMedia) {
+        const mediaQueryList = iframeWindow.matchMedia('print');
+        mediaQueryList.addListener((mql) => {
+          if (mql.matches) {
+            handleBeforePrint();
+          } else {
+            handleAfterPrint();
+          }
+        });
+      }
+      
+      iframeWindow.addEventListener('beforeprint', handleBeforePrint);
+      iframeWindow.addEventListener('afterprint', handleAfterPrint);
+      
       // Wait for content and images to load before printing
       const checkImagesLoaded = () => {
         const images = iframeDocument.getElementsByTagName('img');
-        let allLoaded = true;
+        if (images.length === 0) return true;
         
+        let allLoaded = true;
         for (let i = 0; i < images.length; i++) {
           if (!images[i].complete) {
             allLoaded = false;
+            console.log(`Image ${i} not loaded yet`);
             break;
           }
         }
-        
         return allLoaded;
       };
       
-      // Wait for images to load or timeout after 3 seconds
+      // Wait for images to load or timeout after 5 seconds
       let attempts = 0;
-      const maxAttempts = 30; // 3 seconds with 100ms intervals
+      const maxAttempts = 50; // 5 seconds with 100ms intervals
       
       const checkAndPrint = () => {
         attempts++;
         
         if (checkImagesLoaded() || attempts >= maxAttempts) {
+          if (attempts >= maxAttempts) {
+            console.warn("Timeout waiting for images, proceeding with print anyway");
+          }
+          
           try {
-            console.log("Initiating print dialog...");
-            iframe.contentWindow?.print();
+            console.log("Triggering print dialog...");
             
-            // Wait a bit longer before cleanup to ensure print dialog has opened
-            setTimeout(() => {
-              try {
-                document.body.removeChild(iframe);
-              } catch (cleanupErr) {
-                console.error("Error removing iframe:", cleanupErr);
+            // Focus the iframe before printing
+            iframeWindow.focus();
+            
+            // Trigger print
+            iframeWindow.print();
+            
+            // Fallback: If print dialog doesn't open within 3 seconds, resolve anyway
+            cleanupTimer = setTimeout(() => {
+              if (!printDialogOpened) {
+                console.log("Print dialog did not open, resolving anyway");
+                cleanup();
+                resolve(true);
               }
-            }, 2000);
+            }, 3000);
             
-            resolve(true);
           } catch (err) {
             console.error("Error during printing:", err);
-            try {
-              document.body.removeChild(iframe);
-            } catch (cleanupErr) {
-              console.error("Error removing iframe:", cleanupErr);
-            }
+            cleanup();
             reject(err);
           }
         } else {
@@ -93,8 +146,19 @@ export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> =
         }
       };
       
-      // Start checking after initial delay
-      setTimeout(checkAndPrint, 500);
+      // Wait for iframe to be ready, then start checking
+      iframe.onload = () => {
+        console.log("Iframe loaded, waiting for images...");
+        setTimeout(checkAndPrint, 500);
+      };
+      
+      // Fallback if onload doesn't fire
+      setTimeout(() => {
+        if (attempts === 0) {
+          console.log("Starting print check (fallback)");
+          checkAndPrint();
+        }
+      }, 1000);
       
     } catch (error) {
       console.error("Failed to print receipt:", error);
