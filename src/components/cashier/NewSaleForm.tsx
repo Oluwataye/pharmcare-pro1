@@ -13,6 +13,7 @@ import { SaleItem } from "@/types/sales";
 import SaleTotals from "../sales/SaleTotals";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
+import { ReceiptTemplate } from "@/components/sales/ReceiptTemplate";
 
 interface NewSaleFormProps {
   onComplete: () => void;
@@ -41,7 +42,7 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
   const [isLoadingProducts, setIsLoadingProducts] = useState(true);
   const { toast } = useToast();
   const { user } = useAuth();
-  const { handlePrint } = useSalesPrinting(items, discount, isWholesale ? 'wholesale' : 'retail');
+  const { handlePrint, receiptRef, receiptData, logoUrl } = useSalesPrinting(items, discount, isWholesale ? 'wholesale' : 'retail');
   
   const form = useForm({
     defaultValues: {
@@ -257,7 +258,7 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
 
       // Print receipt after successful sale
       try {
-        await handlePrint({
+        handlePrint({
           customerInfo: {
             customerName: form.getValues().customerName || 'Walk-in Customer',
             customerPhone: form.getValues().customerPhone || 'N/A',
@@ -289,7 +290,26 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
   };
 
   return (
-    <div className="space-y-6">
+    <>
+      {receiptData && (
+        <div style={{ display: 'none' }}>
+          <ReceiptTemplate
+            ref={receiptRef}
+            items={items}
+            discount={discount}
+            saleType={isWholesale ? 'wholesale' : 'retail'}
+            date={new Date()}
+            logoUrl={logoUrl}
+            cashierName={receiptData.customerInfo?.cashierName}
+            cashierEmail={receiptData.customerInfo?.cashierEmail}
+            customerName={receiptData.customerInfo?.customerName}
+            customerPhone={receiptData.customerInfo?.customerPhone}
+            businessName={receiptData.customerInfo?.businessName}
+            businessAddress={receiptData.customerInfo?.businessAddress}
+          />
+        </div>
+      )}
+      <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold">{isWholesale ? 'New Wholesale Sale' : 'New Retail Sale'}</h2>
         <Button 
@@ -408,5 +428,6 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
         </Button>
       </div>
     </div>
+    </>
   );
 }
