@@ -22,12 +22,15 @@ export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> =
   
   return new Promise((resolve, reject) => {
     try {
-      // Create a hidden iframe for printing
+      // Create an iframe for printing (off-screen but with proper dimensions)
       const iframe = document.createElement('iframe');
-      iframe.style.position = 'absolute';
-      iframe.style.width = '0';
-      iframe.style.height = '0';
+      iframe.style.position = 'fixed';
+      iframe.style.top = '-9999px';
+      iframe.style.left = '-9999px';
+      iframe.style.width = '300px';
+      iframe.style.height = '100%';
       iframe.style.border = 'none';
+      iframe.style.visibility = 'hidden';
       document.body.appendChild(iframe);
       
       // Generate receipt HTML content
@@ -71,8 +74,11 @@ export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> =
       
       const handleAfterPrint = () => {
         console.log("Print dialog closed");
-        cleanup();
-        resolve(true);
+        // Delay cleanup to ensure print job is fully sent to printer
+        setTimeout(() => {
+          cleanup();
+          resolve(true);
+        }, 5000); // Wait 5 seconds before cleanup
       };
       
       // Add event listeners for print events
@@ -127,14 +133,14 @@ export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> =
             // Trigger print
             iframeWindow.print();
             
-            // Fallback: If print dialog doesn't open within 3 seconds, resolve anyway
+            // Fallback: If print dialog doesn't open within 5 seconds, resolve anyway
             cleanupTimer = setTimeout(() => {
               if (!printDialogOpened) {
                 console.log("Print dialog did not open, resolving anyway");
                 cleanup();
                 resolve(true);
               }
-            }, 3000);
+            }, 5000);
             
           } catch (err) {
             console.error("Error during printing:", err);
@@ -149,7 +155,8 @@ export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> =
       // Wait for iframe to be ready, then start checking
       iframe.onload = () => {
         console.log("Iframe loaded, waiting for images...");
-        setTimeout(checkAndPrint, 500);
+        // Give more time for content to render
+        setTimeout(checkAndPrint, 1000);
       };
       
       // Fallback if onload doesn't fire
