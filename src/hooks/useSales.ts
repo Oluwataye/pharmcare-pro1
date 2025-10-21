@@ -37,7 +37,7 @@ export const useSales = (options?: UseSalesOptions) => {
     clearDiscount
   } = useSaleDiscount(items);
   
-  const { handlePrint } = useSalesPrinting(items, discount, saleType);
+  const { handlePrint, receiptRef, receiptData, logoUrl } = useSalesPrinting(items, discount, saleType);
   
   const { 
     completeSale: completeTransaction,
@@ -93,6 +93,9 @@ export const useSales = (options?: UseSalesOptions) => {
     calculateDiscountAmount,
     calculateTotal,
     handlePrint,
+    receiptRef,
+    receiptData,
+    logoUrl,
     completeSale,
     clearItems: () => {
       clearItems();
