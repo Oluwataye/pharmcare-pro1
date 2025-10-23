@@ -76,3 +76,128 @@
     font-feature-settings: "rlig" 1, "calt" 1;
   }
 }
+
+/* Thermal Printer Optimizations */
+@media print {
+  /* Reset body for receipt printing */
+  body.receipt-printing {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    width: 80mm !important;
+    min-height: 100vh !important;
+  }
+  
+  /* Optimize colors for thermal printing */
+  body.receipt-printing * {
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+    print-color-adjust: exact !important;
+    background: transparent !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+  
+  /* Hide everything except the receipt during print */
+  body.receipt-printing > *:not(.receipt-container) {
+    display: none !important;
+  }
+  
+  /* Ensure receipt takes full thermal paper width */
+  .receipt-container {
+    width: 80mm !important;
+    max-width: 80mm !important;
+    min-width: 80mm !important;
+    margin: 0 auto !important;
+    padding: 2mm 5mm !important;
+    font-family: 'Courier New', Monaco, monospace !important;
+    font-size: 12px !important;
+    line-height: 1.2 !important;
+    background: white !important;
+  }
+  
+  /* Optimize images for thermal printing */
+  .receipt-container img {
+    max-width: 150px !important;
+    height: auto !important;
+    filter: grayscale(100%) !important; /* Better for thermal printers */
+  }
+  
+  /* Prevent page breaks in receipt */
+  .receipt-container,
+  .receipt-container * {
+    page-break-inside: avoid !important;
+    page-break-after: avoid !important;
+    page-break-before: avoid !important;
+    break-inside: avoid !important;
+  }
+  
+  /* Remove any margins/padding that might cause issues */
+  .receipt-container h1,
+  .receipt-container h2,
+  .receipt-container h3,
+  .receipt-container h4,
+  .receipt-container h5,
+  .receipt-container h6,
+  .receipt-container p {
+    margin: 2px 0 !important;
+    padding: 0 !important;
+  }
+  
+  /* Optimize tables for receipt printing */
+  .receipt-container table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    margin: 5px 0 !important;
+  }
+  
+  .receipt-container td,
+  .receipt-container th {
+    padding: 2px 1px !important;
+    border: none !important;
+  }
+  
+  /* Ensure proper text alignment */
+  .receipt-container .text-right {
+    text-align: right !important;
+  }
+  
+  .receipt-container .text-center {
+    text-align: center !important;
+  }
+  
+  .receipt-container .text-left {
+    text-align: left !important;
+  }
+  
+  /* Hide any interactive elements */
+  .receipt-container button,
+  .receipt-container a,
+  .receipt-container input,
+  .receipt-container select {
+    display: none !important;
+  }
+}
+
+/* Additional non-print receipt styling */
+.receipt-container {
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  line-height: 1.2;
+}
+
+/* Ensure the hidden receipt for printing doesn't affect layout */
+[style*="display: none"] .receipt-container {
+  position: absolute !important;
+  left: -9999px !important;
+}
+
+/* Responsive design for receipt preview */
+@media screen and (max-width: 80mm) {
+  .receipt-container {
+    width: 100% !important;
+    max-width: 80mm !important;
+    margin: 0 auto !important;
+  }
+}
