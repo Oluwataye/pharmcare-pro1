@@ -1,11 +1,8 @@
 
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
+import { printReceipt } from "@/utils/receiptPrinter";
 import { Sale } from "@/types/sales";
-import { supabase } from "@/integrations/supabase/client";
-import { useState, useEffect, useRef } from "react";
-import { useReactToPrint } from 'react-to-print';
-import { ReceiptTemplate } from "@/components/sales/ReceiptTemplate";
 import {
   Table,
   TableBody,
@@ -26,86 +23,39 @@ interface SalesTableProps {
 const SalesTable = ({ sales, showBusinessInfo = false }: SalesTableProps) => {
   const { toast } = useToast();
   const { user } = useAuth();
-  const [logoUrl, setLogoUrl] = useState<string>('');
-  const [selectedSale, setSelectedSale] = useState<Sale | null>(null);
-  const receiptRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    fetchStoreLogo();
-  }, []);
-
-  const fetchStoreLogo = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('store_settings')
-        .select('logo_url')
-        .single();
-
-      if (error) throw error;
-      if (data?.logo_url) {
-        setLogoUrl(data.logo_url);
-      }
-    } catch (error) {
-      console.error('Error fetching store logo:', error);
-    }
-  };
-
-  const handlePrintCallback = useReactToPrint({
-    content: () => receiptRef.current,
-    documentTitle: 'Receipt',
-    onAfterPrint: () => {
-      console.log('Print completed successfully');
-      toast({
-        title: "Success",
-        description: "Receipt sent to printer successfully",
-      });
-      setSelectedSale(null);
-    },
-    onPrintError: (error) => {
-      console.error('Print error:', error);
-      toast({
-        title: "Print Error",
-        description: "Failed to print receipt. Please check your printer connection.",
-        variant: "destructive",
-      });
-      setSelectedSale(null);
-    },
-  });
-
-  const handlePrintInvoice = (saleId: string) => {
+  const handlePrintInvoice = async (saleId: string) => {
     const sale = sales.find(s => s.id === saleId);
     if (!sale) return;
 
-    console.log("Reprinting invoice with logo:", logoUrl);
-    setSelectedSale(sale);
-    
-    // Wait for receipt to render, then trigger print
-    setTimeout(() => {
-      handlePrintCallback();
-    }, 100);
+    try {
+      await printReceipt({
+        items: sale.items,
+        date: new Date(sale.date),
+        cashierName: sale.cashierName || (user ? user.username || user.name : undefined),
+        cashierEmail: sale.cashierEmail || (user ? user.email : undefined),
+        customerName: sale.customerName,
+        customerPhone: sale.customerPhone,
+        businessName: sale.businessName,
+        businessAddress: sale.businessAddress,
+        saleType: sale.saleType,
+      });
+
+      toast({
+        title: "Print Initiated",
+        description: "Receipt sent to printer",
+      });
+    } catch (error) {
+      toast({
+        title: "Print Error",
+        description: error instanceof Error ? error.message : "Failed to print receipt",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
-    <>
-      {selectedSale && (
-        <div style={{ display: 'none' }}>
-          <ReceiptTemplate
-            ref={receiptRef}
-            items={selectedSale.items}
-            discount={0}
-            saleType={selectedSale.saleType}
-            date={new Date(selectedSale.date)}
-            logoUrl={logoUrl}
-            cashierName={selectedSale.cashierName || (user ? user.username || user.name : undefined)}
-            cashierEmail={selectedSale.cashierEmail || (user ? user.email : undefined)}
-            customerName={selectedSale.customerName}
-            customerPhone={selectedSale.customerPhone}
-            businessName={selectedSale.businessName}
-            businessAddress={selectedSale.businessAddress}
-          />
-        </div>
-      )}
-      <div className="rounded-md border">
+    <div className="rounded-md border">
       <Table>
         <TableHeader>
           <TableRow>
@@ -176,7 +126,6 @@ const SalesTable = ({ sales, showBusinessInfo = false }: SalesTableProps) => {
         </TableBody>
       </Table>
     </div>
-    </>
   );
 };
 

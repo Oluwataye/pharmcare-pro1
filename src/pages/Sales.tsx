@@ -1,25 +1,102 @@
 
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { Sale } from "@/types/sales";
 import { usePermissions } from "@/hooks/usePermissions";
-import { useFetchSales } from "@/hooks/useFetchSales";
 import SalesHeader from "@/components/sales/SalesHeader";
 import SalesFilters from "@/components/sales/SalesFilters";
 import SalesStatsCards from "@/components/sales/SalesStatsCards";
 import SalesTable from "@/components/sales/SalesTable";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ShoppingBag, Package, Loader2 } from "lucide-react";
+import { ShoppingBag, Package } from "lucide-react";
 
 const Sales = () => {
   const { toast } = useToast();
   const { canReadWholesale } = usePermissions();
-  const { sales: recentSales, isLoading } = useFetchSales();
   
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
   const [filterStatus, setFilterStatus] = useState<string>("all");
   const [saleTypeFilter, setSaleTypeFilter] = useState<"all" | "retail" | "wholesale">("all");
+
+  // Updated mock data with sale type and business information
+  const recentSales: Sale[] = [
+    {
+      id: "1",
+      items: [{
+        id: "1",
+        name: "Paracetamol",
+        quantity: 2,
+        price: 500,
+        total: 1000
+      }],
+      total: 1000,
+      date: "2024-02-20",
+      status: "completed",
+      cashierName: "John Doe",
+      cashierEmail: "john.doe@pharmacy.com",
+      cashierId: "1",
+      saleType: "retail"
+    },
+    {
+      id: "2",
+      items: [{
+        id: "2",
+        name: "Amoxicillin",
+        quantity: 1,
+        price: 1500,
+        total: 1500
+      }],
+      total: 1500,
+      date: "2024-02-20",
+      status: "completed",
+      cashierName: "Jane Smith",
+      cashierEmail: "jane.smith@pharmacy.com",
+      cashierId: "2",
+      saleType: "retail"
+    },
+    {
+      id: "3",
+      items: [{
+        id: "3",
+        name: "Vitamin C",
+        quantity: 30,
+        price: 700, // Wholesale price
+        isWholesale: true,
+        total: 21000
+      }],
+      total: 21000,
+      date: "2024-02-21",
+      status: "completed",
+      businessName: "City Hospital",
+      businessAddress: "123 Main Street",
+      cashierName: "Admin User",
+      cashierEmail: "admin@demo.com",
+      cashierId: "3",
+      saleType: "wholesale"
+    },
+    {
+      id: "4",
+      items: [{
+        id: "4",
+        name: "Amoxicillin",
+        quantity: 25,
+        price: 1000, // Wholesale price
+        isWholesale: true,
+        total: 25000
+      }],
+      total: 25000,
+      date: "2024-02-22",
+      status: "completed",
+      businessName: "Health Clinic Ltd",
+      businessAddress: "45 Park Avenue",
+      cashierName: "Admin User",
+      cashierEmail: "admin@demo.com",
+      cashierId: "3",
+      saleType: "wholesale"
+    }
+  ];
 
   const filteredSales = recentSales.filter(sale => {
     const matchesSearch = searchTerm === "" || 
@@ -39,34 +116,14 @@ const Sales = () => {
   const retailSales = filteredSales.filter(sale => sale.saleType === "retail");
   const wholesaleSales = filteredSales.filter(sale => sale.saleType === "wholesale");
 
-  // Calculate stats from actual data
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  
-  const todaySales = recentSales.filter(sale => {
-    const saleDate = new Date(sale.date);
-    saleDate.setHours(0, 0, 0, 0);
-    return saleDate.getTime() === today.getTime();
-  });
-  
-  const totalSalesToday = todaySales.reduce((sum, sale) => sum + sale.total, 0);
+  // Calculate stats
+  const totalSalesToday = 25500;
   const totalTransactions = filteredSales.length;
   const totalRetailSales = retailSales.reduce((sum, sale) => sum + sale.total, 0);
   const totalWholesaleSales = wholesaleSales.reduce((sum, sale) => sum + sale.total, 0);
   const averageSaleValue = filteredSales.length > 0 ? 
     (totalRetailSales + totalWholesaleSales) / filteredSales.length : 0;
-  const totalDiscounts = filteredSales.reduce((sum, sale) => {
-    const saleDiscount = (sale.discount || 0) * sale.total / 100;
-    return sum + saleDiscount;
-  }, 0);
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
-  }
+  const totalDiscounts = 1500;
 
   return (
     <div className="p-6 space-y-6">

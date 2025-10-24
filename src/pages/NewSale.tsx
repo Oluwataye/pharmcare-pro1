@@ -17,7 +17,6 @@ import SaleTotals from "@/components/sales/SaleTotals";
 import { useOffline } from "@/contexts/OfflineContext";
 import { customerInfoSchema, validateAndSanitize } from "@/lib/validation";
 import { logSecurityEvent } from "@/components/security/SecurityProvider";
-import { ReceiptTemplate } from "@/components/sales/ReceiptTemplate";
 
 const NewSale = () => {
   const navigate = useNavigate();
@@ -46,9 +45,6 @@ const NewSale = () => {
     calculateSubtotal,
     calculateDiscountAmount,
     handlePrint,
-    receiptRef,
-    receiptData,
-    logoUrl,
     completeSale,
     isOfflineMode
   } = useSales({ 
@@ -159,7 +155,7 @@ const NewSale = () => {
         });
 
         try {
-          handlePrint({
+          await handlePrint({
             customerInfo: { 
               cashierName: user.username || user.name,
               cashierEmail: user.email,
@@ -190,26 +186,7 @@ const NewSale = () => {
   };
 
   return (
-    <>
-      {receiptData && (
-        <div style={{ display: 'none' }}>
-          <ReceiptTemplate
-            ref={receiptRef}
-            items={items}
-            discount={discount}
-            saleType={saleType}
-            date={new Date()}
-            logoUrl={logoUrl}
-            cashierName={receiptData.customerInfo?.cashierName}
-            cashierEmail={receiptData.customerInfo?.cashierEmail}
-            customerName={receiptData.customerInfo?.customerName}
-            customerPhone={receiptData.customerInfo?.customerPhone}
-            businessName={receiptData.customerInfo?.businessName}
-            businessAddress={receiptData.customerInfo?.businessAddress}
-          />
-        </div>
-      )}
-      <div className="p-6 space-y-6">
+    <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">New Sale</h1>
@@ -398,7 +375,6 @@ const NewSale = () => {
         </Card>
       </div>
     </div>
-    </>
   );
 };
 

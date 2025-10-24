@@ -6,9 +6,8 @@ interface Product {
   id: string;
   name: string;
   price: number;
-  quantity: number;
-  sku: string;
-  category: string;
+  wholesalePrice: number;
+  stock: number;
 }
 
 interface ProductSearchProps {
@@ -42,11 +41,10 @@ export function ProductSearch({
             filteredProducts.map(product => (
               <div 
                 key={product.id}
-                className="px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer flex justify-between"
+                className="px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
                 onClick={() => onProductSelect(product)}
               >
-                <span>{product.name} ({product.sku})</span>
-                <span className="text-muted-foreground">₦{product.price.toLocaleString()} - Stock: {product.quantity}</span>
+                {product.name} - ₦{product.price}
               </div>
             ))
           )}
