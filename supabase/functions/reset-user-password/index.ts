@@ -87,9 +87,10 @@ serve(async (req) => {
 
   } catch (error) {
     console.error('Error in reset-user-password function:', error);
+    const errorMessage = error instanceof Error ? error.message : 'An error occurred while resetting password'
     return new Response(
       JSON.stringify({ 
-        error: error.message || 'An error occurred while resetting password'
+        error: errorMessage
       }),
       { 
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },

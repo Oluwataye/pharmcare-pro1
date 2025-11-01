@@ -135,6 +135,10 @@ export const CashierDashboardContent = () => {
 
   return (
     <div className="space-y-6 animate-fade-in px-2 md:px-0">
+      <div>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">Cashier Dashboard</h1>
+      </div>
+      
       <CashierHeader 
         searchQuery={searchQuery} 
         setSearchQuery={setSearchQuery} 

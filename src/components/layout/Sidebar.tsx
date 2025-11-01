@@ -107,15 +107,16 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   };
 
   return (
-    <div className="flex h-full md:h-screen w-full md:w-64 flex-col bg-white border-r">
-      <div className="flex items-center justify-between p-4 border-b">
+    <div className="flex h-full md:h-screen w-full md:w-64 flex-col bg-gradient-to-b from-background to-muted/30 border-r shadow-sm">
+      {/* Header with Logo and Store Name */}
+      <div className="flex items-center justify-between p-4 border-b bg-card">
         <div className="flex items-center gap-3 flex-1">
           {storeLogo ? (
-            <div className="w-10 h-10 rounded-md overflow-hidden border border-border flex-shrink-0">
+            <div className="w-10 h-10 rounded-lg overflow-hidden border-2 border-primary/20 flex-shrink-0 shadow-sm">
               <img
                 src={storeLogo}
                 alt="Store Logo"
-                className="w-full h-full object-contain bg-muted"
+                className="w-full h-full object-contain bg-white p-1"
               />
             </div>
           ) : null}
@@ -127,20 +128,36 @@ const Sidebar = ({ onClose }: SidebarProps) => {
           variant="ghost" 
           size="icon" 
           onClick={onClose} 
-          className="md:hidden flex-shrink-0"
+          className="md:hidden flex-shrink-0 hover:bg-primary/10"
         >
           <ChevronLeft className="h-4 w-4" />
         </Button>
       </div>
+
+      {/* User Profile Section */}
       {user && (
-        <div className="px-4">
-          <p className="text-sm text-muted-foreground">
-            {user.role} ({user.name})
-          </p>
+        <div className="px-4 py-4 border-b bg-card/50">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 border-2 border-primary/20">
+              <span className="text-sm font-semibold text-primary">
+                {user.name?.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() || 'U'}
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-foreground truncate">
+                {user.name}
+              </p>
+              <p className="text-xs text-muted-foreground capitalize">
+                {user.role.toLowerCase().replace('_', ' ')}
+              </p>
+            </div>
+            <div className="w-2 h-2 rounded-full bg-green-500 flex-shrink-0" title="Online" />
+          </div>
         </div>
       )}
 
-      <nav className="flex-1 space-y-2 p-4 overflow-y-auto">
+      {/* Navigation Menu */}
+      <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
         {menuItems.map((item) => {
           if (!item.condition) return null;
           
@@ -150,31 +167,35 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               key={item.path}
               variant={isActive ? "secondary" : "ghost"}
               className={cn(
-                "w-full justify-start gap-2",
-                isActive && "bg-primary/10"
+                "w-full justify-start gap-3 h-11 px-4 transition-all duration-200",
+                isActive 
+                  ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 border-l-4 border-primary" 
+                  : "hover:bg-accent/50 hover:translate-x-1 border-l-4 border-transparent"
               )}
               onClick={() => handleNavigate(item.path)}
             >
-              <item.icon className="h-4 w-4" />
-              {item.label}
+              <item.icon className={cn("h-5 w-5", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
+              <span className={cn("font-medium", isActive && "font-semibold")}>{item.label}</span>
             </Button>
           );
         })}
       </nav>
 
-      <div className="p-4 border-t">
+      {/* Logout Button */}
+      <div className="p-3 border-t bg-card/50">
         <Button
           variant="ghost"
-          className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+          className="w-full justify-start gap-3 h-11 px-4 text-destructive hover:text-destructive hover:bg-destructive/10 transition-all"
           onClick={handleLogout}
         >
-          <LogOut className="h-4 w-4" />
-          Logout
+          <LogOut className="h-5 w-5" />
+          <span className="font-medium">Logout</span>
         </Button>
       </div>
       
-      <div className="p-4 border-t text-xs text-muted-foreground text-center">
-        2025 © T-Tech Solutions
+      {/* Footer */}
+      <div className="p-3 border-t text-xs text-muted-foreground text-center bg-card/30">
+        <p>2025 © T-Tech Solutions</p>
       </div>
     </div>
   );

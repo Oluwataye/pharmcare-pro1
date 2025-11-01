@@ -130,11 +130,18 @@ serve(async (req) => {
         throw new Error(`Failed to create sale item for ${item.name}`)
       }
 
+      // Get current inventory quantity
+      const { data: currentInventory } = await supabase
+        .from('inventory')
+        .select('quantity')
+        .eq('id', item.id)
+        .single()
+
       // Update inventory quantity
       const { error: updateError } = await supabase
         .from('inventory')
         .update({ 
-          quantity: supabase.sql`quantity - ${item.quantity}`,
+          quantity: (currentInventory?.quantity || 0) - item.quantity,
           last_updated_at: new Date().toISOString()
         })
         .eq('id', item.id)
@@ -161,8 +168,9 @@ serve(async (req) => {
     )
   } catch (error) {
     console.error('Error in complete-sale function:', error)
+    const errorMessage = error instanceof Error ? error.message : 'An error occurred while completing the sale'
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errorMessage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     )
   }
