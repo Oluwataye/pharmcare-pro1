@@ -47,7 +47,7 @@ export const useSalesPrinting = (
 
   const handlePrint = async (options?: HandlePrintOptions) => {
     try {
-      await printReceipt({
+      console.log('Printing receipt', {
         items,
         discount,
         cashierName: options?.customerInfo?.cashierName,
@@ -61,15 +61,35 @@ export const useSalesPrinting = (
         cashierId: options?.customerInfo?.cashierId,
         logoUrl,
       });
+
+      const printSuccess = await printReceipt({
+        items,
+        discount,
+        cashierName: options?.customerInfo?.cashierName,
+        cashierEmail: options?.customerInfo?.cashierEmail,
+        customerName: options?.customerInfo?.customerName,
+        customerPhone: options?.customerInfo?.customerPhone,
+        businessName: options?.customerInfo?.businessName,
+        businessAddress: options?.customerInfo?.businessAddress,
+        saleType,
+        date: new Date(),
+        cashierId: options?.customerInfo?.cashierId,
+        logoUrl,
+      });
+
+      if (!printSuccess) {
+        throw new Error("Print dialog was closed or blocked. Please check your browser's popup settings.");
+      }
       
       toast({
         title: "Success",
-        description: "Receipt sent to printer",
+        description: "Receipt sent to printer successfully",
       });
     } catch (error) {
+      console.error('Print error:', error);
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "Failed to print receipt",
+        title: "Print Failed",
+        description: error instanceof Error ? error.message : "Failed to print receipt. Please try again.",
         variant: "destructive",
       });
     }
