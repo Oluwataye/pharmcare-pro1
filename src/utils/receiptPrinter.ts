@@ -20,53 +20,58 @@ export interface PrintReceiptProps {
 export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> => {
   console.log("Printing receipt", props);
   
-  try {
-    // Generate receipt HTML content
-    const receiptContent = generateReceiptHTML(props);
+  return new Promise((resolve, reject) => {
+    try {
+      // Generate receipt HTML content
+      const receiptContent = generateReceiptHTML(props);
 
-    // Open a new window for printing, which is more reliable for triggering the print dialog
-    const printWindow = window.open('', '_blank');
-    if (!printWindow) {
-      // Popup blocked - inform the user and suggest a fallback
-      // NOTE: In a real application, replace this console.warn with a user-facing notification (e.g., a toast or modal)
-      console.warn("Printing failed: The popup window was blocked. Please allow popups for this site or use the browser's print function (Ctrl+P/Cmd+P) after manually opening the receipt.");
-      return false;
-    }
-
-    // Write content to the new window
-    printWindow.document.write(receiptContent);
-    printWindow.document.close();
-
-    // Wait for content to be fully written and rendered before printing
-    // The onload event is a reliable way to ensure the content is ready.
-    printWindow.onload = () => {
-      // Check if the print dialog was successfully opened (a rough check)
-      if (!printWindow.document.body.innerHTML) {
-        // This can happen if the window was closed immediately or if there was an issue
-        // NOTE: In a real application, replace this console.warn with a user-facing notification
-        console.warn("Could not initiate print dialog. Please try again.");
+      // Open a new window for printing
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        reject(new Error("Print window was blocked. Please allow popups for this site."));
         return;
       }
+
+      // Write content to the new window
+      printWindow.document.write(receiptContent);
+      printWindow.document.close();
+
+      // Wait for content to load before printing
+      printWindow.onload = () => {
+        try {
+          // Trigger print dialog
+          printWindow.print();
+          
+          // Listen for when print dialog closes
+          printWindow.onafterprint = () => {
+            printWindow.close();
+            resolve(true);
+          };
+          
+          // Fallback: close window after delay if onafterprint doesn't fire
+          setTimeout(() => {
+            if (!printWindow.closed) {
+              printWindow.close();
+            }
+            resolve(true);
+          }, 1000);
+          
+        } catch (err) {
+          printWindow.close();
+          reject(new Error("Failed to open print dialog. Please check your printer settings."));
+        }
+      };
       
-      try {
-        printWindow.print();
-        // Close the window after printing is initiated
-        // Use a small delay to ensure the print job is sent before closing
-        setTimeout(() => printWindow.close(), 100); 
-      } catch (err) {
-        // Print action failed - inform the user
-        // NOTE: In a real application, replace this console.error with a user-facing notification
-        console.error("Error during printing. Please check your printer connection and settings.", err);
-        // Attempt to close the window even if printing failed
+      // Handle window load errors
+      printWindow.onerror = () => {
         printWindow.close();
-      }
-    };
-    
-    return true;
-  } catch (error) {
-    console.error("Failed to print receipt:", error);
-    return false;
-  }
+        reject(new Error("Failed to load receipt content."));
+      };
+      
+    } catch (error) {
+      reject(error);
+    }
+  });
 };
 
 // Helper function to generate receipt HTML
