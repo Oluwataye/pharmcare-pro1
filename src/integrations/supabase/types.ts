@@ -92,6 +92,38 @@ export type Database = {
         }
         Relationships: []
       }
+      receipts: {
+        Row: {
+          created_at: string
+          id: string
+          receipt_data: Json
+          sale_id: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          receipt_data: Json
+          sale_id: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          receipt_data?: Json
+          sale_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "receipts_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales: {
         Row: {
           business_address: string | null

@@ -17,6 +17,7 @@ import SaleTotals from "@/components/sales/SaleTotals";
 import { useOffline } from "@/contexts/OfflineContext";
 import { customerInfoSchema, validateAndSanitize } from "@/lib/validation";
 import { logSecurityEvent } from "@/components/security/SecurityProvider";
+import { ReceiptPreview } from "@/components/receipts/ReceiptPreview";
 
 const NewSale = () => {
   const navigate = useNavigate();
@@ -45,9 +46,13 @@ const NewSale = () => {
     calculateSubtotal,
     calculateDiscountAmount,
     handlePrint,
+    executePrint,
+    showPreview,
+    setShowPreview,
+    previewData,
     completeSale,
     isOfflineMode
-  } = useSales({ 
+  } = useSales({
     cashierName: user ? user.username || user.name : undefined,
     cashierEmail: user ? user.email : undefined,
     cashierId: user ? user.id : undefined
@@ -156,14 +161,12 @@ const NewSale = () => {
 
         try {
           await handlePrint({
-            customerInfo: { 
-              cashierName: user.username || user.name,
-              cashierEmail: user.email,
-              customerName,
-              customerPhone,
-              businessName: saleType === 'wholesale' ? businessName : undefined,
-              businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
-            }
+            cashierName: user.username || user.name,
+            cashierEmail: user.email,
+            customerName,
+            customerPhone,
+            businessName: saleType === 'wholesale' ? businessName : undefined,
+            businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
           });
         } catch (error) {
           console.error("Print failed but sale was completed", error);
@@ -355,14 +358,12 @@ const NewSale = () => {
                   <Button 
                     variant="outline" 
                     onClick={() => handlePrint({ 
-                      customerInfo: { 
-                        cashierName: user ? user.username || user.name : undefined,
-                        cashierEmail: user ? user.email : undefined,
-                        customerName,
-                        customerPhone,
-                        businessName: saleType === 'wholesale' ? businessName : undefined,
-                        businessAddress: saleType === 'wholesale' ? businessAddress : undefined
-                      }
+                      cashierName: user ? user.username || user.name : undefined,
+                      cashierEmail: user ? user.email : undefined,
+                      customerName,
+                      customerPhone,
+                      businessName: saleType === 'wholesale' ? businessName : undefined,
+                      businessAddress: saleType === 'wholesale' ? businessAddress : undefined
                     })}
                   >
                     <Printer className="mr-2 h-4 w-4" />
@@ -374,6 +375,15 @@ const NewSale = () => {
           </CardContent>
         </Card>
       </div>
+
+      {previewData && (
+        <ReceiptPreview
+          open={showPreview}
+          onOpenChange={setShowPreview}
+          receiptData={previewData}
+          onPrint={executePrint}
+        />
+      )}
     </div>
   );
 };

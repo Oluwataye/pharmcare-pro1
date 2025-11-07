@@ -1,20 +1,19 @@
 
 import { useToast } from '@/hooks/use-toast';
-import { printReceipt } from '@/utils/receiptPrinter';
+import { printReceipt, PrintReceiptProps } from '@/utils/receiptPrinter';
 import { SaleItem } from '@/types/sales';
 import { supabase } from '@/integrations/supabase/client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 
 interface HandlePrintOptions {
-  customerInfo?: {
-    customerName?: string;
-    customerPhone?: string;
-    cashierName?: string;
-    cashierEmail?: string;
-    businessName?: string;
-    businessAddress?: string;
-    cashierId?: string;
-  };
+  customerName?: string;
+  customerPhone?: string;
+  cashierName?: string;
+  cashierEmail?: string;
+  businessName?: string;
+  businessAddress?: string;
+  cashierId?: string;
+  saleId?: string;
 }
 
 export const useSalesPrinting = (
@@ -24,6 +23,8 @@ export const useSalesPrinting = (
 ) => {
   const { toast } = useToast();
   const [logoUrl, setLogoUrl] = useState<string>('');
+  const [showPreview, setShowPreview] = useState(false);
+  const [previewData, setPreviewData] = useState<PrintReceiptProps | null>(null);
 
   useEffect(() => {
     fetchStoreLogo();
@@ -45,55 +46,86 @@ export const useSalesPrinting = (
     }
   };
 
-  const handlePrint = async (options?: HandlePrintOptions) => {
+  const saveReceiptData = useCallback(async (saleId: string, receiptProps: PrintReceiptProps) => {
     try {
-      console.log('Printing receipt', {
+      const { error } = await supabase
+        .from('receipts')
+        .insert([{
+          sale_id: saleId,
+          receipt_data: receiptProps as any
+        }]);
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error("Error saving receipt data:", error);
+    }
+  }, []);
+
+  const handlePrint = useCallback(async (options?: HandlePrintOptions) => {
+    try {
+      const receiptProps: PrintReceiptProps = {
         items,
         discount,
-        cashierName: options?.customerInfo?.cashierName,
-        cashierEmail: options?.customerInfo?.cashierEmail,
-        customerName: options?.customerInfo?.customerName,
-        customerPhone: options?.customerInfo?.customerPhone,
-        businessName: options?.customerInfo?.businessName,
-        businessAddress: options?.customerInfo?.businessAddress,
-        saleType,
         date: new Date(),
-        cashierId: options?.customerInfo?.cashierId,
-        logoUrl,
-      });
-
-      const printSuccess = await printReceipt({
-        items,
-        discount,
-        cashierName: options?.customerInfo?.cashierName,
-        cashierEmail: options?.customerInfo?.cashierEmail,
-        customerName: options?.customerInfo?.customerName,
-        customerPhone: options?.customerInfo?.customerPhone,
-        businessName: options?.customerInfo?.businessName,
-        businessAddress: options?.customerInfo?.businessAddress,
+        cashierName: options?.cashierName,
+        cashierEmail: options?.cashierEmail,
+        customerName: options?.customerName,
+        customerPhone: options?.customerPhone,
+        businessName: options?.businessName,
+        businessAddress: options?.businessAddress,
         saleType,
-        date: new Date(),
-        cashierId: options?.customerInfo?.cashierId,
+        cashierId: options?.cashierId,
         logoUrl,
+      };
+      
+      // Show preview first
+      setPreviewData(receiptProps);
+      setShowPreview(true);
+      
+      // Save receipt data if saleId is provided
+      if (options?.saleId) {
+        await saveReceiptData(options.saleId, receiptProps);
+      }
+    } catch (error) {
+      console.error("Error preparing receipt:", error);
+      toast({
+        title: "Error",
+        description: "Failed to prepare receipt. Please try again.",
+        variant: "destructive",
       });
+    }
+  }, [items, discount, saleType, logoUrl, toast, saveReceiptData]);
 
-      if (!printSuccess) {
-        throw new Error("Print dialog was closed or blocked. Please check your browser's popup settings.");
+  const executePrint = useCallback(async () => {
+    if (!previewData) return;
+    
+    try {
+      const success = await printReceipt(previewData);
+      
+      if (!success) {
+        throw new Error("Print operation failed");
       }
       
+      setShowPreview(false);
       toast({
-        title: "Success",
-        description: "Receipt sent to printer successfully",
+        title: "Receipt Printed",
+        description: "The receipt has been sent to the printer successfully.",
       });
     } catch (error) {
-      console.error('Print error:', error);
+      console.error("Error printing receipt:", error);
       toast({
         title: "Print Failed",
         description: error instanceof Error ? error.message : "Failed to print receipt. Please try again.",
         variant: "destructive",
       });
     }
-  };
+  }, [previewData, toast]);
 
-  return { handlePrint };
+  return { 
+    handlePrint, 
+    executePrint,
+    showPreview, 
+    setShowPreview, 
+    previewData 
+  };
 };

@@ -102,9 +102,20 @@ export const useSalesCompletion = (
           title: `${currentSaleType === 'wholesale' ? 'Wholesale' : 'Retail'} Sale Completed`,
           description: `Transaction ID: ${data.transactionId}`,
         });
+        
+        // Clear the current sale data securely
+        clearItems();
+        clearDiscount();
+        resetSaleType();
+        secureStorage.removeItem('CURRENT_SALE_ITEMS');
+        secureStorage.removeItem('CURRENT_SALE_DISCOUNT');
+        secureStorage.removeItem('CURRENT_SALE_TYPE');
+        
+        // Return the sale ID from the response
+        return data.saleId || true;
       }
       
-      // Clear the current sale data securely
+      // For offline mode, clear and return true
       clearItems();
       clearDiscount();
       resetSaleType();

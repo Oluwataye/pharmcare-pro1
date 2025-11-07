@@ -153,12 +153,8 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
   const printReceipt = () => {
     try {
       handlePrint({
-        customerInfo: {
-          customerName: form.getValues().customerName || 'Walk-in Customer',
-          customerPhone: form.getValues().customerPhone || 'N/A',
-          businessName: 'PharmaCare Pro',
-          businessAddress: '123 Main Street, City',
-        }
+        customerName: form.getValues().customerName || 'Walk-in Customer',
+        customerPhone: form.getValues().customerPhone || 'N/A',
       });
 
       onComplete();

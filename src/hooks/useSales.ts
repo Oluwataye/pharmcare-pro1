@@ -37,7 +37,13 @@ export const useSales = (options?: UseSalesOptions) => {
     clearDiscount
   } = useSaleDiscount(items);
   
-  const { handlePrint } = useSalesPrinting(items, discount, saleType);
+  const { 
+    handlePrint, 
+    executePrint,
+    showPreview, 
+    setShowPreview, 
+    previewData 
+  } = useSalesPrinting(items, discount, saleType);
   
   const { 
     completeSale: completeTransaction,
@@ -46,12 +52,25 @@ export const useSales = (options?: UseSalesOptions) => {
 
   // Wrap the completeSale function to include cashier info from options
   const completeSale = async (completeSaleOptions?: Omit<Parameters<typeof completeTransaction>[0], 'cashierName' | 'cashierEmail' | 'cashierId'>) => {
-    return completeTransaction({
+    const result = await completeTransaction({
       ...completeSaleOptions,
       cashierName: options?.cashierName,
       cashierEmail: options?.cashierEmail,
       cashierId: options?.cashierId,
     } as Parameters<typeof completeTransaction>[0]);
+    
+    // If sale completed successfully and we have a sale ID, trigger print with the ID
+    if (result && typeof result === 'string') {
+      handlePrint({ 
+        ...completeSaleOptions,
+        cashierName: options?.cashierName,
+        cashierEmail: options?.cashierEmail,
+        cashierId: options?.cashierId,
+        saleId: result 
+      });
+    }
+    
+    return result;
   };
 
   // Additional items handling callback
@@ -93,6 +112,10 @@ export const useSales = (options?: UseSalesOptions) => {
     calculateDiscountAmount,
     calculateTotal,
     handlePrint,
+    executePrint,
+    showPreview,
+    setShowPreview,
+    previewData,
     completeSale,
     clearItems: () => {
       clearItems();
