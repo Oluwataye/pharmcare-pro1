@@ -24,7 +24,25 @@ export const useReceiptReprint = () => {
         throw new Error("Receipt data not found");
       }
 
-      setPreviewData(data.receipt_data as unknown as PrintReceiptProps);
+      const receiptData = data.receipt_data as any;
+      
+      // Clean up the data - handle undefined values and dates properly
+      const cleanedData: PrintReceiptProps = {
+        items: receiptData.items || [],
+        discount: receiptData.discount || 0,
+        date: receiptData.date ? new Date(receiptData.date) : new Date(),
+        cashierName: receiptData.cashierName || undefined,
+        cashierEmail: receiptData.cashierEmail || undefined,
+        customerName: receiptData.customerName || undefined,
+        customerPhone: receiptData.customerPhone || undefined,
+        businessName: receiptData.businessName || undefined,
+        businessAddress: receiptData.businessAddress || undefined,
+        saleType: receiptData.saleType || 'retail',
+        cashierId: receiptData.cashierId || undefined,
+        logoUrl: receiptData.logoUrl || undefined,
+      };
+      
+      setPreviewData(cleanedData);
       setShowPreview(true);
     } catch (error) {
       console.error("Error fetching receipt:", error);
