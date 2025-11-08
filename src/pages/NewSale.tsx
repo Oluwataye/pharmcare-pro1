@@ -163,8 +163,9 @@ const NewSale = () => {
           await handlePrint({
             cashierName: user.username || user.name,
             cashierEmail: user.email,
-            customerName,
-            customerPhone,
+            cashierId: user.id,
+            customerName: customerName || undefined,
+            customerPhone: customerPhone || undefined,
             businessName: saleType === 'wholesale' ? businessName : undefined,
             businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
           });
@@ -360,8 +361,9 @@ const NewSale = () => {
                     onClick={() => handlePrint({ 
                       cashierName: user ? user.username || user.name : undefined,
                       cashierEmail: user ? user.email : undefined,
-                      customerName,
-                      customerPhone,
+                      cashierId: user ? user.id : undefined,
+                      customerName: customerName || undefined,
+                      customerPhone: customerPhone || undefined,
                       businessName: saleType === 'wholesale' ? businessName : undefined,
                       businessAddress: saleType === 'wholesale' ? businessAddress : undefined
                     })}
