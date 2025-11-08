@@ -14,6 +14,7 @@ import {
   LogOut,
   FileText,
   ChevronLeft,
+  Receipt,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -72,6 +73,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       icon: ShoppingCart, 
       label: "Sales", 
       path: "/sales",
+      condition: true
+    },
+    { 
+      icon: Receipt, 
+      label: "Receipts", 
+      path: "/receipts",
       condition: true
     },
     { 

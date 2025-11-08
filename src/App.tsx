@@ -13,6 +13,7 @@ import Dashboard from "./pages/Dashboard";
 import Inventory from "./pages/Inventory";
 import Sales from "./pages/Sales";
 import NewSale from "./pages/NewSale";
+import Receipts from "./pages/Receipts";
 import Users from "./pages/Users";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
@@ -80,6 +81,14 @@ const App = ({ queryClient, persister }: AppProps) => (
                   element={
                     <ProtectedRoute>
                       <NewSale />
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/receipts"
+                  element={
+                    <ProtectedRoute>
+                      <Receipts />
                     </ProtectedRoute>
                   }
                 />

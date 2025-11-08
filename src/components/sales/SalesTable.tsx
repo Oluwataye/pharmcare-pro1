@@ -1,8 +1,7 @@
 
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import { printReceipt } from "@/utils/receiptPrinter";
 import { Sale } from "@/types/sales";
+import { useReceiptReprint } from "@/hooks/sales/useReceiptReprint";
+import { ReceiptPreview } from "@/components/receipts/ReceiptPreview";
 import {
   Table,
   TableBody,
@@ -21,42 +20,23 @@ interface SalesTableProps {
 }
 
 const SalesTable = ({ sales, showBusinessInfo = false }: SalesTableProps) => {
-  const { toast } = useToast();
-  const { user } = useAuth();
+  const {
+    fetchAndPreviewReceipt,
+    executePrint,
+    showPreview,
+    setShowPreview,
+    previewData,
+    isLoading,
+  } = useReceiptReprint();
 
-  const handlePrintInvoice = async (saleId: string) => {
-    const sale = sales.find(s => s.id === saleId);
-    if (!sale) return;
-
-    try {
-      await printReceipt({
-        items: sale.items,
-        date: new Date(sale.date),
-        cashierName: sale.cashierName || (user ? user.username || user.name : undefined),
-        cashierEmail: sale.cashierEmail || (user ? user.email : undefined),
-        customerName: sale.customerName,
-        customerPhone: sale.customerPhone,
-        businessName: sale.businessName,
-        businessAddress: sale.businessAddress,
-        saleType: sale.saleType,
-      });
-
-      toast({
-        title: "Print Initiated",
-        description: "Receipt sent to printer",
-      });
-    } catch (error) {
-      toast({
-        title: "Print Error",
-        description: error instanceof Error ? error.message : "Failed to print receipt",
-        variant: "destructive",
-      });
-    }
+  const handleReprintReceipt = (saleId: string) => {
+    fetchAndPreviewReceipt(saleId);
   };
 
   return (
-    <div className="rounded-md border">
-      <Table>
+    <>
+      <div className="rounded-md border">
+        <Table>
         <TableHeader>
           <TableRow>
             <TableHead>Product</TableHead>
@@ -109,7 +89,8 @@ const SalesTable = ({ sales, showBusinessInfo = false }: SalesTableProps) => {
                   <Button 
                     variant="ghost" 
                     size="sm" 
-                    onClick={() => handlePrintInvoice(sale.id)}
+                    onClick={() => handleReprintReceipt(sale.id)}
+                    disabled={isLoading}
                   >
                     <Printer className="h-4 w-4" />
                   </Button>
@@ -126,6 +107,16 @@ const SalesTable = ({ sales, showBusinessInfo = false }: SalesTableProps) => {
         </TableBody>
       </Table>
     </div>
+    
+    {previewData && (
+      <ReceiptPreview
+        open={showPreview}
+        onOpenChange={setShowPreview}
+        receiptData={previewData}
+        onPrint={executePrint}
+      />
+    )}
+    </>
   );
 };
 
