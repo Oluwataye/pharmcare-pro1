@@ -1,9 +1,10 @@
 
 import { useToast } from '@/hooks/use-toast';
-import { printReceipt, PrintReceiptProps } from '@/utils/receiptPrinter';
+import { printReceipt, PrintReceiptProps, PrintError } from '@/utils/receiptPrinter';
 import { SaleItem } from '@/types/sales';
 import { supabase } from '@/integrations/supabase/client';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useCallback } from 'react';
+import { useStoreSettings } from '@/hooks/useStoreSettings';
 
 interface HandlePrintOptions {
   customerName?: string;
@@ -22,29 +23,9 @@ export const useSalesPrinting = (
   saleType: 'retail' | 'wholesale'
 ) => {
   const { toast } = useToast();
-  const [logoUrl, setLogoUrl] = useState<string>('');
+  const { settings: storeSettings, isLoading: isLoadingSettings } = useStoreSettings();
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<PrintReceiptProps | null>(null);
-
-  useEffect(() => {
-    fetchStoreLogo();
-  }, []);
-
-  const fetchStoreLogo = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('store_settings')
-        .select('logo_url')
-        .single();
-
-      if (error) throw error;
-      if (data?.logo_url) {
-        setLogoUrl(data.logo_url);
-      }
-    } catch (error) {
-      console.error('Error fetching store logo:', error);
-    }
-  };
 
   const saveReceiptData = useCallback(async (saleId: string, receiptProps: PrintReceiptProps) => {
     try {
@@ -62,6 +43,15 @@ export const useSalesPrinting = (
   }, []);
 
   const handlePrint = useCallback(async (options?: HandlePrintOptions) => {
+    if (!storeSettings) {
+      toast({
+        title: "Settings Loading",
+        description: "Please wait for store settings to load...",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       const receiptProps: PrintReceiptProps = {
         items,
@@ -75,7 +65,7 @@ export const useSalesPrinting = (
         businessAddress: options?.businessAddress || undefined,
         saleType,
         cashierId: options?.cashierId || undefined,
-        logoUrl,
+        storeSettings,
       };
       
       // Show preview first
@@ -94,7 +84,7 @@ export const useSalesPrinting = (
         variant: "destructive",
       });
     }
-  }, [items, discount, saleType, logoUrl, toast, saveReceiptData]);
+  }, [items, discount, saleType, storeSettings, toast, saveReceiptData]);
 
   const executePrint = useCallback(async () => {
     if (!previewData) return;
@@ -111,11 +101,29 @@ export const useSalesPrinting = (
         title: "Receipt Printed",
         description: "The receipt has been sent to the printer successfully.",
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error printing receipt:", error);
+      
+      // Provide specific error messages based on error type
+      let errorMessage = "Failed to print receipt. Please try again.";
+      let errorTitle = "Print Failed";
+      
+      if (error?.type === PrintError.POPUP_BLOCKED) {
+        errorTitle = "Popup Blocked";
+        errorMessage = "Please allow popups for this site and try again.";
+      } else if (error?.type === PrintError.IMAGE_LOAD_FAILED) {
+        errorTitle = "Image Load Failed";
+        errorMessage = "Logo failed to load. Receipt will print without logo.";
+      } else if (error?.type === PrintError.WINDOW_LOAD_FAILED) {
+        errorTitle = "Load Failed";
+        errorMessage = "Failed to load receipt content. Please check your connection.";
+      } else if (error instanceof Error) {
+        errorMessage = error.message;
+      }
+      
       toast({
-        title: "Print Failed",
-        description: error instanceof Error ? error.message : "Failed to print receipt. Please try again.",
+        title: errorTitle,
+        description: errorMessage,
         variant: "destructive",
       });
     }
@@ -126,6 +134,7 @@ export const useSalesPrinting = (
     executePrint,
     showPreview, 
     setShowPreview, 
-    previewData 
+    previewData,
+    isLoadingSettings
   };
 };

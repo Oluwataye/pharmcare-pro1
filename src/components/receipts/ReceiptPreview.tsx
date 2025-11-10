@@ -13,19 +13,31 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
   const {
     items,
     discount = 0,
-    date = new Date(),
+    date: receiptDate,
     cashierName,
     customerName,
     customerPhone,
+    businessName,
+    businessAddress,
     saleType = 'retail',
-    logoUrl
+    storeSettings
   } = receiptData;
+
+  // Validate and ensure date is a valid Date object
+  let date = new Date();
+  if (receiptDate) {
+    const parsedDate = receiptDate instanceof Date ? receiptDate : new Date(receiptDate);
+    if (!isNaN(parsedDate.getTime())) {
+      date = parsedDate;
+    }
+  }
   
-  // Get store settings from localStorage
-  const storeSettings = JSON.parse(localStorage.getItem('storeSettings') || '{}');
+  // Use store settings from receipt data
   const storeName = storeSettings.name || 'PharmCare Pro';
   const storeAddress = storeSettings.address || '123 Main Street, Lagos';
-  const logo = logoUrl || storeSettings.logo_url;
+  const storeEmail = storeSettings.email;
+  const storePhone = storeSettings.phone;
+  const logo = storeSettings.logo_url;
   
   // Calculate totals
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -42,7 +54,7 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
         <div className="border rounded-md p-4 bg-background font-mono text-xs">
           {/* Header */}
           <div className="text-center mb-4">
-            {logo && (
+            {storeSettings.print_show_logo && logo && (
               <img 
                 src={logo} 
                 alt="Store Logo" 
@@ -50,7 +62,9 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
               />
             )}
             <div className="font-bold text-base">{storeName}</div>
-            <div>{storeAddress}</div>
+            {storeSettings.print_show_address && storeAddress && <div>{storeAddress}</div>}
+            {storeSettings.print_show_email && storeEmail && <div>{storeEmail}</div>}
+            {storeSettings.print_show_phone && storePhone && <div>{storePhone}</div>}
             <div className="mt-2 font-bold">{saleType.toUpperCase()} RECEIPT</div>
           </div>
           
@@ -62,6 +76,8 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
             <div>Time: {date.toLocaleTimeString()}</div>
             {customerName && <div>Customer: {customerName}</div>}
             {customerPhone && <div>Phone: {customerPhone}</div>}
+            {businessName && <div>Business: {businessName}</div>}
+            {businessAddress && <div>Address: {businessAddress}</div>}
             {cashierName && <div>Cashier: {cashierName}</div>}
           </div>
           
@@ -110,10 +126,12 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
           <div className="border-t border-dashed border-border my-2" />
           
           {/* Footer */}
-          <div className="text-center text-[10px] mt-4">
-            <div>Thank you for your patronage!</div>
-            <div className="font-bold mt-1">POWERED BY T-TECH SOLUTIONS</div>
-          </div>
+          {storeSettings.print_show_footer && (
+            <div className="text-center text-[10px] mt-4">
+              <div>Thank you for your patronage!</div>
+              <div className="font-bold mt-1">POWERED BY T-TECH SOLUTIONS</div>
+            </div>
+          )}
         </div>
         
         <DialogFooter>

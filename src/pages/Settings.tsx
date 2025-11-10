@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { invalidateStoreSettingsCache } from "@/hooks/useStoreSettings";
 import {
   Card,
   CardContent,
@@ -186,8 +187,8 @@ const Settings = () => {
 
       if (error) throw error;
       
-      // Also save to localStorage for receipt printing
-      localStorage.setItem('storeSettings', JSON.stringify(storeSettings));
+      // Invalidate cache to force refresh in all components
+      invalidateStoreSettingsCache();
       
       toast({
         title: "Settings Saved", 
@@ -222,6 +223,9 @@ const Settings = () => {
         .eq('id', storeSettings.id);
 
       if (error) throw error;
+      
+      // Invalidate cache to force refresh in all components
+      invalidateStoreSettingsCache();
       
       toast({
         title: "Settings Saved",
