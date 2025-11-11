@@ -15,6 +15,7 @@ import {
   FileText,
   ChevronLeft,
   Receipt,
+  Printer,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -80,6 +81,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       label: "Receipts", 
       path: "/receipts",
       condition: true
+    },
+    { 
+      icon: Printer, 
+      label: "Print History", 
+      path: "/print-history",
+      condition: canAccessReports()
     },
     { 
       icon: Users, 

@@ -26,6 +26,7 @@ export interface PrintReceiptProps {
   businessAddress?: string;
   saleType?: 'retail' | 'wholesale';
   cashierId?: string;
+  saleId?: string;
   storeSettings: StoreSettings;
 }
 

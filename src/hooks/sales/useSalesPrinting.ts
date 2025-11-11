@@ -5,6 +5,7 @@ import { SaleItem } from '@/types/sales';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useCallback } from 'react';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
+import { logPrintAnalytics } from '@/utils/printAnalytics';
 
 interface HandlePrintOptions {
   customerName?: string;
@@ -89,13 +90,34 @@ export const useSalesPrinting = (
   const executePrint = useCallback(async () => {
     if (!previewData) return;
     
+    const startTime = Date.now();
+    let printStatus: 'success' | 'failed' | 'cancelled' = 'success';
+    let errorType: string | undefined;
+    let errorMessage: string | undefined;
+
     try {
       const success = await printReceipt(previewData);
       
       if (!success) {
+        printStatus = 'cancelled';
         throw new Error("Print operation failed");
       }
       
+      const duration = Date.now() - startTime;
+      
+      // Log successful print
+      await logPrintAnalytics({
+        saleId: previewData.saleId,
+        cashierId: previewData.cashierId,
+        cashierName: previewData.cashierName,
+        customerName: previewData.customerName,
+        printStatus: 'success',
+        printDurationMs: duration,
+        isReprint: false,
+        saleType: previewData.saleType,
+        totalAmount: previewData.items.reduce((sum, item) => sum + item.total, 0) - (previewData.discount || 0),
+      });
+
       setShowPreview(false);
       toast({
         title: "Receipt Printed",
@@ -104,26 +126,62 @@ export const useSalesPrinting = (
     } catch (error: any) {
       console.error("Error printing receipt:", error);
       
+      // Determine error type and status
+      if (error?.type === PrintError.POPUP_BLOCKED) {
+        printStatus = 'failed';
+        errorType = 'POPUP_BLOCKED';
+        errorMessage = "Popup blocked";
+      } else if (error?.type === PrintError.IMAGE_LOAD_FAILED) {
+        printStatus = 'failed';
+        errorType = 'IMAGE_LOAD_FAILED';
+        errorMessage = "Logo failed to load";
+      } else if (error?.type === PrintError.WINDOW_LOAD_FAILED) {
+        printStatus = 'failed';
+        errorType = 'WINDOW_LOAD_FAILED';
+        errorMessage = "Failed to load receipt content";
+      } else if (error instanceof Error) {
+        printStatus = 'failed';
+        errorType = 'UNKNOWN';
+        errorMessage = error.message;
+      }
+
+      const duration = Date.now() - startTime;
+
+      // Log failed print
+      await logPrintAnalytics({
+        saleId: previewData.saleId,
+        cashierId: previewData.cashierId,
+        cashierName: previewData.cashierName,
+        customerName: previewData.customerName,
+        printStatus,
+        errorType,
+        errorMessage,
+        printDurationMs: duration,
+        isReprint: false,
+        saleType: previewData.saleType,
+        totalAmount: previewData.items.reduce((sum, item) => sum + item.total, 0) - (previewData.discount || 0),
+      });
+      
       // Provide specific error messages based on error type
-      let errorMessage = "Failed to print receipt. Please try again.";
-      let errorTitle = "Print Failed";
+      let displayMessage = "Failed to print receipt. Please try again.";
+      let displayTitle = "Print Failed";
       
       if (error?.type === PrintError.POPUP_BLOCKED) {
-        errorTitle = "Popup Blocked";
-        errorMessage = "Please allow popups for this site and try again.";
+        displayTitle = "Popup Blocked";
+        displayMessage = "Please allow popups for this site and try again.";
       } else if (error?.type === PrintError.IMAGE_LOAD_FAILED) {
-        errorTitle = "Image Load Failed";
-        errorMessage = "Logo failed to load. Receipt will print without logo.";
+        displayTitle = "Image Load Failed";
+        displayMessage = "Logo failed to load. Receipt will print without logo.";
       } else if (error?.type === PrintError.WINDOW_LOAD_FAILED) {
-        errorTitle = "Load Failed";
-        errorMessage = "Failed to load receipt content. Please check your connection.";
+        displayTitle = "Load Failed";
+        displayMessage = "Failed to load receipt content. Please check your connection.";
       } else if (error instanceof Error) {
-        errorMessage = error.message;
+        displayMessage = error.message;
       }
       
       toast({
-        title: errorTitle,
-        description: errorMessage,
+        title: displayTitle,
+        description: displayMessage,
         variant: "destructive",
       });
     }

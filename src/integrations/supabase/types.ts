@@ -65,6 +65,75 @@ export type Database = {
         }
         Relationships: []
       }
+      print_analytics: {
+        Row: {
+          cashier_id: string | null
+          cashier_name: string | null
+          created_at: string
+          customer_name: string | null
+          error_message: string | null
+          error_type: string | null
+          id: string
+          is_reprint: boolean
+          print_duration_ms: number | null
+          print_status: string
+          receipt_id: string | null
+          sale_id: string | null
+          sale_type: string | null
+          total_amount: number | null
+          updated_at: string
+        }
+        Insert: {
+          cashier_id?: string | null
+          cashier_name?: string | null
+          created_at?: string
+          customer_name?: string | null
+          error_message?: string | null
+          error_type?: string | null
+          id?: string
+          is_reprint?: boolean
+          print_duration_ms?: number | null
+          print_status: string
+          receipt_id?: string | null
+          sale_id?: string | null
+          sale_type?: string | null
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Update: {
+          cashier_id?: string | null
+          cashier_name?: string | null
+          created_at?: string
+          customer_name?: string | null
+          error_message?: string | null
+          error_type?: string | null
+          id?: string
+          is_reprint?: boolean
+          print_duration_ms?: number | null
+          print_status?: string
+          receipt_id?: string | null
+          sale_id?: string | null
+          sale_type?: string | null
+          total_amount?: number | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "print_analytics_receipt_id_fkey"
+            columns: ["receipt_id"]
+            isOneToOne: false
+            referencedRelation: "receipts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "print_analytics_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
