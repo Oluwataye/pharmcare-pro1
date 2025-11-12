@@ -5,6 +5,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
+import { SessionTimeoutWarning } from "./components/auth/SessionTimeoutWarning";
 import { OfflineProvider } from "./contexts/OfflineContext";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
@@ -43,6 +44,7 @@ const App = ({ queryClient, persister }: AppProps) => (
   >
     <OfflineProvider>
       <AuthProvider>
+        <SessionTimeoutWarning />
         <TooltipProvider>
           <Toaster />
           <Sonner />

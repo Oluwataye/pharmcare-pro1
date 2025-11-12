@@ -55,7 +55,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  // Initialize auth state
+  // Initialize auth state and session security
   React.useEffect(() => {
     // Set up auth state listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -102,7 +102,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
-    return () => subscription.unsubscribe();
+    // Automatic logout on window close/tab close (for shared workstations)
+    const handleBeforeUnload = () => {
+      // Clear session storage on window close
+      sessionStorage.clear();
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+
+    // Periodic session validity check (every 5 minutes)
+    const sessionCheckInterval = setInterval(async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
+        setSession(null);
+      }
+    }, 5 * 60 * 1000);
+
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+      clearInterval(sessionCheckInterval);
+    };
   }, []);
 
   const login = async (email: string, password: string) => {
@@ -149,6 +174,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
     try {
+      // Clear all session data
+      sessionStorage.clear();
+      
       await supabase.auth.signOut();
       
       setAuthState({
