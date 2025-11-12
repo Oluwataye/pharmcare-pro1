@@ -3,6 +3,7 @@ import { AuthState, User as AppUser, UserRole } from '@/lib/types';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
+import { checkLoginRateLimit, clearLoginRateLimit } from '@/lib/rateLimiting';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -134,6 +135,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
     try {
+      // Check rate limit before attempting login
+      const rateLimit = await checkLoginRateLimit(email);
+      
+      if (!rateLimit.allowed) {
+        const resetTime = rateLimit.resetTime 
+          ? new Date(rateLimit.resetTime).toLocaleTimeString()
+          : 'soon';
+        throw new Error(`Too many login attempts. Please try again at ${resetTime}`);
+      }
+
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -142,6 +153,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       if (error) throw error;
 
       if (data.user) {
+        // Clear rate limit on successful login
+        clearLoginRateLimit(email);
+        
         const userProfile = await fetchUserProfile(data.user.id);
         
         if (!userProfile) {

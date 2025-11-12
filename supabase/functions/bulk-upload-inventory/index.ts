@@ -18,6 +18,15 @@ interface CSVRow {
   'Batch Number': string;
 }
 
+// Input sanitization
+const sanitizeString = (input: string | undefined, maxLength: number): string | undefined => {
+  if (!input) return undefined
+  return input
+    .replace(/[<>\"'&]/g, '') // Remove XSS characters
+    .trim()
+    .substring(0, maxLength)
+}
+
 // Normalize unit names to match database schema
 const normalizeUnit = (unit: string): string => {
   const unitMap: Record<string, string> = {
@@ -91,6 +100,7 @@ Deno.serve(async (req) => {
     const { data: { user }, error: authError } = await supabaseClient.auth.getUser(token);
 
     if (authError || !user) {
+      console.error('Authentication error:', authError)
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -111,15 +121,22 @@ Deno.serve(async (req) => {
 
     const { csvContent } = await req.json();
 
-    if (!csvContent) {
-      return new Response(
-        JSON.stringify({ error: 'CSV content is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    // Validate CSV content
+    if (!csvContent || typeof csvContent !== 'string') {
+      throw new Error('CSV content is required and must be a string')
+    }
+
+    if (csvContent.length > 5 * 1024 * 1024) { // 5MB limit
+      throw new Error('CSV file too large (max 5MB)')
     }
 
     console.log('Parsing CSV content...');
     const rows = parseCSV(csvContent);
+    
+    if (rows.length > 10000) {
+      throw new Error('Too many rows (max 10,000 per upload)')
+    }
+
     console.log(`Parsed ${rows.length} rows`);
 
     let successCount = 0;
@@ -128,22 +145,64 @@ Deno.serve(async (req) => {
 
     for (const row of rows) {
       try {
+        // Validate and sanitize inputs
+        const productName = sanitizeString(row['Product Name'], 500)
+        const sku = sanitizeString(row['SKU'], 100)
+        const category = sanitizeString(row['Category'], 100)
+        const manufacturer = sanitizeString(row['Manufacturer'], 200)
+        const batchNumber = sanitizeString(row['Batch Number'], 100)
+
+        if (!productName || productName.length < 2) {
+          throw new Error('Product name must be at least 2 characters')
+        }
+
+        if (!sku || sku.length < 1) {
+          throw new Error('SKU is required')
+        }
+
+        // Parse and validate numeric values
+        const quantity = parseInt(row['Quantity'])
+        const price = parseFloat(row['Price (₦)'])
+        const reorderLevel = parseInt(row['Reorder Level'])
+
+        if (isNaN(quantity) || quantity < 0 || quantity > 1000000) {
+          throw new Error('Invalid quantity')
+        }
+
+        if (isNaN(price) || price < 0 || price > 10000000) {
+          throw new Error('Invalid price')
+        }
+
+        if (isNaN(reorderLevel) || reorderLevel < 0 || reorderLevel > 100000) {
+          throw new Error('Invalid reorder level')
+        }
+
         // Parse and format expiry date (YYYY-MM-DD)
         const expiryDate = row['Expiry Date'];
+        if (!expiryDate || !/^\d{4}-\d{1,2}-\d{1,2}$/.test(expiryDate)) {
+          throw new Error('Invalid expiry date format (must be YYYY-MM-DD)')
+        }
+
         const [year, month, day] = expiryDate.split('-');
         const formattedExpiryDate = `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
 
+        // Validate date is in the future
+        const expiryDateObj = new Date(formattedExpiryDate)
+        if (expiryDateObj < new Date()) {
+          throw new Error('Expiry date must be in the future')
+        }
+
         const inventoryItem = {
-          name: row['Product Name'],
-          sku: row['SKU'],
-          category: row['Category'],
-          quantity: parseInt(row['Quantity']),
+          name: productName,
+          sku: sku,
+          category: category,
+          quantity: quantity,
           unit: normalizeUnit(row['Unit']),
-          price: parseFloat(row['Price (₦)']),
-          reorder_level: parseInt(row['Reorder Level']),
+          price: price,
+          reorder_level: reorderLevel,
           expiry_date: formattedExpiryDate,
-          manufacturer: row['Manufacturer'] || null,
-          batch_number: row['Batch Number'] || null,
+          manufacturer: manufacturer || null,
+          batch_number: batchNumber || null,
           last_updated_by: user.id,
         };
 
@@ -152,15 +211,16 @@ Deno.serve(async (req) => {
           .insert(inventoryItem);
 
         if (insertError) {
-          console.error(`Error inserting ${row['Product Name']}:`, insertError);
-          errors.push(`${row['Product Name']}: ${insertError.message}`);
+          console.error(`Error inserting ${productName}:`, insertError);
+          errors.push(`${productName}: ${insertError.message}`);
           errorCount++;
         } else {
           successCount++;
         }
       } catch (error: any) {
         console.error(`Error processing row:`, error);
-        errors.push(`${row['Product Name']}: ${error.message}`);
+        const productName = row['Product Name'] || 'Unknown product'
+        errors.push(`${productName}: ${error.message}`);
         errorCount++;
       }
     }
@@ -178,8 +238,14 @@ Deno.serve(async (req) => {
     );
   } catch (error: any) {
     console.error('Bulk upload error:', error);
+    
+    // Sanitize error message
+    const safeErrorMessage = error.message?.includes('database') || error.message?.includes('query')
+      ? 'A system error occurred. Please try again.'
+      : error.message || 'Internal server error'
+    
     return new Response(
-      JSON.stringify({ error: error.message || 'Internal server error' }),
+      JSON.stringify({ error: safeErrorMessage }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
