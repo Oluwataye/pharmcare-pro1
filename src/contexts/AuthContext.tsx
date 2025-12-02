@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { useToast } from '@/hooks/use-toast';
 import { checkLoginRateLimit, clearLoginRateLimit } from '@/lib/rateLimiting';
+import { logSuccessfulLogin, logFailedLogin, logLogout } from '@/lib/auditLog';
 
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
@@ -162,6 +163,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw new Error('Unable to load user profile');
         }
 
+        // Log successful login
+        logSuccessfulLogin(data.user.id, email, userProfile.role);
+
         setAuthState({
           user: userProfile,
           isAuthenticated: true,
@@ -174,6 +178,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
       }
     } catch (error: any) {
+      // Log failed login attempt
+      logFailedLogin(email, error.message || 'Unknown error');
+      
       setAuthState(prev => ({ ...prev, isLoading: false }));
       toast({
         title: 'Login failed',
@@ -185,9 +192,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    const currentUser = authState.user;
     setAuthState(prev => ({ ...prev, isLoading: true }));
     
     try {
+      // Log logout event before clearing session
+      if (currentUser) {
+        logLogout(currentUser.id, currentUser.email);
+      }
+      
       // Clear all session data
       sessionStorage.clear();
       

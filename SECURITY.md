@@ -200,18 +200,101 @@ CREATE TABLE rate_limits (
 - [ ] Security header enhancements (CSP, Permissions-Policy)
 - [ ] Production error message sanitization
 
-### Phase 5: Audit Logging (Future)
-- [ ] Failed login tracking
-- [ ] Unauthorized access attempt logging
-- [ ] Data export/download tracking
-- [ ] Settings change audit trail
+## Phase 5: Audit Logging ✅
 
-### Phase 6: Data Protection (Future)
-- [ ] Data retention policies (90 days for analytics, 2 years for sales)
-- [ ] Data anonymization for deleted users
-- [ ] GDPR compliance features (data export, right to be forgotten)
+### Comprehensive Audit Logging System
 
-### Phase 7: Performance & Monitoring (Future)
+All security-sensitive operations are now tracked in the `audit_logs` table:
+
+#### Tracked Events
+- **LOGIN_SUCCESS** - Successful user logins
+- **LOGIN_FAILED** - Failed login attempts (with reason)
+- **LOGOUT** - User logout events
+- **UNAUTHORIZED_ACCESS** - Attempts to access restricted resources
+- **USER_CREATED** - New user account creation
+- **USER_DELETED** - User account deletion
+- **USER_UPDATED** - User profile updates
+- **ROLE_CHANGED** - User role modifications
+- **PASSWORD_RESET** - Password reset operations
+- **PASSWORD_CHANGED** - Password change events
+- **SETTINGS_UPDATED** - Store settings modifications
+- **DATA_EXPORTED** - GDPR data export requests
+- **DATA_DELETED** - GDPR data deletion requests
+- **SALE_COMPLETED** - Sales transactions
+- **INVENTORY_UPDATED** - Inventory modifications
+- **BULK_UPLOAD** - Bulk data imports
+
+#### Audit Log Data
+Each audit log entry includes:
+- Event type and timestamp
+- User ID, email, and role
+- Action description
+- Resource type and ID
+- Additional details (JSON)
+- Status (success/failed)
+- Error message (if applicable)
+- User agent information
+
+#### Access Control
+- Only SUPER_ADMIN can view audit logs
+- Logs are retained for 1 year
+- Security Audit Report available in Reports section
+
+---
+
+## Phase 6: GDPR Compliance ✅
+
+### Data Retention Policies
+
+Automatic data cleanup based on configurable retention periods:
+
+| Data Type | Retention Period |
+|-----------|-----------------|
+| Audit Logs | 365 days |
+| Print Analytics | 90 days |
+| Rate Limits | 1 day |
+| Sales Records | Indefinite (legal requirement) |
+
+### User Data Export (Right to Access / Data Portability)
+
+Users can export all their personal data including:
+- Profile information
+- User roles
+- Sales history (as cashier)
+- Print analytics
+- Audit logs
+- GDPR request history
+
+Export format: JSON file download
+
+### Right to be Forgotten
+
+Users can request anonymization of their personal data:
+- Profile anonymized to "Deleted User"
+- Sales records: customer names anonymized, cashier PII removed
+- Print analytics: names anonymized
+- Audit logs: emails anonymized, IP/user agent removed
+
+**Note**: Some data is retained in anonymized form for legal compliance and audit purposes.
+
+### GDPR Request Tracking
+
+All GDPR requests are tracked in the `gdpr_requests` table:
+- Request type (EXPORT, DELETE, ACCESS)
+- Status (pending, processing, completed, failed)
+- Processing timestamps
+- Admin who processed the request
+
+### Privacy Settings
+
+Available in Settings → Privacy tab:
+- Export personal data
+- Request data deletion
+- View data retention policies
+
+---
+
+## Remaining Security Enhancements
 - [ ] Database indexes for common queries
 - [ ] Backup and disaster recovery procedures
 - [ ] Performance monitoring setup
@@ -228,7 +311,7 @@ CREATE TABLE rate_limits (
 4. ✅ Sanitize text inputs to prevent XSS
 5. ✅ Use role-based access control for all sensitive operations
 6. ✅ Implement rate limiting on all authentication endpoints
-7. ✅ Log security-relevant events
+7. ✅ Log security-relevant events to audit log
 
 ### For Administrators
 1. ✅ Use strong passwords (enforced by system)
@@ -273,13 +356,20 @@ For security concerns, contact: admin@pharmcarepro.com
 ### GDPR Considerations (EU Data Protection)
 - ✅ Customer data access restricted
 - ✅ Data minimization principles followed
-- ⚠️  Right to access (needs implementation)
-- ⚠️  Right to be forgotten (needs implementation)
-- ⚠️  Data portability (needs implementation)
+- ✅ Right to access implemented (data export)
+- ✅ Right to be forgotten implemented (data anonymization)
+- ✅ Data portability (JSON export)
+- ⚠️ Cookie consent banner (if applicable)
 
 ---
 
 ## Version History
+
+- **v1.2** (2025-01-12): Phase 5 & 6 Implementation
+  - Comprehensive audit logging system
+  - GDPR compliance features (data export, right to be forgotten)
+  - Data retention policies
+  - Security Audit Report for admins
 
 - **v1.0** (2025-01-11): Initial security implementation
   - Database RLS policies implemented

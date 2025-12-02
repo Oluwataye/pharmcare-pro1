@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { DiscountManagement } from "@/components/settings/DiscountManagement";
 import { UserProfileSettings } from "@/components/settings/UserProfileSettings";
+import { GdprSettings } from "@/components/settings/GdprSettings";
 import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
@@ -258,12 +259,13 @@ const Settings = () => {
       </div>
 
       <Tabs defaultValue="store" className="w-full">
-        <TabsList className="grid w-full md:w-1/2 grid-cols-3">
+        <TabsList className="grid w-full md:w-2/3 grid-cols-4">
           <TabsTrigger value="store">Store</TabsTrigger>
           <TabsTrigger value="printing">Printing</TabsTrigger>
           {user?.role === "SUPER_ADMIN" && (
             <TabsTrigger value="discount">Discount</TabsTrigger>
           )}
+          <TabsTrigger value="privacy">Privacy</TabsTrigger>
         </TabsList>
         <TabsContent value="store">
           <Card>
@@ -438,6 +440,10 @@ const Settings = () => {
             <DiscountManagement />
           </TabsContent>
         )}
+
+        <TabsContent value="privacy">
+          <GdprSettings />
+        </TabsContent>
       </Tabs>
 
       <footer className="mt-8 pt-4 border-t text-center text-sm text-muted-foreground">

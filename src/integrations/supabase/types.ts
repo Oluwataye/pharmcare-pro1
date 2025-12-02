@@ -14,6 +14,129 @@ export type Database = {
   }
   public: {
     Tables: {
+      audit_logs: {
+        Row: {
+          action: string
+          created_at: string
+          details: Json | null
+          error_message: string | null
+          event_type: Database["public"]["Enums"]["audit_event_type"]
+          id: string
+          ip_address: string | null
+          resource_id: string | null
+          resource_type: string | null
+          status: string
+          user_agent: string | null
+          user_email: string | null
+          user_id: string | null
+          user_role: string | null
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          details?: Json | null
+          error_message?: string | null
+          event_type: Database["public"]["Enums"]["audit_event_type"]
+          id?: string
+          ip_address?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          status?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_role?: string | null
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          details?: Json | null
+          error_message?: string | null
+          event_type?: Database["public"]["Enums"]["audit_event_type"]
+          id?: string
+          ip_address?: string | null
+          resource_id?: string | null
+          resource_type?: string | null
+          status?: string
+          user_agent?: string | null
+          user_email?: string | null
+          user_id?: string | null
+          user_role?: string | null
+        }
+        Relationships: []
+      }
+      data_retention_config: {
+        Row: {
+          created_at: string
+          id: string
+          is_active: boolean | null
+          last_cleanup_at: string | null
+          retention_days: number
+          table_name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_cleanup_at?: string | null
+          retention_days: number
+          table_name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          is_active?: boolean | null
+          last_cleanup_at?: string | null
+          retention_days?: number
+          table_name?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      gdpr_requests: {
+        Row: {
+          created_at: string
+          export_url: string | null
+          id: string
+          notes: string | null
+          processed_at: string | null
+          processed_by: string | null
+          request_type: string
+          requested_at: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          export_url?: string | null
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          request_type: string
+          requested_at?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          export_url?: string | null
+          id?: string
+          notes?: string | null
+          processed_at?: string | null
+          processed_by?: string | null
+          request_type?: string
+          requested_at?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       inventory: {
         Row: {
           batch_number: string | null
@@ -408,6 +531,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      anonymize_user_data: { Args: { p_user_id: string }; Returns: boolean }
+      cleanup_expired_data: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       has_role: {
         Args: {
@@ -416,9 +541,43 @@ export type Database = {
         }
         Returns: boolean
       }
+      log_audit_event: {
+        Args: {
+          p_action: string
+          p_details?: Json
+          p_error_message?: string
+          p_event_type: Database["public"]["Enums"]["audit_event_type"]
+          p_ip_address?: string
+          p_resource_id?: string
+          p_resource_type?: string
+          p_status?: string
+          p_user_agent?: string
+          p_user_email: string
+          p_user_id: string
+          p_user_role: string
+        }
+        Returns: string
+      }
     }
     Enums: {
       app_role: "SUPER_ADMIN" | "PHARMACIST" | "CASHIER"
+      audit_event_type:
+        | "LOGIN_SUCCESS"
+        | "LOGIN_FAILED"
+        | "LOGOUT"
+        | "UNAUTHORIZED_ACCESS"
+        | "USER_CREATED"
+        | "USER_DELETED"
+        | "USER_UPDATED"
+        | "ROLE_CHANGED"
+        | "PASSWORD_RESET"
+        | "PASSWORD_CHANGED"
+        | "SETTINGS_UPDATED"
+        | "DATA_EXPORTED"
+        | "DATA_DELETED"
+        | "SALE_COMPLETED"
+        | "INVENTORY_UPDATED"
+        | "BULK_UPLOAD"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -547,6 +706,24 @@ export const Constants = {
   public: {
     Enums: {
       app_role: ["SUPER_ADMIN", "PHARMACIST", "CASHIER"],
+      audit_event_type: [
+        "LOGIN_SUCCESS",
+        "LOGIN_FAILED",
+        "LOGOUT",
+        "UNAUTHORIZED_ACCESS",
+        "USER_CREATED",
+        "USER_DELETED",
+        "USER_UPDATED",
+        "ROLE_CHANGED",
+        "PASSWORD_RESET",
+        "PASSWORD_CHANGED",
+        "SETTINGS_UPDATED",
+        "DATA_EXPORTED",
+        "DATA_DELETED",
+        "SALE_COMPLETED",
+        "INVENTORY_UPDATED",
+        "BULK_UPLOAD",
+      ],
     },
   },
 } as const
