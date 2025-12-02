@@ -9,7 +9,8 @@ import {
   ShoppingCart, 
   Users,
   History,
-  Calendar
+  Calendar,
+  Shield
 } from "lucide-react";
 import InventoryReport from "@/components/reports/InventoryReport";
 import TransactionsReport from "@/components/reports/TransactionsReport";
@@ -17,9 +18,11 @@ import UserAuditReport from "@/components/reports/UserAuditReport";
 import SalesReport from "@/components/reports/SalesReport";
 import TransactionAuditLog from "@/components/reports/TransactionAuditLog";
 import ExpiringDrugsReport from "@/components/reports/ExpiringDrugsReport";
+import { AuditLogReport } from "@/components/reports/AuditLogReport";
 import { ExpiryNotificationModal } from "@/components/reports/ExpiryNotificationModal";
 import { Spinner } from "@/components/ui/spinner";
 import { useInventory } from "@/hooks/useInventory";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Reports = () => {
   const [activeTab, setActiveTab] = useState("inventory");
@@ -27,6 +30,7 @@ const Reports = () => {
   const [showExpiryModal, setShowExpiryModal] = useState(false);
   const location = useLocation();
   const { getExpiringItems } = useInventory();
+  const { user } = useAuth();
 
   // Check if there are critical expiring items
   const criticalItems = getExpiringItems(30);
@@ -112,6 +116,13 @@ const Reports = () => {
                 </span>
               )}
             </TabsTrigger>
+            {user?.role === 'SUPER_ADMIN' && (
+              <TabsTrigger value="security" className="flex items-center gap-2 whitespace-nowrap">
+                <Shield className="h-4 w-4" />
+                <span className="hidden sm:inline">Security Audit</span>
+                <span className="sm:hidden">Security</span>
+              </TabsTrigger>
+            )}
           </TabsList>
         </div>
 
@@ -146,6 +157,12 @@ const Reports = () => {
             <TabsContent value="expiring">
               <ExpiringDrugsReport />
             </TabsContent>
+
+            {user?.role === 'SUPER_ADMIN' && (
+              <TabsContent value="security">
+                <AuditLogReport />
+              </TabsContent>
+            )}
           </>
         )}
       </Tabs>
