@@ -17,16 +17,17 @@ import { Printer, Package } from "lucide-react";
 interface SalesTableProps {
   sales: Sale[];
   showBusinessInfo?: boolean;
+  isLoading?: boolean;
 }
 
-const SalesTable = ({ sales, showBusinessInfo = false }: SalesTableProps) => {
+const SalesTable = ({ sales, showBusinessInfo = false, isLoading: isTableLoading = false }: SalesTableProps) => {
   const {
     fetchAndPreviewReceipt,
     executePrint,
     showPreview,
     setShowPreview,
     previewData,
-    isLoading,
+    isLoading: isReprintLoading,
   } = useReceiptReprint();
 
   const handleReprintReceipt = (saleId: string) => {
@@ -52,10 +53,16 @@ const SalesTable = ({ sales, showBusinessInfo = false }: SalesTableProps) => {
           </TableRow>
         </TableHeader>
         <TableBody>
-          {sales.length > 0 ? (
+          {isTableLoading ? (
+            <TableRow>
+              <TableCell colSpan={showBusinessInfo ? 10 : 9} className="h-24 text-center">
+                Loading sales...
+              </TableCell>
+            </TableRow>
+          ) : sales.length > 0 ? (
             sales.map((sale) => (
               <TableRow key={sale.id}>
-                <TableCell>{sale.items[0].name}{sale.items.length > 1 ? ` +${sale.items.length - 1} more` : ''}</TableCell>
+                <TableCell>{sale.items[0]?.name || 'N/A'}{sale.items.length > 1 ? ` +${sale.items.length - 1} more` : ''}</TableCell>
                 <TableCell>
                   {sale.saleType === 'wholesale' ? (
                     <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200">
@@ -66,8 +73,8 @@ const SalesTable = ({ sales, showBusinessInfo = false }: SalesTableProps) => {
                     <Badge variant="outline">Retail</Badge>
                   )}
                 </TableCell>
-                <TableCell>{sale.items[0].quantity}</TableCell>
-                <TableCell>{sale.items[0].price}</TableCell>
+                <TableCell>{sale.items[0]?.quantity || 0}</TableCell>
+                <TableCell>{sale.items[0]?.price || 0}</TableCell>
                 <TableCell>{sale.total}</TableCell>
                 <TableCell>{sale.date}</TableCell>
                 <TableCell>{sale.cashierName || 'Unknown'}</TableCell>
@@ -80,6 +87,8 @@ const SalesTable = ({ sales, showBusinessInfo = false }: SalesTableProps) => {
                   <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
                     sale.status === "completed" 
                       ? "bg-green-50 text-green-700" 
+                      : sale.status === "cancelled"
+                      ? "bg-red-50 text-red-700"
                       : "bg-yellow-50 text-yellow-700"
                   }`}>
                     {sale.status.charAt(0).toUpperCase() + sale.status.slice(1)}
@@ -90,7 +99,7 @@ const SalesTable = ({ sales, showBusinessInfo = false }: SalesTableProps) => {
                     variant="ghost" 
                     size="sm" 
                     onClick={() => handleReprintReceipt(sale.id)}
-                    disabled={isLoading}
+                    disabled={isReprintLoading}
                   >
                     <Printer className="h-4 w-4" />
                   </Button>
