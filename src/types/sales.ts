@@ -15,7 +15,7 @@ export interface Sale {
   items: SaleItem[];
   total: number;
   date: string;
-  status: 'completed' | 'pending';
+  status: 'completed' | 'pending' | 'cancelled';
   customerName?: string;
   customerPhone?: string;
   discount?: number; // Overall sale discount
