@@ -44,7 +44,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       const { data, error } = await supabase
         .from('store_settings')
         .select('logo_url, name')
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
@@ -58,52 +58,52 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   };
 
   const menuItems = [
-    { 
-      icon: LayoutDashboard, 
-      label: "Dashboard", 
+    {
+      icon: LayoutDashboard,
+      label: "Dashboard",
       path: "/",
-      condition: true 
+      condition: true
     },
-    { 
-      icon: Package, 
-      label: "Inventory", 
+    {
+      icon: Package,
+      label: "Inventory",
       path: "/inventory",
       // Only show Inventory for users with proper permissions
       condition: canAccessInventory()
     },
-    { 
-      icon: ShoppingCart, 
-      label: "Sales", 
+    {
+      icon: ShoppingCart,
+      label: "Sales",
       path: "/sales",
       condition: true
     },
-    { 
-      icon: Receipt, 
-      label: "Receipts", 
+    {
+      icon: Receipt,
+      label: "Receipts",
       path: "/receipts",
       condition: true
     },
-    { 
-      icon: Printer, 
-      label: "Print History", 
+    {
+      icon: Printer,
+      label: "Print History",
       path: "/print-history",
       condition: canAccessReports()
     },
-    { 
-      icon: Users, 
-      label: "Users", 
+    {
+      icon: Users,
+      label: "Users",
       path: "/users",
       condition: canAccessUsers()
     },
-    { 
-      icon: FileText, 
-      label: "Reports", 
+    {
+      icon: FileText,
+      label: "Reports",
       path: "/reports",
       condition: canAccessReports()
     },
-    { 
-      icon: Settings, 
-      label: "Settings", 
+    {
+      icon: Settings,
+      label: "Settings",
       path: "/settings",
       condition: true
     },
@@ -139,10 +139,10 @@ const Sidebar = ({ onClose }: SidebarProps) => {
             {storeName}
           </h1>
         </div>
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={onClose} 
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
           className="md:hidden flex-shrink-0 hover:bg-primary/10"
         >
           <ChevronLeft className="h-4 w-4" />
@@ -175,7 +175,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
         {menuItems.map((item) => {
           if (!item.condition) return null;
-          
+
           const isActive = location.pathname === item.path;
           return (
             <Button
@@ -183,8 +183,8 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               variant={isActive ? "secondary" : "ghost"}
               className={cn(
                 "w-full justify-start gap-3 h-11 px-4 transition-all duration-200",
-                isActive 
-                  ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 border-l-4 border-primary" 
+                isActive
+                  ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 border-l-4 border-primary"
                   : "hover:bg-accent/50 hover:translate-x-1 border-l-4 border-transparent"
               )}
               onClick={() => handleNavigate(item.path)}
@@ -207,7 +207,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
           <span className="font-medium">Logout</span>
         </Button>
       </div>
-      
+
       {/* Sync Indicator & Footer */}
       <div className="p-3 border-t flex items-center justify-between bg-card/30">
         <OfflineSyncIndicator />

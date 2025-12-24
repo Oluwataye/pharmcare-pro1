@@ -54,7 +54,7 @@ const Settings = () => {
       const { data, error } = await supabase
         .from('store_settings')
         .select('*')
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 

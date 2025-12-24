@@ -54,7 +54,7 @@ export const useStoreSettings = () => {
       const { data, error } = await supabase
         .from('store_settings')
         .select('*')
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
 
@@ -70,7 +70,7 @@ export const useStoreSettings = () => {
       const error = err instanceof Error ? err : new Error('Failed to fetch store settings');
       setError(error);
       console.error('Error fetching store settings:', error);
-      
+
       // Don't show toast on mount, only on explicit refresh
       if (forceRefresh) {
         toast({
@@ -79,7 +79,7 @@ export const useStoreSettings = () => {
           variant: 'destructive',
         });
       }
-      
+
       return null;
     } finally {
       setIsLoading(false);
