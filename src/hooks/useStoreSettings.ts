@@ -65,7 +65,8 @@ export const useStoreSettings = () => {
         return cachedSettings;
       }
 
-      throw new Error('No store settings found');
+      setSettings(null);
+      return null;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to fetch store settings');
       setError(error);
