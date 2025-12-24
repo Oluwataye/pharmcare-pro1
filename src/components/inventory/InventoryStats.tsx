@@ -1,11 +1,5 @@
-
-import { Package, PackageOpen } from "lucide-react";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Package, PackageOpen, TrendingUp } from "lucide-react";
+import { EnhancedStatCard } from "@/components/admin/EnhancedStatCard";
 
 interface InventoryItem {
   id: string;
@@ -32,35 +26,45 @@ export const InventoryStats = ({ inventory }: InventoryStatsProps) => {
     0
   );
 
+  const handleCardClick = (route: string) => {
+    // Navigate logic or just do nothing if only for stats
+  };
+
   return (
     <div className="grid gap-4 md:grid-cols-3">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Products</CardTitle>
-          <Package className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{inventory.length}</div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
-          <PackageOpen className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold text-yellow-600">{lowStockCount}</div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Value</CardTitle>
-          <Package className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">₦{totalValue.toLocaleString()}</div>
-        </CardContent>
-      </Card>
+      <EnhancedStatCard
+        title="Total Products"
+        value={inventory.length.toString()}
+        icon={Package}
+        trend=""
+        trendUp={true}
+        route="/inventory"
+        onClick={handleCardClick}
+        colorScheme="primary"
+        comparisonLabel="Total inventory items"
+      />
+      <EnhancedStatCard
+        title="Low Stock Items"
+        value={lowStockCount.toString()}
+        icon={PackageOpen}
+        trend=""
+        trendUp={false}
+        route="/inventory"
+        onClick={handleCardClick}
+        colorScheme="warning"
+        comparisonLabel="Requires attention"
+      />
+      <EnhancedStatCard
+        title="Total Value"
+        value={`₦${totalValue.toLocaleString()}`}
+        icon={Package}
+        trend=""
+        trendUp={true}
+        route="/inventory"
+        onClick={handleCardClick}
+        colorScheme="success"
+        comparisonLabel="Estimated inventory value"
+      />
     </div>
   );
 };

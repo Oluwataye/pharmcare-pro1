@@ -2,11 +2,12 @@
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { EnhancedCard } from "@/components/ui/EnhancedCard";
 import { useLocation } from "react-router-dom";
-import { 
-  FileText, 
-  Package, 
-  ShoppingCart, 
+import {
+  FileText,
+  Package,
+  ShoppingCart,
   Users,
   History,
   Calendar,
@@ -40,7 +41,7 @@ const Reports = () => {
   useEffect(() => {
     if (location.state?.activeTab) {
       handleTabChange(location.state.activeTab);
-      
+
       // Clear the state to avoid reopening the tab on re-renders
       window.history.replaceState({}, document.title);
     }
@@ -127,17 +128,17 @@ const Reports = () => {
         </div>
 
         {isLoading ? (
-          <Card>
+          <EnhancedCard colorScheme="primary">
             <CardContent className="flex items-center justify-center min-h-[400px]">
               <Spinner size="lg" />
             </CardContent>
-          </Card>
+          </EnhancedCard>
         ) : (
           <>
             <TabsContent value="inventory">
               <InventoryReport />
             </TabsContent>
-            
+
             <TabsContent value="transactions">
               <TransactionsReport />
             </TabsContent>
@@ -149,11 +150,11 @@ const Reports = () => {
             <TabsContent value="sales">
               <SalesReport />
             </TabsContent>
-            
+
             <TabsContent value="audit">
               <TransactionAuditLog />
             </TabsContent>
-            
+
             <TabsContent value="expiring">
               <ExpiringDrugsReport />
             </TabsContent>
@@ -166,9 +167,9 @@ const Reports = () => {
           </>
         )}
       </Tabs>
-      
-      <ExpiryNotificationModal 
-        open={showExpiryModal} 
+
+      <ExpiryNotificationModal
+        open={showExpiryModal}
         onOpenChange={setShowExpiryModal}
         onViewReport={handleViewExpiryReport}
       />

@@ -1,6 +1,5 @@
-
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Percent } from "lucide-react";
+import { DollarSign, Receipt, TrendingUp, Percent, Banknote } from "lucide-react";
+import { EnhancedStatCard } from "@/components/admin/EnhancedStatCard";
 
 interface SalesStatsCardsProps {
   totalSalesToday: number;
@@ -19,41 +18,56 @@ const SalesStatsCards = ({
   totalRetailSales,
   totalWholesaleSales,
 }: SalesStatsCardsProps) => {
+  const handleCardClick = (route: string) => {
+    // Optional navigation logic
+  };
+
   return (
     <div className="grid gap-4 md:grid-cols-4">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Sales Today</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">₦{totalSalesToday.toLocaleString()}</div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Transactions</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{totalTransactions}</div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Average Sale Value</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">₦{averageSaleValue.toLocaleString()}</div>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Discounts</CardTitle>
-          <Percent className="h-4 w-4 text-muted-foreground" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">₦{totalDiscounts.toLocaleString()}</div>
-        </CardContent>
-      </Card>
+      <EnhancedStatCard
+        title="Total Sales Today"
+        value={`₦${totalSalesToday.toLocaleString()}`}
+        icon={DollarSign}
+        trend=""
+        trendUp={true}
+        route="/sales"
+        onClick={handleCardClick}
+        colorScheme="success"
+        comparisonLabel="Gross revenue today"
+      />
+      <EnhancedStatCard
+        title="Total Transactions"
+        value={totalTransactions.toString()}
+        icon={Receipt}
+        trend=""
+        trendUp={true}
+        route="/sales"
+        onClick={handleCardClick}
+        colorScheme="primary"
+        comparisonLabel="Total orders processed"
+      />
+      <EnhancedStatCard
+        title="Average Sale Value"
+        value={`₦${averageSaleValue.toLocaleString()}`}
+        icon={Banknote}
+        trend=""
+        trendUp={true}
+        route="/sales"
+        onClick={handleCardClick}
+        colorScheme="primary"
+        comparisonLabel="Per transaction average"
+      />
+      <EnhancedStatCard
+        title="Total Discounts"
+        value={`₦${totalDiscounts.toLocaleString()}`}
+        icon={Percent}
+        trend=""
+        trendUp={false}
+        route="/sales"
+        onClick={handleCardClick}
+        colorScheme="warning"
+        comparisonLabel="Total reductions applied"
+      />
     </div>
   );
 };

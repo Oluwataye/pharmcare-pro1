@@ -9,6 +9,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { EnhancedCard } from "@/components/ui/EnhancedCard";
 import { InventoryStats } from "@/components/inventory/InventoryStats";
 import { InventoryTable } from "@/components/inventory/InventoryTable";
 import { InventoryToolbar } from "@/components/inventory/InventoryToolbar";
@@ -26,22 +27,22 @@ const Inventory = () => {
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [showNotification, setShowNotification] = useState(true);
-  const { 
-    inventory, 
-    addItem, 
-    updateItem, 
-    deleteItem, 
+  const {
+    inventory,
+    addItem,
+    updateItem,
+    deleteItem,
     batchDelete,
     getCategories,
     getExpiringItems,
-    handleRefresh, 
-    handlePrint 
+    handleRefresh,
+    handlePrint
   } = useInventory();
   const location = useLocation();
 
   // Get all categories for filtering
   const categories = getCategories();
-  
+
   // Get expiring items
   const expiringItems = getExpiringItems(90);
   // Get critical items (30 days)
@@ -53,15 +54,15 @@ const Inventory = () => {
     const timer = setTimeout(() => {
       setIsLoading(false);
     }, 800);
-    
+
     return () => clearTimeout(timer);
   }, []);
 
   // Apply filters (search and category)
   const filteredInventory = inventory.filter(
     (item) => {
-      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                            item.sku.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        item.sku.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
       return matchesSearch && matchesCategory;
     }
@@ -112,7 +113,7 @@ const Inventory = () => {
 
       <InventoryStats inventory={inventory} />
 
-      <Card className="hover:shadow-lg transition-all duration-200">
+      <EnhancedCard className="z-10" colorScheme="primary">
         <CardHeader className="p-4 md:p-6">
           <CardTitle>Inventory List</CardTitle>
           <CardDescription>
@@ -140,7 +141,7 @@ const Inventory = () => {
             />
           </div>
         </CardContent>
-      </Card>
+      </EnhancedCard>
 
       <AddInventoryDialog
         open={dialogOpen}

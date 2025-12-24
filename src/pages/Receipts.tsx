@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { EnhancedCard } from "@/components/ui/EnhancedCard";
 import { Printer, Receipt, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
@@ -67,7 +68,7 @@ const Receipts = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <Card>
+      <EnhancedCard colorScheme="primary">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -159,7 +160,7 @@ const Receipts = () => {
             </div>
           )}
         </CardContent>
-      </Card>
+      </EnhancedCard>
 
       {previewData && (
         <ReceiptPreview

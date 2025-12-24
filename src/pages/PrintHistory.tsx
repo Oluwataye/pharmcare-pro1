@@ -10,11 +10,13 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
-import { CalendarIcon, Printer, RefreshCw, Download } from 'lucide-react';
+import { CalendarIcon, Printer, RefreshCw, Download, FileText, CheckCircle, AlertCircle, Clock } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useReceiptReprint } from '@/hooks/sales/useReceiptReprint';
 import { ReceiptPreview } from '@/components/receipts/ReceiptPreview';
 import { Skeleton } from '@/components/ui/skeleton';
+import { EnhancedCard } from '@/components/ui/EnhancedCard';
+import { EnhancedStatCard } from '@/components/admin/EnhancedStatCard';
 
 interface PrintAnalytic {
   id: string;
@@ -34,7 +36,7 @@ interface PrintAnalytic {
 const PrintHistory = () => {
   const { toast } = useToast();
   const { fetchAndPreviewReceipt, executePrint, showPreview, setShowPreview, previewData } = useReceiptReprint();
-  
+
   const [analytics, setAnalytics] = useState<PrintAnalytic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [filters, setFilters] = useState({
@@ -44,7 +46,7 @@ const PrintHistory = () => {
     customer: '',
     status: 'all',
   });
-  
+
   const [stats, setStats] = useState({
     totalPrints: 0,
     successRate: 0,
@@ -90,7 +92,7 @@ const PrintHistory = () => {
         const successfulPrints = data.filter(a => a.print_status === 'success').length;
         const failedPrints = data.filter(a => a.print_status === 'failed').length;
         const totalDuration = data.reduce((sum, a) => sum + (a.print_duration_ms || 0), 0);
-        
+
         setStats({
           totalPrints: data.length,
           successRate: (successfulPrints / data.length) * 100,
@@ -161,7 +163,7 @@ const PrintHistory = () => {
     <div className="container mx-auto p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold">Print History</h1>
+          <h1 className="text-3xl font-bold text-primary">Print History</h1>
           <p className="text-muted-foreground">Track and analyze all receipt print operations</p>
         </div>
         <Button onClick={exportToCSV} disabled={analytics.length === 0}>
@@ -172,42 +174,54 @@ const PrintHistory = () => {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Total Prints</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.totalPrints}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Success Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.successRate.toFixed(1)}%</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Failed Prints</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-destructive">{stats.failedPrints}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-sm font-medium">Avg Duration</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.avgDuration.toFixed(0)}ms</div>
-          </CardContent>
-        </Card>
+        <EnhancedStatCard
+          title="Total Prints"
+          value={stats.totalPrints.toString()}
+          icon={FileText}
+          trend=""
+          trendUp={true}
+          onClick={() => { }}
+          route="/print-history"
+          colorScheme="primary"
+          comparisonLabel="History period"
+        />
+        <EnhancedStatCard
+          title="Success Rate"
+          value={`${stats.successRate.toFixed(1)}%`}
+          icon={CheckCircle}
+          trend=""
+          trendUp={true}
+          onClick={() => { }}
+          route="/print-history"
+          colorScheme="success"
+          comparisonLabel="Vs failures"
+        />
+        <EnhancedStatCard
+          title="Failed Prints"
+          value={stats.failedPrints.toString()}
+          icon={AlertCircle}
+          trend=""
+          trendUp={false}
+          onClick={() => { }}
+          route="/print-history"
+          colorScheme="danger"
+          comparisonLabel="Critical errors"
+        />
+        <EnhancedStatCard
+          title="Avg Duration"
+          value={`${stats.avgDuration.toFixed(0)}ms`}
+          icon={Clock}
+          trend=""
+          trendUp={true}
+          onClick={() => { }}
+          route="/print-history"
+          colorScheme="warning"
+          comparisonLabel="Latency"
+        />
       </div>
 
       {/* Filters */}
-      <Card>
+      <EnhancedCard colorScheme="primary">
         <CardHeader>
           <CardTitle>Filters</CardTitle>
           <CardDescription>Filter print history by date, cashier, customer, or status</CardDescription>
@@ -303,10 +317,10 @@ const PrintHistory = () => {
             </Button>
           </div>
         </CardContent>
-      </Card>
+      </EnhancedCard>
 
       {/* Print History Table */}
-      <Card>
+      <EnhancedCard colorScheme="primary">
         <CardHeader>
           <CardTitle>Print Records</CardTitle>
           <CardDescription>Detailed history of all print operations</CardDescription>
@@ -352,8 +366,8 @@ const PrintHistory = () => {
                             analytic.print_status === 'success'
                               ? 'default'
                               : analytic.print_status === 'failed'
-                              ? 'destructive'
-                              : 'secondary'
+                                ? 'destructive'
+                                : 'secondary'
                           }
                         >
                           {analytic.print_status}
@@ -375,7 +389,7 @@ const PrintHistory = () => {
                       </TableCell>
                       <TableCell>{analytic.print_duration_ms ? `${analytic.print_duration_ms}ms` : '-'}</TableCell>
                       <TableCell>
-                        {analytic.total_amount ? `$${Number(analytic.total_amount).toFixed(2)}` : '-'}
+                        {analytic.total_amount ? `₦${Number(analytic.total_amount).toLocaleString()}` : '-'}
                       </TableCell>
                       <TableCell>
                         {analytic.sale_id && (
@@ -395,7 +409,7 @@ const PrintHistory = () => {
             </div>
           )}
         </CardContent>
-      </Card>
+      </EnhancedCard>
 
       {/* Receipt Preview Modal */}
       {previewData && (

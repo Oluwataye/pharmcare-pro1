@@ -17,11 +17,13 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ShoppingBag, Package, RefreshCw, Download, FileSpreadsheet, FileText } from "lucide-react";
 import { exportSalesToCSV, exportSalesToExcel } from "@/utils/salesExport";
+import { EnhancedCard } from "@/components/ui/EnhancedCard";
+import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const Sales = () => {
   const { toast } = useToast();
   const { canReadWholesale } = usePermissions();
-  
+
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
   const [dateTo, setDateTo] = useState<Date | undefined>(undefined);
@@ -34,11 +36,11 @@ const Sales = () => {
 
   // Fetch sales from database
   const fetchSales = useCallback(async () => {
-      setIsLoading(true);
-      try {
-        const { data: salesData, error: salesError } = await supabase
-          .from('sales')
-          .select(`
+    setIsLoading(true);
+    try {
+      const { data: salesData, error: salesError } = await supabase
+        .from('sales')
+        .select(`
             id,
             total,
             discount,
@@ -54,55 +56,55 @@ const Sales = () => {
             business_address,
             transaction_id
           `)
-          .order('created_at', { ascending: false });
+        .order('created_at', { ascending: false });
 
-        if (salesError) throw salesError;
+      if (salesError) throw salesError;
 
-        // Fetch sales items for each sale
-        const salesWithItems: Sale[] = await Promise.all(
-          (salesData || []).map(async (sale) => {
-            const { data: itemsData } = await supabase
-              .from('sales_items')
-              .select('id, product_name, quantity, unit_price, price, discount, total, is_wholesale')
-              .eq('sale_id', sale.id);
+      // Fetch sales items for each sale
+      const salesWithItems: Sale[] = await Promise.all(
+        (salesData || []).map(async (sale) => {
+          const { data: itemsData } = await supabase
+            .from('sales_items')
+            .select('id, product_name, quantity, unit_price, price, discount, total, is_wholesale')
+            .eq('sale_id', sale.id);
 
-            return {
-              id: sale.id,
-              items: (itemsData || []).map(item => ({
-                id: item.id,
-                name: item.product_name,
-                quantity: item.quantity,
-                price: Number(item.unit_price),
-                total: Number(item.total),
-                discount: item.discount ? Number(item.discount) : undefined,
-                isWholesale: item.is_wholesale || false,
-              })),
-              total: Number(sale.total),
-              discount: sale.discount ? Number(sale.discount) : undefined,
-              date: new Date(sale.created_at || '').toISOString().split('T')[0],
-              status: sale.status as 'completed' | 'pending' | 'cancelled',
-              cashierName: sale.cashier_name || undefined,
-              cashierEmail: sale.cashier_email || undefined,
-              cashierId: sale.cashier_id || undefined,
-              customerName: sale.customer_name || undefined,
-              customerPhone: sale.customer_phone || undefined,
-              businessName: sale.business_name || undefined,
-              businessAddress: sale.business_address || undefined,
-              saleType: sale.sale_type as 'retail' | 'wholesale',
-              transactionId: sale.transaction_id,
-            };
-          })
-        );
+          return {
+            id: sale.id,
+            items: (itemsData || []).map(item => ({
+              id: item.id,
+              name: item.product_name,
+              quantity: item.quantity,
+              price: Number(item.unit_price),
+              total: Number(item.total),
+              discount: item.discount ? Number(item.discount) : undefined,
+              isWholesale: item.is_wholesale || false,
+            })),
+            total: Number(sale.total),
+            discount: sale.discount ? Number(sale.discount) : undefined,
+            date: new Date(sale.created_at || '').toISOString().split('T')[0],
+            status: sale.status as 'completed' | 'pending' | 'cancelled',
+            cashierName: sale.cashier_name || undefined,
+            cashierEmail: sale.cashier_email || undefined,
+            cashierId: sale.cashier_id || undefined,
+            customerName: sale.customer_name || undefined,
+            customerPhone: sale.customer_phone || undefined,
+            businessName: sale.business_name || undefined,
+            businessAddress: sale.business_address || undefined,
+            saleType: sale.sale_type as 'retail' | 'wholesale',
+            transactionId: sale.transaction_id,
+          };
+        })
+      );
 
-        setSales(salesWithItems);
-      } catch (error: any) {
-        console.error('Error fetching sales:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load sales data',
-          variant: 'destructive',
-        });
-      } finally {
+      setSales(salesWithItems);
+    } catch (error: any) {
+      console.error('Error fetching sales:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load sales data',
+        variant: 'destructive',
+      });
+    } finally {
       setIsLoading(false);
     }
   }, [toast]);
@@ -133,17 +135,17 @@ const Sales = () => {
   };
 
   const filteredSales = sales.filter(sale => {
-    const matchesSearch = searchTerm === "" || 
+    const matchesSearch = searchTerm === "" ||
       sale.items.some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (sale.cashierName && sale.cashierName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (sale.businessName && sale.businessName.toLowerCase().includes(searchTerm.toLowerCase()));
-      
+
     const saleDate = new Date(sale.date);
     const matchesDateFrom = !dateFrom || saleDate >= dateFrom;
     const matchesDateTo = !dateTo || saleDate <= dateTo;
     const matchesStatus = filterStatus === "all" || sale.status === filterStatus;
     const matchesSaleType = saleTypeFilter === "all" || sale.saleType === saleTypeFilter;
-    
+
     return matchesSearch && matchesDateFrom && matchesDateTo && matchesStatus && matchesSaleType;
   });
 
@@ -155,7 +157,7 @@ const Sales = () => {
   const totalTransactions = filteredSales.length;
   const totalRetailSales = retailSales.reduce((sum, sale) => sum + sale.total, 0);
   const totalWholesaleSales = wholesaleSales.reduce((sum, sale) => sum + sale.total, 0);
-  const averageSaleValue = filteredSales.length > 0 ? 
+  const averageSaleValue = filteredSales.length > 0 ?
     (totalRetailSales + totalWholesaleSales) / filteredSales.length : 0;
   const totalDiscounts = filteredSales.reduce((sum, sale) => sum + (sale.discount || 0), 0);
 
@@ -194,8 +196,8 @@ const Sales = () => {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             onClick={handleRefresh}
             disabled={isLoading}
           >
@@ -204,25 +206,29 @@ const Sales = () => {
           </Button>
         </div>
       </div>
-      
-      <SalesFilters
-        searchTerm={searchTerm}
-        onSearchTermChange={setSearchTerm}
-        dateFrom={dateFrom}
-        dateTo={dateTo}
-        onDateFromChange={setDateFrom}
-        onDateToChange={setDateTo}
-        filterStatus={filterStatus}
-        onFilterStatusChange={setFilterStatus}
-        onClear={() => {
-          setSearchTerm("");
-          setDateFrom(undefined);
-          setDateTo(undefined);
-          setFilterStatus("all");
-          setSaleTypeFilter("all");
-        }}
-      />
-      
+
+      <EnhancedCard colorScheme="primary">
+        <CardContent className="pt-6">
+          <SalesFilters
+            searchTerm={searchTerm}
+            onSearchTermChange={setSearchTerm}
+            dateFrom={dateFrom}
+            dateTo={dateTo}
+            onDateFromChange={setDateFrom}
+            onDateToChange={setDateTo}
+            filterStatus={filterStatus}
+            onFilterStatusChange={setFilterStatus}
+            onClear={() => {
+              setSearchTerm("");
+              setDateFrom(undefined);
+              setDateTo(undefined);
+              setFilterStatus("all");
+              setSaleTypeFilter("all");
+            }}
+          />
+        </CardContent>
+      </EnhancedCard>
+
       <SalesStatsCards
         totalSalesToday={totalSalesToday}
         totalTransactions={totalTransactions}
@@ -252,16 +258,23 @@ const Sales = () => {
         </Tabs>
       )}
 
-      <SalesTable 
-        sales={paginatedSales}
-        showBusinessInfo={true}
-        isLoading={isLoading}
-        currentPage={currentPage}
-        totalPages={totalPages}
-        totalItems={filteredSales.length}
-        onPageChange={setCurrentPage}
-      />
-      
+      <EnhancedCard colorScheme="primary">
+        <CardHeader>
+          <CardTitle className="text-xl font-bold">Transaction History</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <SalesTable
+            sales={paginatedSales}
+            showBusinessInfo={true}
+            isLoading={isLoading}
+            currentPage={currentPage}
+            totalPages={totalPages}
+            totalItems={filteredSales.length}
+            onPageChange={setCurrentPage}
+          />
+        </CardContent>
+      </EnhancedCard>
+
       <footer className="mt-8 pt-4 border-t text-center text-sm text-muted-foreground">
         2025 © T-Tech Solutions
       </footer>

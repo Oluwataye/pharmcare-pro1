@@ -19,6 +19,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { DiscountManagement } from "@/components/settings/DiscountManagement";
 import { UserProfileSettings } from "@/components/settings/UserProfileSettings";
 import { GdprSettings } from "@/components/settings/GdprSettings";
+import { EnhancedCard } from "@/components/ui/EnhancedCard";
 import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
@@ -66,7 +67,7 @@ const Settings = () => {
           email: data.email || '',
           logoUrl: data.logo_url || '',
         });
-        
+
         setPrintSettings({
           showLogo: data.print_show_logo ?? true,
           showAddress: data.print_show_address ?? true,
@@ -149,7 +150,7 @@ const Settings = () => {
       if (updateError) throw updateError;
 
       setStoreSettings({ ...storeSettings, logoUrl: publicUrl });
-      
+
       toast({
         title: 'Logo Uploaded',
         description: 'Your store logo has been updated successfully.',
@@ -172,7 +173,7 @@ const Settings = () => {
 
   const handleStoreSettingsSave = async () => {
     if (!user) return;
-    
+
     setIsLoading(true);
     try {
       const { error } = await supabase
@@ -187,12 +188,12 @@ const Settings = () => {
         .eq('id', storeSettings.id);
 
       if (error) throw error;
-      
+
       // Invalidate cache to force refresh in all components
       invalidateStoreSettingsCache();
-      
+
       toast({
-        title: "Settings Saved", 
+        title: "Settings Saved",
         description: "Store settings have been updated successfully.",
       });
     } catch (error: any) {
@@ -208,7 +209,7 @@ const Settings = () => {
 
   const handlePrintSettingsSave = async () => {
     if (!user) return;
-    
+
     setIsLoading(true);
     try {
       const { error } = await supabase
@@ -224,10 +225,10 @@ const Settings = () => {
         .eq('id', storeSettings.id);
 
       if (error) throw error;
-      
+
       // Invalidate cache to force refresh in all components
       invalidateStoreSettingsCache();
-      
+
       toast({
         title: "Settings Saved",
         description: "Print settings have been updated successfully.",

@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Search } from "lucide-react";
+import { Search, Users as UsersIcon, ShieldCheck, UserCog, UserCheck, Activity } from "lucide-react";
 import { AddUserDialog } from "@/components/users/AddUserDialog";
 import { usePermissions } from "@/hooks/usePermissions";
 import { EditUserDialog } from "@/components/users/EditUserDialog";
@@ -20,6 +20,8 @@ import { ResetPasswordDialog } from "@/components/users/ResetPasswordDialog";
 import { User } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { EnhancedStatCard } from "@/components/admin/EnhancedStatCard";
+import { EnhancedCard } from "@/components/ui/EnhancedCard";
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -32,20 +34,20 @@ const Users = () => {
   const fetchUsers = async () => {
     try {
       setIsLoading(true);
-      
+
       // Get auth users via secure edge function (only SUPER_ADMIN can access)
       const { data: sessionData } = await supabase.auth.getSession();
       const accessToken = sessionData?.session?.access_token;
-      
+
       let authUsers: Array<{ id: string; email: string }> = [];
-      
+
       if (accessToken) {
         const response = await supabase.functions.invoke('list-users', {
           headers: {
             Authorization: `Bearer ${accessToken}`,
           },
         });
-        
+
         if (response.error) {
           console.warn('Could not fetch auth users (may not have SUPER_ADMIN role):', response.error);
         } else {
@@ -119,8 +121,8 @@ const Users = () => {
       supabase.removeChannel(channel);
     };
   }, []);
-  
-  const filteredUsers = users.filter(user => 
+
+  const filteredUsers = users.filter(user =>
     user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
     user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -147,6 +149,10 @@ const Users = () => {
     });
   };
 
+  const handleCardClick = (route: string) => {
+    // Optional navigation logic
+  };
+
   // Calculate user statistics
   const totalUsers = users.length;
   const activeUsers = users.length;
@@ -161,9 +167,9 @@ const Users = () => {
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="relative w-full sm:w-auto">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-            <Input 
-              placeholder="Search users..." 
-              className="pl-8 w-full" 
+            <Input
+              placeholder="Search users..."
+              className="pl-8 w-full"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -175,49 +181,64 @@ const Users = () => {
       </div>
 
       <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
-        <Card className="hover:shadow-lg transition-all duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalUsers}</div>
-          </CardContent>
-        </Card>
-        <Card className="hover:shadow-lg transition-all duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Super Admins</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{superAdmins}</div>
-          </CardContent>
-        </Card>
-        <Card className="hover:shadow-lg transition-all duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Pharmacists</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-green-600">{pharmacists}</div>
-          </CardContent>
-        </Card>
-        <Card className="hover:shadow-lg transition-all duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cashiers</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{cashiers}</div>
-          </CardContent>
-        </Card>
-        <Card className="hover:shadow-lg transition-all duration-200">
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{activeUsers}</div>
-          </CardContent>
-        </Card>
+        <EnhancedStatCard
+          title="Total Users"
+          value={totalUsers.toString()}
+          icon={UsersIcon}
+          trend=""
+          trendUp={true}
+          route="/users"
+          onClick={handleCardClick}
+          colorScheme="primary"
+          comparisonLabel="System accounts"
+        />
+        <EnhancedStatCard
+          title="Super Admins"
+          value={superAdmins.toString()}
+          icon={ShieldCheck}
+          trend=""
+          trendUp={true}
+          route="/users"
+          onClick={handleCardClick}
+          colorScheme="danger"
+          comparisonLabel="Admin access"
+        />
+        <EnhancedStatCard
+          title="Pharmacists"
+          value={pharmacists.toString()}
+          icon={UserCog}
+          trend=""
+          trendUp={true}
+          route="/users"
+          onClick={handleCardClick}
+          colorScheme="success"
+          comparisonLabel="Staff members"
+        />
+        <EnhancedStatCard
+          title="Cashiers"
+          value={cashiers.toString()}
+          icon={UserCheck}
+          trend=""
+          trendUp={true}
+          route="/users"
+          onClick={handleCardClick}
+          colorScheme="primary"
+          comparisonLabel="Staff members"
+        />
+        <EnhancedStatCard
+          title="Active Users"
+          value={activeUsers.toString()}
+          icon={Activity}
+          trend=""
+          trendUp={true}
+          route="/users"
+          onClick={handleCardClick}
+          colorScheme="success"
+          comparisonLabel="Currently active"
+        />
       </div>
 
-      <Card className="hover:shadow-lg transition-all duration-200">
+      <EnhancedCard colorScheme="primary">
         <CardHeader className="p-4 md:p-6">
           <CardTitle className="text-lg">User List</CardTitle>
         </CardHeader>
@@ -249,13 +270,12 @@ const Users = () => {
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell className="hidden sm:table-cell">{user.email}</TableCell>
                         <TableCell>
-                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                            user.role === "SUPER_ADMIN" 
-                              ? "bg-purple-100 text-purple-800" 
-                              : user.role === "PHARMACIST" 
+                          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${user.role === "SUPER_ADMIN"
+                            ? "bg-purple-100 text-purple-800"
+                            : user.role === "PHARMACIST"
                               ? "bg-green-100 text-green-800"
                               : "bg-blue-100 text-blue-800"
-                          }`}>
+                            }`}>
                             {user.role}
                           </span>
                         </TableCell>
@@ -277,14 +297,15 @@ const Users = () => {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))
+                    )
+                    )
                   )}
                 </TableBody>
               </Table>
             </div>
           )}
         </CardContent>
-      </Card>
+      </EnhancedCard>
     </div>
   );
 };
