@@ -4,8 +4,8 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { CashierHeader } from "./CashierHeader";
 import { CashierStatsCards } from "./CashierStatsCards";
-import { RecentTransactionsCard } from "./RecentTransactionsCard";
-import { LowStockAlertsCard } from "./LowStockAlertsCard";
+import { EnhancedTransactionsCard } from "@/components/admin/EnhancedTransactionsCard";
+import { EnhancedLowStockCard } from "@/components/admin/EnhancedLowStockCard";
 import { TransactionsTable } from "./TransactionsTable";
 import { NewSaleForm } from "./NewSaleForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -72,7 +72,7 @@ export const CashierDashboardContent = () => {
   ];
 
   const filteredTransactions = recentTransactions.filter(
-    transaction => 
+    transaction =>
       transaction.customer.toLowerCase().includes(searchQuery.toLowerCase()) ||
       transaction.status.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -138,11 +138,11 @@ export const CashierDashboardContent = () => {
       <div>
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">Cashier Dashboard</h1>
       </div>
-      
-      <CashierHeader 
-        searchQuery={searchQuery} 
-        setSearchQuery={setSearchQuery} 
-        handleNewSale={handleNewSale} 
+
+      <CashierHeader
+        searchQuery={searchQuery}
+        setSearchQuery={setSearchQuery}
+        handleNewSale={handleNewSale}
       />
 
       {showNewSaleForm ? (
@@ -162,16 +162,22 @@ export const CashierDashboardContent = () => {
           />
 
           <div className="grid gap-4 md:grid-cols-2">
-            <RecentTransactionsCard 
-              filteredTransactions={filteredTransactions} 
-              handleItemClick={handleItemClick} 
-              handleCardClick={handleCardClick}
+            <EnhancedTransactionsCard
+              transactions={filteredTransactions.map(t => ({
+                id: t.id,
+                product: `${t.items} items`,
+                customer: t.customer,
+                amount: t.amount,
+                date: `Today, ${t.time}`
+              }))}
+              onItemClick={handleItemClick}
+              onViewAllClick={handleCardClick}
             />
 
-            <LowStockAlertsCard 
-              lowStockItems={lowStockItems}
-              handleItemClick={handleItemClick}
-              handleCardClick={handleCardClick}
+            <EnhancedLowStockCard
+              items={lowStockItems}
+              onItemClick={handleItemClick}
+              onViewAllClick={handleCardClick}
             />
           </div>
 

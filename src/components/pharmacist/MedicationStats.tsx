@@ -1,6 +1,5 @@
-
-import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
-import { TestTube, AlertTriangle, Calendar } from "lucide-react";
+import { TestTube, AlertTriangle, Calendar, LucideIcon } from "lucide-react";
+import { EnhancedStatCard } from "@/components/admin/EnhancedStatCard";
 
 interface MedicationStatsProps {
   totalMedications: number;
@@ -24,67 +23,51 @@ export const MedicationStats = ({
   };
 
   return (
-    <div className="grid gap-4 md:grid-cols-4">
-      <Card 
-        className="hover:shadow-lg transition-all duration-200 hover:border-primary/20 cursor-pointer"
-        onClick={() => handleClick('/inventory')}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Total Medications</CardTitle>
-          <TestTube className="h-4 w-4 text-primary" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{totalMedications}</div>
-          <p className="text-xs text-muted-foreground">
-            Total inventory items
-          </p>
-        </CardContent>
-      </Card>
-      <Card 
-        className="hover:shadow-lg transition-all duration-200 hover:border-primary/20 cursor-pointer"
-        onClick={() => handleClick('/inventory')}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
-          <AlertTriangle className="h-4 w-4 text-amber-500" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{lowStockCount}</div>
-          <p className="text-xs text-muted-foreground">
-            Need attention soon
-          </p>
-        </CardContent>
-      </Card>
-      <Card 
-        className="hover:shadow-lg transition-all duration-200 hover:border-primary/20 cursor-pointer"
-        onClick={() => handleClick('/inventory')}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Critical Stock</CardTitle>
-          <AlertTriangle className="h-4 w-4 text-red-500" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{criticalStockCount}</div>
-          <p className="text-xs text-muted-foreground">
-            Require immediate restock
-          </p>
-        </CardContent>
-      </Card>
-      <Card 
-        className="hover:shadow-lg transition-all duration-200 hover:border-primary/20 cursor-pointer"
-        onClick={() => handleClick('/inventory')}
-      >
-        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-          <CardTitle className="text-sm font-medium">Expiring Soon</CardTitle>
-          <Calendar className="h-4 w-4 text-primary" />
-        </CardHeader>
-        <CardContent>
-          <div className="text-2xl font-bold">{expiringSoonCount}</div>
-          <p className="text-xs text-muted-foreground">
-            Within next 30 days
-          </p>
-        </CardContent>
-      </Card>
+    <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
+      <EnhancedStatCard
+        title="Total Medications"
+        value={totalMedications.toString()}
+        icon={TestTube}
+        trend=""
+        trendUp={true}
+        route="/inventory"
+        onClick={handleClick}
+        colorScheme="primary"
+        comparisonLabel="Total inventory items"
+      />
+      <EnhancedStatCard
+        title="Low Stock"
+        value={lowStockCount.toString()}
+        icon={AlertTriangle}
+        trend=""
+        trendUp={false}
+        route="/inventory"
+        onClick={handleClick}
+        colorScheme="warning"
+        comparisonLabel="Need attention soon"
+      />
+      <EnhancedStatCard
+        title="Critical Stock"
+        value={criticalStockCount.toString()}
+        icon={AlertTriangle}
+        trend=""
+        trendUp={false}
+        route="/inventory"
+        onClick={handleClick}
+        colorScheme="danger"
+        comparisonLabel="Require immediate restock"
+      />
+      <EnhancedStatCard
+        title="Expiring Soon"
+        value={expiringSoonCount.toString()}
+        icon={Calendar}
+        trend=""
+        trendUp={false}
+        route="/inventory"
+        onClick={handleClick}
+        colorScheme="success"
+        comparisonLabel="Within next 30 days"
+      />
     </div>
   );
 };

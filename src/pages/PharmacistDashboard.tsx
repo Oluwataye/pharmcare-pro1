@@ -9,6 +9,8 @@ import { MedicationTable } from "@/components/pharmacist/MedicationTable";
 import { medications } from "@/data/mockMedications";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
+import { EnhancedTransactionsCard } from "@/components/admin/EnhancedTransactionsCard";
+import { EnhancedLowStockCard } from "@/components/admin/EnhancedLowStockCard";
 
 const PharmacistDashboard = () => {
   const { toast } = useToast();
@@ -18,7 +20,7 @@ const PharmacistDashboard = () => {
   const navigate = useNavigate();
 
   const filteredMedications = medications.filter(
-    med => 
+    med =>
       med.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       med.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
       med.status.toLowerCase().includes(searchQuery.toLowerCase())
@@ -64,7 +66,7 @@ const PharmacistDashboard = () => {
 
   return (
     <div className="space-y-4 md:space-y-6 animate-fade-in px-2 md:px-0">
-      <PharmacistHeader 
+      <PharmacistHeader
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         onAddMedication={() => setShowMedicationForm(true)}
@@ -76,15 +78,15 @@ const PharmacistDashboard = () => {
             <CardTitle className="text-xl md:text-2xl">Add New Medication</CardTitle>
           </CardHeader>
           <CardContent className="p-4 md:p-6">
-            <MedicationForm 
-              onComplete={(isNew) => handleMedicationComplete(isNew)} 
-              onCancel={() => setShowMedicationForm(false)} 
+            <MedicationForm
+              onComplete={(isNew) => handleMedicationComplete(isNew)}
+              onCancel={() => setShowMedicationForm(false)}
             />
           </CardContent>
         </Card>
       ) : (
         <>
-          <MedicationStats 
+          <MedicationStats
             totalMedications={medications.length}
             lowStockCount={lowStockCount}
             criticalStockCount={criticalStockCount}
@@ -93,91 +95,21 @@ const PharmacistDashboard = () => {
           />
 
           <div className="grid gap-4 md:grid-cols-2">
-            <Card className="relative overflow-hidden transition-all hover:shadow-lg">
-              <CardHeader className="p-4 md:p-6">
-                <CardTitle className="text-lg font-semibold">Recent Transactions</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 md:p-6">
-                <div className="space-y-4">
-                  {recentTransactions.length > 0 ? (
-                    <div className="space-y-3">
-                      {recentTransactions.map(transaction => (
-                        <div 
-                          key={transaction.id}
-                          className="flex items-center justify-between p-3 hover:bg-muted rounded-md cursor-pointer transition-colors"
-                          onClick={() => handleItemClick('/sales', transaction.id)}
-                        >
-                          <div>
-                            <p className="font-medium text-sm">{transaction.product}</p>
-                            <p className="text-xs text-muted-foreground">{transaction.customer}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium">₦{transaction.amount.toLocaleString()}</p>
-                            <p className="text-xs text-muted-foreground">{transaction.date}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No recent transactions
-                    </p>
-                  )}
-                  <div 
-                    className="text-sm text-primary font-medium cursor-pointer hover:underline"
-                    onClick={() => handleCardClick('/sales')}
-                  >
-                    View all transactions
-                  </div>
-                </div>
-              </CardContent>
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-            </Card>
+            <EnhancedTransactionsCard
+              transactions={recentTransactions}
+              onItemClick={handleItemClick}
+              onViewAllClick={handleCardClick}
+            />
 
-            <Card className="relative overflow-hidden transition-all hover:shadow-lg">
-              <CardHeader className="p-4 md:p-6">
-                <CardTitle className="text-lg font-semibold">Low Stock Alerts</CardTitle>
-              </CardHeader>
-              <CardContent className="p-4 md:p-6">
-                <div className="space-y-4">
-                  {lowStockItems.length > 0 ? (
-                    <div className="space-y-3">
-                      {lowStockItems.map(item => (
-                        <div 
-                          key={item.id}
-                          className="flex items-center justify-between p-3 hover:bg-muted rounded-md cursor-pointer transition-colors"
-                          onClick={() => handleItemClick('/inventory', item.id)}
-                        >
-                          <div>
-                            <p className="font-medium text-sm">{item.product}</p>
-                            <p className="text-xs text-muted-foreground">{item.category}</p>
-                          </div>
-                          <div className="text-right">
-                            <p className="font-medium text-red-500">{item.quantity} left</p>
-                            <p className="text-xs text-muted-foreground">Reorder: {item.reorderLevel}</p>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">
-                      No low stock alerts
-                    </p>
-                  )}
-                  <div 
-                    className="text-sm text-primary font-medium cursor-pointer hover:underline"
-                    onClick={() => handleCardClick('/inventory')}
-                  >
-                    View all low stock items
-                  </div>
-                </div>
-              </CardContent>
-              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-            </Card>
+            <EnhancedLowStockCard
+              items={lowStockItems}
+              onItemClick={handleItemClick}
+              onViewAllClick={handleCardClick}
+            />
           </div>
 
           <div className="overflow-x-auto">
-            <MedicationTable 
+            <MedicationTable
               medications={medications}
               filteredMedications={filteredMedications}
             />
