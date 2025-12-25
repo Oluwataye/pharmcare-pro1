@@ -16,6 +16,7 @@ interface CompleteSaleOptions {
   cashierName?: string;
   cashierEmail?: string;
   cashierId?: string;
+  transactionId?: string; // Allow passing a pre-generated ID
 }
 
 export const useSalesCompletion = (
@@ -60,7 +61,8 @@ export const useSalesCompletion = (
       }
 
       const currentSaleType = options?.saleType || 'retail';
-      const transactionId = `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+      // Use provided ID or generate one
+      const transactionId = options?.transactionId || `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
       const saleData = {
         items: [...items],

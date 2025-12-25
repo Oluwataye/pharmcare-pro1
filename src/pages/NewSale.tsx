@@ -143,26 +143,49 @@ const NewSale = () => {
     }
 
     try {
+      setIsCompleting(true);
+
+      // 1. Generate Transaction ID client-side immediately
+      const transactionId = `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+      // 2. Capture the window synchronously
+      const printWindow = openPrintWindow();
+      const currentItems = [...items];
+
+      // 3. EXECUTE PRINT *IMMEDIATELY* (Optimistic UI)
+      // We pass the items directly so it doesn't need to fetch anything.
+      // We pass the transactionId we just generated so the receipt looks valid.
+      handlePrint({
+        cashierName: user ? user.username || user.name : undefined,
+        cashierEmail: user ? user.email : undefined,
+        cashierId: user ? user.id : undefined,
+        customerName: customerName || undefined,
+        customerPhone: customerPhone || undefined,
+        businessName: saleType === 'wholesale' ? businessName : undefined,
+        businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
+        existingWindow: printWindow,
+        directPrint: true,
+        items: currentItems,
+        saleId: transactionId // Use the ID we generated
+      });
+
       logSecurityEvent('SALE_COMPLETION_ATTEMPT', {
         userId: user.id,
         saleType,
         itemCount: items.length,
-        total: calculateTotal()
+        total: calculateTotal(),
+        transactionId
       });
 
-      setIsCompleting(true);
-
-      // Capture the window synchronously to prevent popup blocking
-      const printWindow = openPrintWindow();
-
-      const currentItems = [...items];
+      // 4. SAVE THE SALE IN BACKGROUND (with the same ID)
       const result = await completeSale({
         customerName,
         customerPhone,
         businessName: saleType === 'wholesale' ? businessName : undefined,
         businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
         saleType,
-        existingWindow: printWindow // Pass this down to the hook
+        transactionId, // Pass the ID we already printed with
+        // Note: We don't pass existingWindow here because we already used it for printing!
       });
 
       if (result && typeof result === 'string') {
@@ -170,16 +193,16 @@ const NewSale = () => {
         logSecurityEvent('SALE_COMPLETED', {
           userId: user.id,
           saleType,
-          total: calculateTotal()
+          total: calculateTotal(),
+          transactionId
         });
 
         setLastCompletedSaleId(result);
         setIsSuccessModalOpen(true);
-        // We don't navigate immediately anymore!
-      } else {
-        // If it failed or was saved offline without a sale ID, close the window
-        if (printWindow && !printWindow.closed) printWindow.close();
       }
+      // Note: If save fails, handlePrint already ran, so the user has a receipt.
+      // The offline fallback in useSalesCompletion ensures we almost always get a result anyway.
+
     } catch (error) {
       logSecurityEvent('SALE_COMPLETION_FAILED', {
         userId: user.id,
@@ -188,7 +211,7 @@ const NewSale = () => {
 
       toast({
         title: "Error",
-        description: "Failed to complete sale",
+        description: "Failed to save sale record (but receipt may have printed)",
         variant: "destructive",
       });
     } finally {
