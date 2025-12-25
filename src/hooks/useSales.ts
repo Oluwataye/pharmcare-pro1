@@ -42,7 +42,8 @@ export const useSales = (options?: UseSalesOptions) => {
     executePrint,
     showPreview,
     setShowPreview,
-    previewData
+    previewData,
+    openPrintWindow
   } = useSalesPrinting(items, discount, saleType);
 
   const {
@@ -50,10 +51,11 @@ export const useSales = (options?: UseSalesOptions) => {
     isOfflineMode
   } = useSalesCompletion(items, calculateTotal, clearItems, clearDiscount, resetSaleType);
 
-  // Wrap the completeSale function to include cashier info from options
-  const completeSale = async (completeSaleOptions?: Omit<Parameters<typeof completeTransaction>[0], 'cashierName' | 'cashierEmail' | 'cashierId'>) => {
+  // Wrap the completeSale function to include cashier info from options and reliable printing
+  const completeSale = async (completeSaleOptions?: Omit<Parameters<typeof completeTransaction>[0], 'cashierName' | 'cashierEmail' | 'cashierId'> & { existingWindow?: Window | null }) => {
     // Capture items before they are cleared by completeTransaction
     const currentItems = [...items];
+    const windowRef = completeSaleOptions?.existingWindow;
 
     const result = await completeTransaction({
       ...completeSaleOptions,
@@ -71,20 +73,12 @@ export const useSales = (options?: UseSalesOptions) => {
         cashierId: options?.cashierId,
         saleId: result,
         items: currentItems,
-        directPrint: true // Skip preview for efficiency as requested
+        directPrint: true,
+        existingWindow: windowRef // Pass through the captured window
       });
     }
 
     return result;
-  };
-
-  // Additional items handling callback
-  const addWholesaleItem = (product: any, quantity: number) => {
-    const { success, usedWholesalePrice } = addItem(product, quantity, true);
-    if (usedWholesalePrice && saleType !== 'wholesale') {
-      setSaleTypeMode('wholesale');
-    }
-    return { success, usedWholesalePrice };
   };
 
   // Enhanced toggleItemPriceType with auto-type switching
@@ -127,7 +121,7 @@ export const useSales = (options?: UseSalesOptions) => {
       clearDiscount();
       resetSaleType();
     },
-    isOfflineMode
+    isOfflineMode,
+    openPrintWindow
   };
 };
-

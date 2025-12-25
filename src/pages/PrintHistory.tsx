@@ -35,7 +35,7 @@ interface PrintAnalytic {
 
 const PrintHistory = () => {
   const { toast } = useToast();
-  const { fetchAndPreviewReceipt, executePrint, showPreview, setShowPreview, previewData } = useReceiptReprint();
+  const { fetchAndPreviewReceipt, executePrint, showPreview, setShowPreview, previewData, openPrintWindow } = useReceiptReprint();
 
   const [analytics, setAnalytics] = useState<PrintAnalytic[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -127,7 +127,9 @@ const PrintHistory = () => {
       });
       return;
     }
-    await fetchAndPreviewReceipt(saleId);
+    // Open window synchronously to capture gesture
+    const windowRef = openPrintWindow();
+    await fetchAndPreviewReceipt(saleId, windowRef);
   };
 
   const exportToCSV = () => {
@@ -415,7 +417,10 @@ const PrintHistory = () => {
       {previewData && (
         <ReceiptPreview
           receiptData={previewData}
-          onPrint={executePrint}
+          onPrint={() => {
+            const windowRef = openPrintWindow();
+            executePrint(undefined, windowRef);
+          }}
           onOpenChange={(open) => setShowPreview(open)}
           open={showPreview}
         />

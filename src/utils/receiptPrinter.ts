@@ -67,9 +67,68 @@ const preloadImage = (url: string, timeout = 3000): Promise<string | null> => {
   });
 };
 
-// Reliable receipt printing using a hidden iframe to bypass popup blockers
-export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> => {
-  console.log("Printing receipt via Iframe", props);
+/**
+ * Stage 1: Opens a blank window immediately to capture user gesture.
+ * MUST be called directly in the onClick handler.
+ */
+export const openPrintWindow = (): Window | null => {
+  const printWindow = window.open('', '_blank', 'width=400,height=600');
+  if (printWindow) {
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Preparing Receipt...</title>
+          <style>
+            body { 
+              font-family: sans-serif; 
+              display: flex; 
+              flex-direction: column;
+              align-items: center; 
+              justify-content: center; 
+              height: 100vh; 
+              margin: 0; 
+              background: #f8f9fa;
+            }
+            .spinner {
+              border: 4px solid #f3f3f3;
+              border-top: 4px solid #3498db;
+              border-radius: 50%;
+              width: 40px;
+              height: 40px;
+              animation: spin 2s linear infinite;
+              margin-bottom: 20px;
+            }
+            @keyframes spin {
+              0% { transform: rotate(0deg); }
+              100% { transform: rotate(360deg); }
+            }
+            .text { color: #666; font-size: 14px; }
+          </style>
+        </head>
+        <body>
+          <div class="spinner"></div>
+          <div class="text">Preparing your receipt...</div>
+        </body>
+      </html>
+    `);
+  }
+  return printWindow;
+};
+
+/**
+ * Stage 2: Populates the captured window with receipt data and triggers print.
+ */
+export const printReceipt = async (props: PrintReceiptProps, existingWindow?: Window | null): Promise<boolean> => {
+  console.log("Printing receipt via Stage 2 Window", props);
+
+  const printWindow = existingWindow || openPrintWindow();
+
+  if (!printWindow) {
+    throw new PrintReceiptError(
+      PrintError.POPUP_BLOCKED,
+      "Print window was blocked. Please allow popups for this site and try again."
+    );
+  }
 
   return new Promise(async (resolve, reject) => {
     try {
@@ -86,80 +145,33 @@ export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> =
       // Generate receipt HTML content
       const receiptContent = generateReceiptHTML({ ...props, storeSettings: { ...props.storeSettings, logo_url: logoUrl } });
 
-      // Create a hidden iframe
-      const iframeId = 'print-receipt-iframe';
-      let iframe = document.getElementById(iframeId) as HTMLIFrameElement;
+      // Write content to the window
+      printWindow.document.open();
+      printWindow.document.write(receiptContent);
+      printWindow.document.close();
 
-      if (iframe) {
-        document.body.removeChild(iframe);
-      }
-
-      iframe = document.createElement('iframe');
-      iframe.id = iframeId;
-      iframe.style.position = 'absolute';
-      iframe.style.width = '0px';
-      iframe.style.height = '0px';
-      iframe.style.border = 'none';
-      iframe.style.top = '-1000px';
-      iframe.style.left = '-1000px';
-
-      document.body.appendChild(iframe);
-
-      const iframeDoc = iframe.contentWindow?.document || iframe.contentDocument;
-      if (!iframeDoc) {
-        reject(new PrintReceiptError(
-          PrintError.WINDOW_LOAD_FAILED,
-          "Failed to access printing frame."
-        ));
-        return;
-      }
-
-      // Write content to the iframe
-      iframeDoc.open();
-      iframeDoc.write(receiptContent);
-      iframeDoc.close();
-
-      // Wait for content to load
-      const handlePrintAction = () => {
+      // Wait for content and trigger print
+      const triggerPrint = () => {
         try {
-          // Trigger print dialog from the iframe's window
-          const iframeWindow = iframe.contentWindow;
-          if (!iframeWindow) {
-            throw new Error("Iframe window not accessible");
-          }
+          printWindow.focus();
+          printWindow.print();
 
-          // Small delay to ensure styles and images are rendered
+          // Note: onafterprint behavior varies, but we resolve after the print dialog is handled
+          printWindow.onafterprint = () => {
+            printWindow.close();
+            resolve(true);
+          };
+
+          // Fallback resolve/close after a reasonable time for the user to interact
           setTimeout(() => {
-            iframeWindow.focus();
-            iframeWindow.print();
-
-            // Clean up after print dialog is closed
-            if (iframeWindow.onafterprint !== undefined) {
-              iframeWindow.onafterprint = () => {
-                if (document.body.contains(iframe)) {
-                  document.body.removeChild(iframe);
-                }
-                resolve(true);
-              };
-            }
-
-            // Fallback cleanup
-            setTimeout(() => {
-              if (document.body.contains(iframe)) {
-                try {
-                  document.body.removeChild(iframe);
-                } catch (e) {
-                  // Already removed
-                }
-              }
+            if (!printWindow.closed) {
+              // We don't close immediately here as user might still be selecting printer
               resolve(true);
-            }, 10000);
+            }
+          }, 5000);
 
-          }, 500);
         } catch (err) {
-          if (document.body.contains(iframe)) {
-            document.body.removeChild(iframe);
-          }
+          printWindow.close();
           reject(new PrintReceiptError(
             PrintError.UNKNOWN,
             "Failed to trigger print dialog."
@@ -167,18 +179,14 @@ export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> =
         }
       };
 
-      // Ensure images inside iframe are loaded
-      if (iframe.contentWindow) {
-        if (iframe.contentWindow.document.readyState === 'complete') {
-          handlePrintAction();
-        } else {
-          iframe.contentWindow.onload = handlePrintAction;
-        }
+      if (printWindow.document.readyState === 'complete') {
+        triggerPrint();
       } else {
-        iframe.onload = handlePrintAction;
+        printWindow.onload = triggerPrint;
       }
 
     } catch (error) {
+      if (!printWindow.closed) printWindow.close();
       reject(new PrintReceiptError(
         PrintError.UNKNOWN,
         error instanceof Error ? error.message : "An unknown error occurred while printing."
@@ -202,23 +210,16 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
     storeSettings
   } = props;
 
-  // Use store settings from props
   const storeName = storeSettings.name || 'PharmCare Pro';
   const storeAddress = storeSettings.address || '123 Main Street, Lagos';
   const storeEmail = storeSettings.email;
   const storePhone = storeSettings.phone;
   const logo = storeSettings.logo_url;
 
-  // Calculate subtotal
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-
-  // Calculate discount amount
   const discountAmount = subtotal * (discount / 100);
-
-  // Calculate total
   const total = subtotal - discountAmount;
 
-  // Format date
   const formattedDate = date.toLocaleDateString();
   const formattedTime = date.toLocaleTimeString();
 
@@ -235,6 +236,7 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
           padding: 20px;
           max-width: 300px;
           font-size: 12px;
+          background: white;
         }
         .header {
           text-align: center;
@@ -283,7 +285,7 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
           }
           @page {
             margin: 0;
-            size: 80mm 297mm; /* Standard thermal receipt size */
+            size: 80mm 297mm;
           }
         }
       </style>

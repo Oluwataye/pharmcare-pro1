@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Printer, Save, ShoppingBag, Package, Shield } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import ProductSearchSection from "@/components/sales/ProductSearchSection";
 import CurrentSaleTable from "@/components/sales/CurrentSaleTable";
 import SaleTotals from "@/components/sales/SaleTotals";
@@ -31,6 +32,10 @@ const NewSale = () => {
   const [businessName, setBusinessName] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
+  const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
+  const [lastCompletedSaleId, setLastCompletedSaleId] = useState<string | null>(null);
+  const [lastCompletedItems, setLastCompletedItems] = useState<any[]>([]);
+  const [isCompleting, setIsCompleting] = useState(false);
 
   const {
     items,
@@ -51,7 +56,8 @@ const NewSale = () => {
     setShowPreview,
     previewData,
     completeSale,
-    isOfflineMode
+    isOfflineMode,
+    openPrintWindow
   } = useSales({
     cashierName: user ? user.username || user.name : undefined,
     cashierEmail: user ? user.email : undefined,
@@ -144,24 +150,35 @@ const NewSale = () => {
         total: calculateTotal()
       });
 
-      const success = await completeSale({
+      setIsCompleting(true);
+
+      // Capture the window synchronously to prevent popup blocking
+      const printWindow = openPrintWindow();
+
+      const currentItems = [...items];
+      const result = await completeSale({
         customerName,
         customerPhone,
         businessName: saleType === 'wholesale' ? businessName : undefined,
         businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
-        saleType
+        saleType,
+        existingWindow: printWindow // Pass this down to the hook
       });
 
-      if (success) {
+      if (result && typeof result === 'string') {
+        setLastCompletedItems(currentItems);
         logSecurityEvent('SALE_COMPLETED', {
           userId: user.id,
           saleType,
           total: calculateTotal()
         });
 
-        // The completeSale hook now handles printing and awaits the process
-        // We can now safely navigate back to the sales list
-        navigate("/sales");
+        setLastCompletedSaleId(result);
+        setIsSuccessModalOpen(true);
+        // We don't navigate immediately anymore!
+      } else {
+        // If it failed or was saved offline without a sale ID, close the window
+        if (printWindow && !printWindow.closed) printWindow.close();
       }
     } catch (error) {
       logSecurityEvent('SALE_COMPLETION_FAILED', {
@@ -174,7 +191,26 @@ const NewSale = () => {
         description: "Failed to complete sale",
         variant: "destructive",
       });
+    } finally {
+      setIsCompleting(false);
     }
+  };
+
+  const handleManualPrint = () => {
+    // Open window synchronously
+    const windowRef = openPrintWindow();
+
+    handlePrint({
+      cashierName: user ? user.username || user.name : undefined,
+      cashierEmail: user ? user.email : undefined,
+      cashierId: user ? user.id : undefined,
+      customerName: customerName || undefined,
+      customerPhone: customerPhone || undefined,
+      businessName: saleType === 'wholesale' ? businessName : undefined,
+      businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
+      existingWindow: windowRef,
+      directPrint: true
+    });
   };
 
   return (
@@ -190,15 +226,15 @@ const NewSale = () => {
           <Button variant="outline" onClick={() => navigate("/sales")}>
             Cancel
           </Button>
-          <Button onClick={handleCompleteSale}>
-            {isOfflineMode ? (
+          <Button onClick={handleCompleteSale} disabled={isCompleting}>
+            {isCompleting ? "Processing..." : (isOfflineMode ? (
               <>
                 <Save className="mr-2 h-4 w-4" />
                 Save Offline
               </>
             ) : (
               "Complete Sale"
-            )}
+            ))}
           </Button>
         </div>
       </div>
@@ -346,15 +382,7 @@ const NewSale = () => {
                 <div className="mt-4 flex justify-between items-center">
                   <Button
                     variant="outline"
-                    onClick={() => handlePrint({
-                      cashierName: user ? user.username || user.name : undefined,
-                      cashierEmail: user ? user.email : undefined,
-                      cashierId: user ? user.id : undefined,
-                      customerName: customerName || undefined,
-                      customerPhone: customerPhone || undefined,
-                      businessName: saleType === 'wholesale' ? businessName : undefined,
-                      businessAddress: saleType === 'wholesale' ? businessAddress : undefined
-                    })}
+                    onClick={handleManualPrint}
                   >
                     <Printer className="mr-2 h-4 w-4" />
                     Print Receipt
@@ -371,9 +399,49 @@ const NewSale = () => {
           open={showPreview}
           onOpenChange={setShowPreview}
           receiptData={previewData}
-          onPrint={executePrint}
+          onPrint={() => {
+            const windowRef = openPrintWindow();
+            executePrint(undefined, windowRef);
+          }}
         />
       )}
+
+      {/* Sale Success Modal */}
+      <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold text-green-600">Sale Successful!</DialogTitle>
+          </DialogHeader>
+          <div className="flex flex-col items-center justify-center space-y-4 py-6">
+            <div className="rounded-full bg-green-100 p-3">
+              <Shield className="h-12 w-12 text-green-600" />
+            </div>
+            <p className="text-center text-muted-foreground">
+              Transaction has been completed successfully. The receipt should be printing now.
+            </p>
+          </div>
+          <DialogFooter className="flex sm:justify-center gap-2">
+            <Button
+              variant="outline"
+              onClick={() => {
+                const windowRef = openPrintWindow();
+                handlePrint({
+                  saleId: lastCompletedSaleId || undefined,
+                  items: lastCompletedItems, // Use the captured items
+                  existingWindow: windowRef,
+                  directPrint: true
+                });
+              }}
+            >
+              <Printer className="mr-2 h-4 w-4" />
+              Reprint Receipt
+            </Button>
+            <Button onClick={() => navigate("/sales")}>
+              Go to Sales List
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

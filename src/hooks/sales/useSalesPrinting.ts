@@ -1,6 +1,6 @@
 
 import { useToast } from '@/hooks/use-toast';
-import { printReceipt, PrintReceiptProps, PrintError } from '@/utils/receiptPrinter';
+import { printReceipt, PrintReceiptProps, PrintError, openPrintWindow } from '@/utils/receiptPrinter';
 import { SaleItem } from '@/types/sales';
 import { supabase } from '@/integrations/supabase/client';
 import { useState, useCallback } from 'react';
@@ -16,8 +16,9 @@ interface HandlePrintOptions {
   businessAddress?: string;
   cashierId?: string;
   saleId?: string;
-  items?: SaleItem[]; // Allow passing explicit items
-  directPrint?: boolean; // Skip preview and print directly
+  items?: SaleItem[];
+  directPrint?: boolean;
+  existingWindow?: Window | null; // Pass an already opened window to preserve user gesture
 }
 
 export const useSalesPrinting = (
@@ -45,7 +46,7 @@ export const useSalesPrinting = (
     }
   }, []);
 
-  const executePrint = useCallback(async (customData?: PrintReceiptProps) => {
+  const executePrint = useCallback(async (customData?: PrintReceiptProps, windowRef?: Window | null) => {
     const dataToPrint = customData || previewData;
     if (!dataToPrint) return;
 
@@ -55,7 +56,8 @@ export const useSalesPrinting = (
     let errorMessage: string | undefined;
 
     try {
-      const success = await printReceipt(dataToPrint);
+      // Use the provided windowRef if available, otherwise printReceipt will try to open a new one
+      const success = await printReceipt(dataToPrint, windowRef);
 
       if (!success) {
         printStatus = 'cancelled';
@@ -85,19 +87,10 @@ export const useSalesPrinting = (
     } catch (error: any) {
       console.error("Error printing receipt:", error);
 
-      // Determine error type and status
       if (error?.type === PrintError.POPUP_BLOCKED) {
         printStatus = 'failed';
         errorType = 'POPUP_BLOCKED';
         errorMessage = "Popup blocked";
-      } else if (error?.type === PrintError.IMAGE_LOAD_FAILED) {
-        printStatus = 'failed';
-        errorType = 'IMAGE_LOAD_FAILED';
-        errorMessage = "Logo failed to load";
-      } else if (error?.type === PrintError.WINDOW_LOAD_FAILED) {
-        printStatus = 'failed';
-        errorType = 'WINDOW_LOAD_FAILED';
-        errorMessage = "Failed to load receipt content";
       } else if (error instanceof Error) {
         printStatus = 'failed';
         errorType = 'UNKNOWN';
@@ -106,7 +99,6 @@ export const useSalesPrinting = (
 
       const duration = Date.now() - startTime;
 
-      // Log failed print
       await logPrintAnalytics({
         saleId: dataToPrint.saleId,
         cashierId: dataToPrint.cashierId,
@@ -121,33 +113,21 @@ export const useSalesPrinting = (
         totalAmount: dataToPrint.items.reduce((sum, item) => sum + item.total, 0) - (dataToPrint.discount || 0),
       });
 
-      // Provide specific error messages based on error type
-      let displayMessage = "Failed to print receipt. Please try again.";
-      let displayTitle = "Print Failed";
-
-      if (error?.type === PrintError.POPUP_BLOCKED) {
-        displayTitle = "Popup Blocked";
-        displayMessage = "Please allow popups for this site and try again.";
-      } else if (error?.type === PrintError.IMAGE_LOAD_FAILED) {
-        displayTitle = "Image Load Failed";
-        displayMessage = "Logo failed to load. Receipt will print without logo.";
-      } else if (error?.type === PrintError.WINDOW_LOAD_FAILED) {
-        displayTitle = "Load Failed";
-        displayMessage = "Failed to load receipt content. Please check your connection.";
-      } else if (error instanceof Error) {
-        displayMessage = error.message;
-      }
-
       toast({
-        title: displayTitle,
-        description: displayMessage,
+        title: errorType === 'POPUP_BLOCKED' ? "Popup Blocked" : "Print Failed",
+        description: errorMessage || "Failed to print receipt. Please try again.",
         variant: "destructive",
       });
     }
   }, [previewData, toast]);
 
   const handlePrint = useCallback(async (options?: HandlePrintOptions) => {
+    // If we're doing a direct print (e.g. after sale completion), we should ideally
+    // have a window reference passed in to avoid gesture blocks.
+    const windowRef = options?.existingWindow;
+
     if (!storeSettings && isLoadingSettings) {
+      if (windowRef && !windowRef.closed) windowRef.close();
       toast({
         title: "Settings Loading",
         description: "Please wait for store settings to load...",
@@ -174,18 +154,18 @@ export const useSalesPrinting = (
       };
 
       if (options?.directPrint) {
-        await executePrint(receiptProps);
+        await executePrint(receiptProps, windowRef);
       } else {
-        // Show preview first
+        // Show preview first (User will trigger executePrint from the preview manually)
         setPreviewData(receiptProps);
         setShowPreview(true);
       }
 
-      // Save receipt data if saleId is provided
       if (options?.saleId) {
         await saveReceiptData(options.saleId, receiptProps);
       }
     } catch (error) {
+      if (windowRef && !windowRef.closed) windowRef.close();
       console.error("Error preparing receipt:", error);
       toast({
         title: "Error",
@@ -201,6 +181,7 @@ export const useSalesPrinting = (
     showPreview,
     setShowPreview,
     previewData,
-    isLoadingSettings
+    isLoadingSettings,
+    openPrintWindow // Export this so components can open the window synchronously
   };
 };

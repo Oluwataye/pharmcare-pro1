@@ -1,7 +1,8 @@
+
 import { useState, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
-import { printReceipt, PrintReceiptProps, PrintError } from '@/utils/receiptPrinter';
+import { printReceipt, PrintReceiptProps, PrintError, openPrintWindow } from '@/utils/receiptPrinter';
 import { useStoreSettings } from '@/hooks/useStoreSettings';
 import { logPrintAnalytics } from '@/utils/printAnalytics';
 
@@ -12,8 +13,9 @@ export const useReceiptReprint = () => {
   const [previewData, setPreviewData] = useState<PrintReceiptProps | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchAndPreviewReceipt = useCallback(async (saleId: string) => {
+  const fetchAndPreviewReceipt = useCallback(async (saleId: string, windowRef?: Window | null) => {
     if (!storeSettings && isLoading) {
+      if (windowRef && !windowRef.closed) windowRef.close();
       toast({
         title: 'Settings Loading',
         description: 'Please wait for store settings to load...',
@@ -33,42 +35,44 @@ export const useReceiptReprint = () => {
       if (error) throw error;
 
       if (data?.receipt_data) {
-        // Clean the receipt data to remove any _type metadata
+        // Clean the receipt data
         const cleanReceiptData = JSON.parse(JSON.stringify(data.receipt_data), (key, value) => {
-          // If the value is an object with _type and value properties, extract the value
           if (value && typeof value === 'object' && '_type' in value && 'value' in value) {
             return value.value;
           }
-          // If it's explicitly undefined with _type metadata, return undefined
           if (value && typeof value === 'object' && '_type' in value && value._type === 'undefined') {
             return undefined;
           }
           return value;
         });
 
-        // Validate and ensure date is a valid Date object
+        // Validate date
         let receiptDate = new Date();
         if (cleanReceiptData.date) {
           const parsedDate = typeof cleanReceiptData.date === 'string'
             ? new Date(cleanReceiptData.date)
             : cleanReceiptData.date;
 
-          // Check if date is valid
           if (parsedDate instanceof Date && !isNaN(parsedDate.getTime())) {
             receiptDate = parsedDate;
           }
         }
         cleanReceiptData.date = receiptDate;
-
-        // Update store settings to current settings
         cleanReceiptData.storeSettings = storeSettings;
 
         setPreviewData(cleanReceiptData);
-        setShowPreview(true);
+
+        // If we have a window reference, it means the user wants to print directly
+        if (windowRef) {
+          await printReceipt(cleanReceiptData, windowRef);
+        } else {
+          setShowPreview(true);
+        }
       } else {
         throw new Error('Receipt data not found');
       }
     } catch (error: any) {
+      if (windowRef && !windowRef.closed) windowRef.close();
       console.error('Error fetching receipt:', error);
       toast({
         title: 'Error',
@@ -78,10 +82,11 @@ export const useReceiptReprint = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [toast, storeSettings]);
+  }, [toast, storeSettings, isLoading]);
 
-  const executePrint = useCallback(async () => {
-    if (!previewData) return;
+  const executePrint = useCallback(async (customData?: PrintReceiptProps, windowRef?: Window | null) => {
+    const dataToPrint = customData || previewData;
+    if (!dataToPrint) return;
 
     const startTime = Date.now();
     let printStatus: 'success' | 'failed' | 'cancelled' = 'success';
@@ -89,7 +94,7 @@ export const useReceiptReprint = () => {
     let errorMessage: string | undefined;
 
     try {
-      const success = await printReceipt(previewData);
+      const success = await printReceipt(dataToPrint, windowRef);
 
       if (!success) {
         printStatus = 'cancelled';
@@ -98,17 +103,16 @@ export const useReceiptReprint = () => {
 
       const duration = Date.now() - startTime;
 
-      // Log successful reprint
       await logPrintAnalytics({
-        saleId: previewData.saleId,
-        cashierId: previewData.cashierId,
-        cashierName: previewData.cashierName,
-        customerName: previewData.customerName,
+        saleId: dataToPrint.saleId,
+        cashierId: dataToPrint.cashierId,
+        cashierName: dataToPrint.cashierName,
+        customerName: dataToPrint.customerName,
         printStatus: 'success',
         printDurationMs: duration,
         isReprint: true,
-        saleType: previewData.saleType,
-        totalAmount: previewData.items.reduce((sum, item) => sum + item.total, 0) - (previewData.discount || 0),
+        saleType: dataToPrint.saleType,
+        totalAmount: dataToPrint.items.reduce((sum, item) => sum + item.total, 0) - (dataToPrint.discount || 0),
       });
 
       setShowPreview(false);
@@ -119,19 +123,10 @@ export const useReceiptReprint = () => {
     } catch (error: any) {
       console.error('Error printing receipt:', error);
 
-      // Determine error type and status
       if (error?.type === PrintError.POPUP_BLOCKED) {
         printStatus = 'failed';
         errorType = 'POPUP_BLOCKED';
         errorMessage = "Popup blocked";
-      } else if (error?.type === PrintError.IMAGE_LOAD_FAILED) {
-        printStatus = 'failed';
-        errorType = 'IMAGE_LOAD_FAILED';
-        errorMessage = "Logo failed to load";
-      } else if (error?.type === PrintError.WINDOW_LOAD_FAILED) {
-        printStatus = 'failed';
-        errorType = 'WINDOW_LOAD_FAILED';
-        errorMessage = "Failed to load receipt content";
       } else if (error instanceof Error) {
         printStatus = 'failed';
         errorType = 'UNKNOWN';
@@ -140,41 +135,23 @@ export const useReceiptReprint = () => {
 
       const duration = Date.now() - startTime;
 
-      // Log failed reprint
       await logPrintAnalytics({
-        saleId: previewData.saleId,
-        cashierId: previewData.cashierId,
-        cashierName: previewData.cashierName,
-        customerName: previewData.customerName,
+        saleId: dataToPrint.saleId,
+        cashierId: dataToPrint.cashierId,
+        cashierName: dataToPrint.cashierName,
+        customerName: dataToPrint.customerName,
         printStatus,
         errorType,
         errorMessage,
         printDurationMs: duration,
         isReprint: true,
-        saleType: previewData.saleType,
-        totalAmount: previewData.items.reduce((sum, item) => sum + item.total, 0) - (previewData.discount || 0),
+        saleType: dataToPrint.saleType,
+        totalAmount: dataToPrint.items.reduce((sum, item) => sum + item.total, 0) - (dataToPrint.discount || 0),
       });
 
-      // Provide specific error messages based on error type
-      let displayMessage = "Failed to print receipt. Please try again.";
-      let displayTitle = "Print Failed";
-
-      if (error?.type === PrintError.POPUP_BLOCKED) {
-        displayTitle = "Popup Blocked";
-        displayMessage = "Please allow popups for this site and try again.";
-      } else if (error?.type === PrintError.IMAGE_LOAD_FAILED) {
-        displayTitle = "Image Load Failed";
-        displayMessage = "Logo failed to load. Receipt will print without logo.";
-      } else if (error?.type === PrintError.WINDOW_LOAD_FAILED) {
-        displayTitle = "Load Failed";
-        displayMessage = "Failed to load receipt content. Please check your connection.";
-      } else if (error instanceof Error) {
-        displayMessage = error.message;
-      }
-
       toast({
-        title: displayTitle,
-        description: displayMessage,
+        title: errorType === 'POPUP_BLOCKED' ? "Popup Blocked" : "Print Failed",
+        description: errorMessage || "Failed to print receipt. Please try again.",
         variant: 'destructive',
       });
     }
@@ -187,5 +164,6 @@ export const useReceiptReprint = () => {
     setShowPreview,
     previewData,
     isLoading,
+    openPrintWindow
   };
 };

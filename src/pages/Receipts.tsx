@@ -34,6 +34,7 @@ const Receipts = () => {
     showPreview,
     setShowPreview,
     previewData,
+    openPrintWindow
   } = useReceiptReprint();
 
   useEffect(() => {
@@ -63,7 +64,9 @@ const Receipts = () => {
   };
 
   const handlePreviewReceipt = (saleId: string) => {
-    fetchAndPreviewReceipt(saleId);
+    // Open window synchronously to capture gesture
+    const windowRef = openPrintWindow();
+    fetchAndPreviewReceipt(saleId, windowRef);
   };
 
   return (
@@ -167,7 +170,10 @@ const Receipts = () => {
           open={showPreview}
           onOpenChange={setShowPreview}
           receiptData={previewData}
-          onPrint={executePrint}
+          onPrint={() => {
+            const windowRef = openPrintWindow();
+            executePrint(undefined, windowRef);
+          }}
         />
       )}
     </div>
