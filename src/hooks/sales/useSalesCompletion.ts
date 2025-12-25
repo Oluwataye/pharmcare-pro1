@@ -85,34 +85,53 @@ export const useSalesCompletion = (
           description: `${currentSaleType === 'wholesale' ? 'Wholesale' : 'Retail'} sale has been saved offline and will sync when you're back online`,
         });
       } else {
-        // Complete sale online via edge function
-        const { data, error } = await supabase.functions.invoke('complete-sale', {
-          body: saleData
-        });
+        try {
+          // Complete sale online via edge function
+          const { data, error } = await supabase.functions.invoke('complete-sale', {
+            body: saleData
+          });
 
-        if (error) {
-          throw new Error(error.message || 'Failed to complete sale');
+          if (error) throw error;
+          if (!data || !data.success) throw new Error('Sale completion failed');
+
+          toast({
+            title: `${currentSaleType === 'wholesale' ? 'Wholesale' : 'Retail'} Sale Completed`,
+            description: `Transaction ID: ${data.transactionId}`,
+          });
+
+          // Cleanup
+          clearItems();
+          clearDiscount();
+          resetSaleType();
+          secureStorage.removeItem('CURRENT_SALE_ITEMS');
+          secureStorage.removeItem('CURRENT_SALE_DISCOUNT');
+          secureStorage.removeItem('CURRENT_SALE_TYPE');
+
+          return data.saleId || true;
+
+        } catch (onlineError) {
+          console.warn('Online sale completion failed, falling back to offline mode:', onlineError);
+
+          // Fallback to offline save
+          createOfflineItem('sales', saleData);
+
+          toast({
+            title: "Saved Offline (Network Issue)",
+            description: "Connection unstable. Sale saved offline and will sync automatically.",
+            variant: "default" // Use default or specific variant for notice
+          });
+
+          // Cleanup
+          clearItems();
+          clearDiscount();
+          resetSaleType();
+          secureStorage.removeItem('CURRENT_SALE_ITEMS');
+          secureStorage.removeItem('CURRENT_SALE_DISCOUNT');
+          secureStorage.removeItem('CURRENT_SALE_TYPE');
+
+          // Return transactionId so printing still happens!
+          return transactionId;
         }
-
-        if (!data.success) {
-          throw new Error('Sale completion failed');
-        }
-
-        toast({
-          title: `${currentSaleType === 'wholesale' ? 'Wholesale' : 'Retail'} Sale Completed`,
-          description: `Transaction ID: ${data.transactionId}`,
-        });
-
-        // Clear the current sale data securely
-        clearItems();
-        clearDiscount();
-        resetSaleType();
-        secureStorage.removeItem('CURRENT_SALE_ITEMS');
-        secureStorage.removeItem('CURRENT_SALE_DISCOUNT');
-        secureStorage.removeItem('CURRENT_SALE_TYPE');
-
-        // Return the sale ID from the response
-        return data.saleId || true;
       }
 
       // For offline mode, clear and return true
