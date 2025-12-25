@@ -168,7 +168,7 @@ export const useSalesPrinting = (
         businessName: options?.businessName || undefined,
         businessAddress: options?.businessAddress || undefined,
         saleType,
-        cashierId: options?.saleId,
+        cashierId: options?.cashierId || undefined,
         saleId: options?.saleId,
         storeSettings: storeSettings!,
       };

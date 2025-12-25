@@ -67,10 +67,10 @@ const preloadImage = (url: string, timeout = 3000): Promise<string | null> => {
   });
 };
 
-// Receipt printing implementation for modern browsers and thermal printers (using window.open)
+// Reliable receipt printing using a hidden iframe to bypass popup blockers
 export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> => {
-  console.log("Printing receipt", props);
-  
+  console.log("Printing receipt via Iframe", props);
+
   return new Promise(async (resolve, reject) => {
     try {
       // Preload logo image if present
@@ -86,69 +86,98 @@ export const printReceipt = async (props: PrintReceiptProps): Promise<boolean> =
       // Generate receipt HTML content
       const receiptContent = generateReceiptHTML({ ...props, storeSettings: { ...props.storeSettings, logo_url: logoUrl } });
 
-      // Open a new window for printing
-      const printWindow = window.open('', '_blank');
-      if (!printWindow) {
+      // Create a hidden iframe
+      const iframeId = 'print-receipt-iframe';
+      let iframe = document.getElementById(iframeId) as HTMLIFrameElement;
+
+      if (iframe) {
+        document.body.removeChild(iframe);
+      }
+
+      iframe = document.createElement('iframe');
+      iframe.id = iframeId;
+      iframe.style.position = 'absolute';
+      iframe.style.width = '0px';
+      iframe.style.height = '0px';
+      iframe.style.border = 'none';
+      iframe.style.top = '-1000px';
+      iframe.style.left = '-1000px';
+
+      document.body.appendChild(iframe);
+
+      const iframeDoc = iframe.contentWindow?.document || iframe.contentDocument;
+      if (!iframeDoc) {
         reject(new PrintReceiptError(
-          PrintError.POPUP_BLOCKED,
-          "Print window was blocked. Please allow popups for this site and try again."
+          PrintError.WINDOW_LOAD_FAILED,
+          "Failed to access printing frame."
         ));
         return;
       }
 
-      // Write content to the new window
-      printWindow.document.write(receiptContent);
-      printWindow.document.close();
+      // Write content to the iframe
+      iframeDoc.open();
+      iframeDoc.write(receiptContent);
+      iframeDoc.close();
 
-      let printCompleted = false;
-
-      // Wait for content to load before printing
-      printWindow.onload = () => {
+      // Wait for content to load
+      const handlePrintAction = () => {
         try {
-          // Add small delay to ensure images are loaded
+          // Trigger print dialog from the iframe's window
+          const iframeWindow = iframe.contentWindow;
+          if (!iframeWindow) {
+            throw new Error("Iframe window not accessible");
+          }
+
+          // Small delay to ensure styles and images are rendered
           setTimeout(() => {
-            // Trigger print dialog
-            printWindow.print();
-            
-            // Listen for when print dialog closes
-            printWindow.onafterprint = () => {
-              printCompleted = true;
-              printWindow.close();
-              resolve(true);
-            };
-            
-            // Increased timeout to 5 seconds to give user time to print
+            iframeWindow.focus();
+            iframeWindow.print();
+
+            // Clean up after print dialog is closed
+            if (iframeWindow.onafterprint !== undefined) {
+              iframeWindow.onafterprint = () => {
+                if (document.body.contains(iframe)) {
+                  document.body.removeChild(iframe);
+                }
+                resolve(true);
+              };
+            }
+
+            // Fallback cleanup
             setTimeout(() => {
-              if (!printWindow.closed) {
-                printWindow.close();
-              }
-              if (!printCompleted) {
-                // User may have cancelled
-                console.log('Print dialog closed without confirmation');
+              if (document.body.contains(iframe)) {
+                try {
+                  document.body.removeChild(iframe);
+                } catch (e) {
+                  // Already removed
+                }
               }
               resolve(true);
-            }, 5000);
+            }, 10000);
+
           }, 500);
-          
         } catch (err) {
-          printWindow.close();
+          if (document.body.contains(iframe)) {
+            document.body.removeChild(iframe);
+          }
           reject(new PrintReceiptError(
             PrintError.UNKNOWN,
-            "Failed to open print dialog. Please check your printer settings."
+            "Failed to trigger print dialog."
           ));
         }
       };
-      
-      // Handle window load errors
-      printWindow.onerror = (error) => {
-        console.error('Print window error:', error);
-        printWindow.close();
-        reject(new PrintReceiptError(
-          PrintError.WINDOW_LOAD_FAILED,
-          "Failed to load receipt content. Please try again."
-        ));
-      };
-      
+
+      // Ensure images inside iframe are loaded
+      if (iframe.contentWindow) {
+        if (iframe.contentWindow.document.readyState === 'complete') {
+          handlePrintAction();
+        } else {
+          iframe.contentWindow.onload = handlePrintAction;
+        }
+      } else {
+        iframe.onload = handlePrintAction;
+      }
+
     } catch (error) {
       reject(new PrintReceiptError(
         PrintError.UNKNOWN,
@@ -172,27 +201,27 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
     saleType = 'retail',
     storeSettings
   } = props;
-  
+
   // Use store settings from props
   const storeName = storeSettings.name || 'PharmCare Pro';
   const storeAddress = storeSettings.address || '123 Main Street, Lagos';
   const storeEmail = storeSettings.email;
   const storePhone = storeSettings.phone;
   const logo = storeSettings.logo_url;
-  
+
   // Calculate subtotal
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  
+
   // Calculate discount amount
   const discountAmount = subtotal * (discount / 100);
-  
+
   // Calculate total
   const total = subtotal - discountAmount;
-  
+
   // Format date
   const formattedDate = date.toLocaleDateString();
   const formattedTime = date.toLocaleTimeString();
-  
+
   return `
     <!DOCTYPE html>
     <html>
@@ -259,7 +288,7 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
         }
       </style>
     </head>
-    <body>
+    <body onload="window.focus();">
       <div class="header">
         ${storeSettings.print_show_logo && logo ? `<img src="${logo}" alt="Store Logo" class="logo" />` : ''}
         <div class="business-name">${storeName}</div>
