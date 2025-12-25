@@ -16,6 +16,8 @@ interface HandlePrintOptions {
   businessAddress?: string;
   cashierId?: string;
   saleId?: string;
+  items?: SaleItem[]; // Allow passing explicit items
+  directPrint?: boolean; // Skip preview and print directly
 }
 
 export const useSalesPrinting = (
@@ -43,52 +45,9 @@ export const useSalesPrinting = (
     }
   }, []);
 
-  const handlePrint = useCallback(async (options?: HandlePrintOptions) => {
-    if (!storeSettings && isLoadingSettings) {
-      toast({
-        title: "Settings Loading",
-        description: "Please wait for store settings to load...",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const receiptProps: PrintReceiptProps = {
-        items,
-        discount,
-        date: new Date(),
-        cashierName: options?.cashierName || undefined,
-        cashierEmail: options?.cashierEmail || undefined,
-        customerName: options?.customerName || undefined,
-        customerPhone: options?.customerPhone || undefined,
-        businessName: options?.businessName || undefined,
-        businessAddress: options?.businessAddress || undefined,
-        saleType,
-        cashierId: options?.cashierId || undefined,
-        storeSettings,
-      };
-
-      // Show preview first
-      setPreviewData(receiptProps);
-      setShowPreview(true);
-
-      // Save receipt data if saleId is provided
-      if (options?.saleId) {
-        await saveReceiptData(options.saleId, receiptProps);
-      }
-    } catch (error) {
-      console.error("Error preparing receipt:", error);
-      toast({
-        title: "Error",
-        description: "Failed to prepare receipt. Please try again.",
-        variant: "destructive",
-      });
-    }
-  }, [items, discount, saleType, storeSettings, toast, saveReceiptData]);
-
-  const executePrint = useCallback(async () => {
-    if (!previewData) return;
+  const executePrint = useCallback(async (customData?: PrintReceiptProps) => {
+    const dataToPrint = customData || previewData;
+    if (!dataToPrint) return;
 
     const startTime = Date.now();
     let printStatus: 'success' | 'failed' | 'cancelled' = 'success';
@@ -96,7 +55,7 @@ export const useSalesPrinting = (
     let errorMessage: string | undefined;
 
     try {
-      const success = await printReceipt(previewData);
+      const success = await printReceipt(dataToPrint);
 
       if (!success) {
         printStatus = 'cancelled';
@@ -107,15 +66,15 @@ export const useSalesPrinting = (
 
       // Log successful print
       await logPrintAnalytics({
-        saleId: previewData.saleId,
-        cashierId: previewData.cashierId,
-        cashierName: previewData.cashierName,
-        customerName: previewData.customerName,
+        saleId: dataToPrint.saleId,
+        cashierId: dataToPrint.cashierId,
+        cashierName: dataToPrint.cashierName,
+        customerName: dataToPrint.customerName,
         printStatus: 'success',
         printDurationMs: duration,
         isReprint: false,
-        saleType: previewData.saleType,
-        totalAmount: previewData.items.reduce((sum, item) => sum + item.total, 0) - (previewData.discount || 0),
+        saleType: dataToPrint.saleType,
+        totalAmount: dataToPrint.items.reduce((sum, item) => sum + item.total, 0) - (dataToPrint.discount || 0),
       });
 
       setShowPreview(false);
@@ -149,17 +108,17 @@ export const useSalesPrinting = (
 
       // Log failed print
       await logPrintAnalytics({
-        saleId: previewData.saleId,
-        cashierId: previewData.cashierId,
-        cashierName: previewData.cashierName,
-        customerName: previewData.customerName,
+        saleId: dataToPrint.saleId,
+        cashierId: dataToPrint.cashierId,
+        cashierName: dataToPrint.cashierName,
+        customerName: dataToPrint.customerName,
         printStatus,
         errorType,
         errorMessage,
         printDurationMs: duration,
         isReprint: false,
-        saleType: previewData.saleType,
-        totalAmount: previewData.items.reduce((sum, item) => sum + item.total, 0) - (previewData.discount || 0),
+        saleType: dataToPrint.saleType,
+        totalAmount: dataToPrint.items.reduce((sum, item) => sum + item.total, 0) - (dataToPrint.discount || 0),
       });
 
       // Provide specific error messages based on error type
@@ -186,6 +145,55 @@ export const useSalesPrinting = (
       });
     }
   }, [previewData, toast]);
+
+  const handlePrint = useCallback(async (options?: HandlePrintOptions) => {
+    if (!storeSettings && isLoadingSettings) {
+      toast({
+        title: "Settings Loading",
+        description: "Please wait for store settings to load...",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const receiptProps: PrintReceiptProps = {
+        items: options?.items || items,
+        discount,
+        date: new Date(),
+        cashierName: options?.cashierName || undefined,
+        cashierEmail: options?.cashierEmail || undefined,
+        customerName: options?.customerName || undefined,
+        customerPhone: options?.customerPhone || undefined,
+        businessName: options?.businessName || undefined,
+        businessAddress: options?.businessAddress || undefined,
+        saleType,
+        cashierId: options?.saleId,
+        saleId: options?.saleId,
+        storeSettings: storeSettings!,
+      };
+
+      if (options?.directPrint) {
+        await executePrint(receiptProps);
+      } else {
+        // Show preview first
+        setPreviewData(receiptProps);
+        setShowPreview(true);
+      }
+
+      // Save receipt data if saleId is provided
+      if (options?.saleId) {
+        await saveReceiptData(options.saleId, receiptProps);
+      }
+    } catch (error) {
+      console.error("Error preparing receipt:", error);
+      toast({
+        title: "Error",
+        description: "Failed to prepare receipt. Please try again.",
+        variant: "destructive",
+      });
+    }
+  }, [items, discount, saleType, storeSettings, isLoadingSettings, toast, saveReceiptData, executePrint]);
 
   return {
     handlePrint,

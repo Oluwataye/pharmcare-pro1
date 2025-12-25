@@ -159,20 +159,8 @@ const NewSale = () => {
           total: calculateTotal()
         });
 
-        try {
-          await handlePrint({
-            cashierName: user.username || user.name,
-            cashierEmail: user.email,
-            cashierId: user.id,
-            customerName: customerName || undefined,
-            customerPhone: customerPhone || undefined,
-            businessName: saleType === 'wholesale' ? businessName : undefined,
-            businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
-          });
-        } catch (error) {
-          console.error("Print failed but sale was completed", error);
-        }
-
+        // The completeSale hook now handles printing and awaits the process
+        // We can now safely navigate back to the sales list
         navigate("/sales");
       }
     } catch (error) {

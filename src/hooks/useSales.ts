@@ -52,6 +52,9 @@ export const useSales = (options?: UseSalesOptions) => {
 
   // Wrap the completeSale function to include cashier info from options
   const completeSale = async (completeSaleOptions?: Omit<Parameters<typeof completeTransaction>[0], 'cashierName' | 'cashierEmail' | 'cashierId'>) => {
+    // Capture items before they are cleared by completeTransaction
+    const currentItems = [...items];
+
     const result = await completeTransaction({
       ...completeSaleOptions,
       cashierName: options?.cashierName,
@@ -61,12 +64,14 @@ export const useSales = (options?: UseSalesOptions) => {
 
     // If sale completed successfully and we have a sale ID, trigger print with the ID
     if (result && typeof result === 'string') {
-      handlePrint({
+      await handlePrint({
         ...completeSaleOptions,
         cashierName: options?.cashierName,
         cashierEmail: options?.cashierEmail,
         cashierId: options?.cashierId,
-        saleId: result
+        saleId: result,
+        items: currentItems,
+        directPrint: true // Skip preview for efficiency as requested
       });
     }
 
