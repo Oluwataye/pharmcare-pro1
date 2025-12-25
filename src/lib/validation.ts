@@ -5,7 +5,7 @@ import { z } from 'zod';
 export const passwordSchema = z.string()
   .min(8, 'Password must be at least 8 characters')
   .max(128, 'Password is too long')
-  .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]+$/, 
+  .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*])[A-Za-z\d!@#$%^&*]+$/,
     'Password must contain: uppercase letter (A-Z), lowercase letter (a-z), number (0-9), and special character (!@#$%^&*)')
   .refine(val => !/(.)\1{3,}/.test(val), 'Password cannot contain 4 or more repeated characters');
 
@@ -76,7 +76,8 @@ export const saleItemSchema = z.object({
 export const customerInfoSchema = z.object({
   customerName: z.string()
     .max(100, 'Customer name is too long')
-    .regex(/^[a-zA-Z\s'-]*$/, 'Customer name contains invalid characters')
+    // Allow letters, numbers, spaces, and common punctuation
+    .regex(/^[a-zA-Z0-9\s'.,()-]*$/, 'Customer name contains invalid characters')
     .optional()
     .or(z.literal('')),
   customerPhone: z.string()
@@ -142,7 +143,7 @@ export const inventoryItemSchema = z.object({
 // Enhanced input sanitization utility
 export const sanitizeInput = (input: string): string => {
   if (typeof input !== 'string') return '';
-  
+
   return input
     .trim()
     .replace(/[<>'"&]/g, (char) => {
@@ -198,7 +199,7 @@ export const validateAndSanitize = <T>(schema: z.ZodSchema<T>, data: unknown): {
     // Deep sanitize string inputs if data is an object
     if (typeof data === 'object' && data !== null) {
       const sanitizedData = { ...data } as any;
-      
+
       const sanitizeRecursive = (obj: any): any => {
         if (typeof obj === 'string') {
           return preventXSS(obj);
@@ -213,19 +214,19 @@ export const validateAndSanitize = <T>(schema: z.ZodSchema<T>, data: unknown): {
         }
         return obj;
       };
-      
+
       data = sanitizeRecursive(sanitizedData);
     } else if (typeof data === 'string') {
       data = preventXSS(data);
     }
-    
+
     const result = schema.parse(data);
     return { success: true, data: result };
   } catch (error) {
     if (error instanceof z.ZodError) {
       const firstError = error.errors[0];
-      return { 
-        success: false, 
+      return {
+        success: false,
         error: firstError?.message || 'Validation failed',
         // Don't expose full validation details in production for security
         ...(process.env.NODE_ENV === 'development' && { details: error.errors })
@@ -238,18 +239,18 @@ export const validateAndSanitize = <T>(schema: z.ZodSchema<T>, data: unknown): {
 // Rate limiting helper (client-side basic implementation)
 export const createRateLimiter = (maxAttempts: number, windowMs: number) => {
   const attempts = new Map<string, number[]>();
-  
+
   return (identifier: string): boolean => {
     const now = Date.now();
     const userAttempts = attempts.get(identifier) || [];
-    
+
     // Remove old attempts outside the window
     const validAttempts = userAttempts.filter(time => now - time < windowMs);
-    
+
     if (validAttempts.length >= maxAttempts) {
       return false; // Rate limit exceeded
     }
-    
+
     validAttempts.push(now);
     attempts.set(identifier, validAttempts);
     return true; // Allow the request
