@@ -158,7 +158,7 @@ export const printReceipt = async (props: PrintReceiptProps, existingWindow?: Wi
 
           // Note: onafterprint behavior varies, but we resolve after the print dialog is handled
           printWindow.onafterprint = () => {
-            printWindow.close();
+            // Keep window open for manual reprint if needed, or user can close it
             resolve(true);
           };
 
@@ -278,7 +278,21 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
           margin-top: 20px;
           font-size: 10px;
         }
+        .print-btn {
+          display: block;
+          width: 100%;
+          padding: 10px;
+          margin-top: 20px;
+          background: #2563eb;
+          color: white;
+          text-align: center;
+          border: none;
+          border-radius: 4px;
+          cursor: pointer;
+          font-size: 14px;
+        }
         @media print {
+          .print-btn { display: none; }
           body {
             margin: 0;
             padding: 10px;
@@ -360,6 +374,7 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
         <strong>POWERED BY T-TECH SOLUTIONS</strong>
       </div>
       ` : ''}
+      <button onclick="window.print()" class="print-btn">Print Receipt</button>
     </body>
     </html>
   `;

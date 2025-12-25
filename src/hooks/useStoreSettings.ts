@@ -46,7 +46,8 @@ const DEFAULT_SETTINGS: StoreSettings = {
 
 export const useStoreSettings = () => {
   const { toast } = useToast();
-  const [settings, setSettings] = useState<StoreSettings | null>(cachedSettings);
+  // Initialize with defaults if cache is missing to prevent UI blocking
+  const [settings, setSettings] = useState<StoreSettings>(cachedSettings || DEFAULT_SETTINGS);
   const [isLoading, setIsLoading] = useState(!cachedSettings);
   const [error, setError] = useState<Error | null>(null);
 
