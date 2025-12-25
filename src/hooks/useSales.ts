@@ -21,13 +21,13 @@ export const useSales = (options?: UseSalesOptions) => {
     toggleItemPriceType,
     clearItems
   } = useCartItems();
-  
+
   const {
     saleType,
     setSaleType: setSaleTypeMode,
     resetSaleType
   } = useSaleType();
-  
+
   const {
     discount,
     setOverallDiscount,
@@ -36,18 +36,18 @@ export const useSales = (options?: UseSalesOptions) => {
     calculateTotal,
     clearDiscount
   } = useSaleDiscount(items);
-  
-  const { 
-    handlePrint, 
+
+  const {
+    handlePrint,
     executePrint,
-    showPreview, 
-    setShowPreview, 
-    previewData 
+    showPreview,
+    setShowPreview,
+    previewData
   } = useSalesPrinting(items, discount, saleType);
-  
-  const { 
+
+  const {
     completeSale: completeTransaction,
-    isOfflineMode 
+    isOfflineMode
   } = useSalesCompletion(items, calculateTotal, clearItems, clearDiscount, resetSaleType);
 
   // Wrap the completeSale function to include cashier info from options
@@ -58,28 +58,28 @@ export const useSales = (options?: UseSalesOptions) => {
       cashierEmail: options?.cashierEmail,
       cashierId: options?.cashierId,
     } as Parameters<typeof completeTransaction>[0]);
-    
+
     // If sale completed successfully and we have a sale ID, trigger print with the ID
     if (result && typeof result === 'string') {
-      handlePrint({ 
+      handlePrint({
         ...completeSaleOptions,
         cashierName: options?.cashierName,
         cashierEmail: options?.cashierEmail,
         cashierId: options?.cashierId,
-        saleId: result 
+        saleId: result
       });
     }
-    
+
     return result;
   };
 
   // Additional items handling callback
   const addWholesaleItem = (product: any, quantity: number) => {
-    const isWholesale = addItem(product, quantity, true);
-    if (isWholesale && saleType !== 'wholesale') {
+    const { success, usedWholesalePrice } = addItem(product, quantity, true);
+    if (usedWholesalePrice && saleType !== 'wholesale') {
       setSaleTypeMode('wholesale');
     }
-    return isWholesale;
+    return { success, usedWholesalePrice };
   };
 
   // Enhanced toggleItemPriceType with auto-type switching
@@ -96,11 +96,11 @@ export const useSales = (options?: UseSalesOptions) => {
     discount,
     saleType,
     addItem: (product: any, quantity: number, isWholesale: boolean = false) => {
-      const result = addItem(product, quantity, isWholesale);
-      if (result && saleType !== 'wholesale') {
+      const { success, usedWholesalePrice } = addItem(product, quantity, isWholesale);
+      if (usedWholesalePrice && saleType !== 'wholesale') {
         setSaleTypeMode('wholesale');
       }
-      return result;
+      return { success, usedWholesalePrice };
     },
     removeItem,
     updateQuantity,

@@ -54,12 +54,12 @@ export const useStoreSettings = () => {
       const { data, error } = await supabase
         .from('store_settings')
         .select('*')
-        .maybeSingle();
+        .limit(1);
 
       if (error) throw error;
 
-      if (data) {
-        cachedSettings = data as StoreSettings;
+      if (data && data.length > 0) {
+        cachedSettings = data[0] as StoreSettings;
         cacheTimestamp = Date.now();
         setSettings(cachedSettings);
         return cachedSettings;

@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useSales } from "@/hooks/useSales";
 import { useAuth } from "@/contexts/AuthContext";
-import { usePermissions } from "@/hooks/usePermissions"; 
+import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -25,13 +25,13 @@ const NewSale = () => {
   const { user } = useAuth();
   const { isOnline } = useOffline();
   const { canCreateWholesale } = usePermissions();
-  
+
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [businessName, setBusinessName] = useState("");
   const [businessAddress, setBusinessAddress] = useState("");
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
-  
+
   const {
     items,
     discount,
@@ -67,7 +67,7 @@ const NewSale = () => {
     };
 
     const validation = validateAndSanitize(customerInfoSchema, customerData);
-    
+
     if (!validation.success) {
       setValidationErrors({ general: validation.error || 'Invalid customer information' });
       return false;
@@ -86,7 +86,7 @@ const NewSale = () => {
   const handleInputChange = (field: string, value: string) => {
     // Sanitize input and limit length
     const sanitizedValue = value.replace(/[<>'"&]/g, '').substring(0, 200);
-    
+
     switch (field) {
       case 'customerName':
         setCustomerName(sanitizedValue);
@@ -151,7 +151,7 @@ const NewSale = () => {
         businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
         saleType
       });
-      
+
       if (success) {
         logSecurityEvent('SALE_COMPLETED', {
           userId: user.id,
@@ -172,7 +172,7 @@ const NewSale = () => {
         } catch (error) {
           console.error("Print failed but sale was completed", error);
         }
-        
+
         navigate("/sales");
       }
     } catch (error) {
@@ -180,7 +180,7 @@ const NewSale = () => {
         userId: user.id,
         error: error instanceof Error ? error.message : 'Unknown error'
       });
-      
+
       toast({
         title: "Error",
         description: "Failed to complete sale",
@@ -216,8 +216,8 @@ const NewSale = () => {
       </div>
 
       {canCreateWholesale && (
-        <Tabs 
-          defaultValue={saleType} 
+        <Tabs
+          defaultValue={saleType}
           onValueChange={(value) => setSaleType(value as 'retail' | 'wholesale')}
           className="w-full"
         >
@@ -247,14 +247,14 @@ const NewSale = () => {
               {validationErrors.general && (
                 <div className="text-red-500 text-sm">{validationErrors.general}</div>
               )}
-              
+
               <div className="grid gap-4 md:grid-cols-2">
                 <div>
                   <Label htmlFor="customer-name">
                     {saleType === 'wholesale' ? 'Contact Person' : 'Customer Name'}
                   </Label>
-                  <Input 
-                    id="customer-name" 
+                  <Input
+                    id="customer-name"
                     value={customerName}
                     onChange={(e) => handleInputChange('customerName', e.target.value)}
                     placeholder={saleType === 'wholesale' ? 'Contact person name' : 'Customer name'}
@@ -267,8 +267,8 @@ const NewSale = () => {
                 </div>
                 <div>
                   <Label htmlFor="customer-phone">Phone Number</Label>
-                  <Input 
-                    id="customer-phone" 
+                  <Input
+                    id="customer-phone"
                     value={customerPhone}
                     onChange={(e) => handleInputChange('customerPhone', e.target.value)}
                     placeholder="Phone number"
@@ -280,13 +280,13 @@ const NewSale = () => {
                   )}
                 </div>
               </div>
-              
+
               {saleType === 'wholesale' && (
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <Label htmlFor="business-name" className="text-red-500">Business Name*</Label>
-                    <Input 
-                      id="business-name" 
+                    <Input
+                      id="business-name"
                       value={businessName}
                       onChange={(e) => handleInputChange('businessName', e.target.value)}
                       placeholder="Business name"
@@ -300,8 +300,8 @@ const NewSale = () => {
                   </div>
                   <div>
                     <Label htmlFor="business-address">Business Address</Label>
-                    <Input 
-                      id="business-address" 
+                    <Input
+                      id="business-address"
                       value={businessAddress}
                       onChange={(e) => handleInputChange('businessAddress', e.target.value)}
                       placeholder="Business address"
@@ -314,17 +314,17 @@ const NewSale = () => {
                   </div>
                 </div>
               )}
-              
-              <ProductSearchSection 
+
+              <ProductSearchSection
                 onAddProduct={(product, quantity) => {
                   console.log('NewSale: onAddProduct called', { product, quantity, saleType });
                   try {
                     const result = addItem(product, quantity, saleType === 'wholesale');
-                    console.log('NewSale: addItem result', result);
+                    console.log('NewSale: addItem result', result.success ? 'Success' : 'Failed', result);
                   } catch (error) {
                     console.error('NewSale: Error in addItem', error);
                   }
-                }} 
+                }}
                 isWholesale={saleType === 'wholesale'}
               />
             </div>
@@ -336,17 +336,17 @@ const NewSale = () => {
             <CardTitle>{saleType === 'wholesale' ? 'Wholesale Order Items' : 'Current Sale'}</CardTitle>
           </CardHeader>
           <CardContent>
-            <CurrentSaleTable 
-              items={items} 
-              onUpdateQuantity={updateQuantity} 
+            <CurrentSaleTable
+              items={items}
+              onUpdateQuantity={updateQuantity}
               onRemoveItem={removeItem}
               onTogglePriceType={canCreateWholesale ? toggleItemPriceType : undefined}
               isWholesale={saleType === 'wholesale'}
             />
-            
+
             {items.length > 0 && (
               <>
-                <SaleTotals 
+                <SaleTotals
                   subtotal={calculateSubtotal()}
                   discount={discount}
                   total={calculateTotal()}
@@ -354,11 +354,11 @@ const NewSale = () => {
                   onDiscountChange={setOverallDiscount}
                   isWholesale={saleType === 'wholesale'}
                 />
-                
+
                 <div className="mt-4 flex justify-between items-center">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => handlePrint({ 
+                  <Button
+                    variant="outline"
+                    onClick={() => handlePrint({
                       cashierName: user ? user.username || user.name : undefined,
                       cashierEmail: user ? user.email : undefined,
                       cashierId: user ? user.id : undefined,

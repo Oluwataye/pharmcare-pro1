@@ -11,7 +11,7 @@ export const useCartItems = () => {
     const savedSale = secureStorage.getItem(CART_STORAGE_KEY);
     return savedSale || [];
   });
-  
+
   const { toast } = useToast();
 
   // Save the current sale to secure storage whenever it changes
@@ -21,7 +21,7 @@ export const useCartItems = () => {
 
   const addItem = (product: Product, quantity: number = 1, isWholesale: boolean = false) => {
     console.log('useCartItems: addItem called', { product, quantity, isWholesale });
-    
+
     if (quantity <= 0) {
       console.log('useCartItems: Invalid quantity', quantity);
       toast({
@@ -29,33 +29,33 @@ export const useCartItems = () => {
         description: "Quantity must be greater than zero",
         variant: "destructive",
       });
-      return false;
+      return { success: false, usedWholesalePrice: false };
     }
 
     // Check if wholesale conditions are met
     let useWholesalePrice = isWholesale && product.wholesalePrice !== undefined;
-    
+
     // Auto-switch to wholesale price if quantity meets minimum threshold
     if (product.minWholesaleQuantity && quantity >= product.minWholesaleQuantity && product.wholesalePrice) {
       useWholesalePrice = true;
     }
 
     const price = useWholesalePrice ? product.wholesalePrice! : product.price;
-    const existingItem = items.find(item => 
+    const existingItem = items.find(item =>
       item.id === product.id && item.isWholesale === useWholesalePrice
     );
-    
+
     const itemDiscount = product.discount || 0;
-    
+
     let newItems;
     if (existingItem) {
       newItems = items.map(item =>
         (item.id === product.id && item.isWholesale === useWholesalePrice)
-          ? { 
-              ...item, 
-              quantity: item.quantity + quantity, 
-              total: (item.quantity + quantity) * price * (1 - (item.discount || 0) / 100) 
-            }
+          ? {
+            ...item,
+            quantity: item.quantity + quantity,
+            total: (item.quantity + quantity) * price * (1 - (item.discount || 0) / 100)
+          }
           : item
       );
     } else {
@@ -70,9 +70,10 @@ export const useCartItems = () => {
         total: price * quantity * (1 - itemDiscount / 100)
       }];
     }
-    
+
     setItems(newItems);
-    return useWholesalePrice; // Return if wholesale pricing was used
+    console.log('useCartItems: Item added successfuly', { product: product.name, quantity, isWholesale: useWholesalePrice });
+    return { success: true, usedWholesalePrice: useWholesalePrice };
   };
 
   const removeItem = (id: string) => {
@@ -88,7 +89,7 @@ export const useCartItems = () => {
       });
       return;
     }
-    
+
     setItems(items.map(item =>
       item.id === id
         ? { ...item, quantity, total: quantity * item.price * (1 - (item.discount || 0) / 100) }
@@ -116,24 +117,24 @@ export const useCartItems = () => {
   const toggleItemPriceType = (id: string) => {
     const item = items.find(item => item.id === id);
     if (!item) return;
-    
+
     // Toggle between retail and wholesale price
     const newIsWholesale = !item.isWholesale;
-    const newPrice = newIsWholesale 
+    const newPrice = newIsWholesale
       ? (item.unitPrice * 0.85) // 15% discount for wholesale
       : item.unitPrice;
-    
-    setItems(items.map(i => 
+
+    setItems(items.map(i =>
       i.id === id
-        ? { 
-            ...i, 
-            isWholesale: newIsWholesale, 
-            price: newPrice,
-            total: i.quantity * newPrice * (1 - (i.discount || 0) / 100)
-          }
+        ? {
+          ...i,
+          isWholesale: newIsWholesale,
+          price: newPrice,
+          total: i.quantity * newPrice * (1 - (i.discount || 0) / 100)
+        }
         : i
     ));
-    
+
     return newIsWholesale;
   };
 

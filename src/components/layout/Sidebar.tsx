@@ -44,13 +44,13 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       const { data, error } = await supabase
         .from('store_settings')
         .select('logo_url, name')
-        .maybeSingle();
+        .limit(1);
 
       if (error) throw error;
 
-      if (data) {
-        setStoreLogo(data.logo_url || '');
-        setStoreName(data.name || 'PharmCare Pro');
+      if (data && data.length > 0) {
+        setStoreLogo(data[0].logo_url || '');
+        setStoreName(data[0].name || 'PharmCare Pro');
       }
     } catch (error) {
       console.error('Error fetching store logo:', error);

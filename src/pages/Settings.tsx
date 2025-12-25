@@ -54,26 +54,27 @@ const Settings = () => {
       const { data, error } = await supabase
         .from('store_settings')
         .select('*')
-        .maybeSingle();
+        .limit(1);
 
       if (error) throw error;
 
-      if (data) {
+      if (data && data.length > 0) {
+        const settings = data[0];
         setStoreSettings({
-          id: data.id,
-          name: data.name,
-          address: data.address || '',
-          phone: data.phone || '',
-          email: data.email || '',
-          logoUrl: data.logo_url || '',
+          id: settings.id,
+          name: settings.name,
+          address: settings.address || '',
+          phone: settings.phone || '',
+          email: settings.email || '',
+          logoUrl: settings.logo_url || '',
         });
 
         setPrintSettings({
-          showLogo: data.print_show_logo ?? true,
-          showAddress: data.print_show_address ?? true,
-          showEmail: data.print_show_email ?? true,
-          showPhone: data.print_show_phone ?? true,
-          showFooter: data.print_show_footer ?? true,
+          showLogo: settings.print_show_logo ?? true,
+          showAddress: settings.print_show_address ?? true,
+          showEmail: settings.print_show_email ?? true,
+          showPhone: settings.print_show_phone ?? true,
+          showFooter: settings.print_show_footer ?? true,
         });
       }
     } catch (error: any) {
