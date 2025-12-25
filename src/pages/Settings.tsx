@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { invalidateStoreSettingsCache } from "@/hooks/useStoreSettings";
+import { useStoreSettings, invalidateStoreSettingsCache } from "@/hooks/useStoreSettings";
 import {
   Card,
   CardContent,
@@ -44,48 +44,29 @@ const Settings = () => {
     showFooter: true,
   });
 
+  const { settings: currentSettings, isLoading: isFetchingSettings } = useStoreSettings();
+
   // Load settings from database on component mount
   useEffect(() => {
-    fetchSettings();
-  }, []);
+    if (currentSettings) {
+      setStoreSettings({
+        id: currentSettings.id,
+        name: currentSettings.name,
+        address: currentSettings.address || '',
+        phone: currentSettings.phone || '',
+        email: currentSettings.email || '',
+        logoUrl: currentSettings.logo_url || '',
+      });
 
-  const fetchSettings = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('store_settings')
-        .select('*')
-        .limit(1);
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        const settings = data[0];
-        setStoreSettings({
-          id: settings.id,
-          name: settings.name,
-          address: settings.address || '',
-          phone: settings.phone || '',
-          email: settings.email || '',
-          logoUrl: settings.logo_url || '',
-        });
-
-        setPrintSettings({
-          showLogo: settings.print_show_logo ?? true,
-          showAddress: settings.print_show_address ?? true,
-          showEmail: settings.print_show_email ?? true,
-          showPhone: settings.print_show_phone ?? true,
-          showFooter: settings.print_show_footer ?? true,
-        });
-      }
-    } catch (error: any) {
-      console.error('Error fetching settings:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load settings',
-        variant: 'destructive',
+      setPrintSettings({
+        showLogo: currentSettings.print_show_logo ?? true,
+        showAddress: currentSettings.print_show_address ?? true,
+        showEmail: currentSettings.print_show_email ?? true,
+        showPhone: currentSettings.print_show_phone ?? true,
+        showFooter: currentSettings.print_show_footer ?? true,
       });
     }
-  };
+  }, [currentSettings]);
 
   const handleLogoUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];

@@ -13,7 +13,7 @@ export const useReceiptReprint = () => {
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchAndPreviewReceipt = useCallback(async (saleId: string) => {
-    if (!storeSettings) {
+    if (!storeSettings && isLoading) {
       toast({
         title: 'Settings Loading',
         description: 'Please wait for store settings to load...',
@@ -49,10 +49,10 @@ export const useReceiptReprint = () => {
         // Validate and ensure date is a valid Date object
         let receiptDate = new Date();
         if (cleanReceiptData.date) {
-          const parsedDate = typeof cleanReceiptData.date === 'string' 
+          const parsedDate = typeof cleanReceiptData.date === 'string'
             ? new Date(cleanReceiptData.date)
             : cleanReceiptData.date;
-          
+
           // Check if date is valid
           if (parsedDate instanceof Date && !isNaN(parsedDate.getTime())) {
             receiptDate = parsedDate;
@@ -90,7 +90,7 @@ export const useReceiptReprint = () => {
 
     try {
       const success = await printReceipt(previewData);
-      
+
       if (!success) {
         printStatus = 'cancelled';
         throw new Error('Print operation failed');
@@ -118,7 +118,7 @@ export const useReceiptReprint = () => {
       });
     } catch (error: any) {
       console.error('Error printing receipt:', error);
-      
+
       // Determine error type and status
       if (error?.type === PrintError.POPUP_BLOCKED) {
         printStatus = 'failed';
@@ -154,11 +154,11 @@ export const useReceiptReprint = () => {
         saleType: previewData.saleType,
         totalAmount: previewData.items.reduce((sum, item) => sum + item.total, 0) - (previewData.discount || 0),
       });
-      
+
       // Provide specific error messages based on error type
       let displayMessage = "Failed to print receipt. Please try again.";
       let displayTitle = "Print Failed";
-      
+
       if (error?.type === PrintError.POPUP_BLOCKED) {
         displayTitle = "Popup Blocked";
         displayMessage = "Please allow popups for this site and try again.";
@@ -171,7 +171,7 @@ export const useReceiptReprint = () => {
       } else if (error instanceof Error) {
         displayMessage = error.message;
       }
-      
+
       toast({
         title: displayTitle,
         description: displayMessage,

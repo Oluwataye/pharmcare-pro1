@@ -5,6 +5,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { OfflineSyncIndicator } from "./OfflineSyncIndicator";
 import {
   LayoutDashboard,
@@ -32,30 +33,16 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     canAccessUsers,
     canAccessReports,
   } = usePermissions();
+  const { settings: storeSettings } = useStoreSettings();
   const [storeLogo, setStoreLogo] = useState<string>('');
   const [storeName, setStoreName] = useState<string>('PharmCare Pro');
 
   useEffect(() => {
-    fetchStoreLogo();
-  }, []);
-
-  const fetchStoreLogo = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('store_settings')
-        .select('logo_url, name')
-        .limit(1);
-
-      if (error) throw error;
-
-      if (data && data.length > 0) {
-        setStoreLogo(data[0].logo_url || '');
-        setStoreName(data[0].name || 'PharmCare Pro');
-      }
-    } catch (error) {
-      console.error('Error fetching store logo:', error);
+    if (storeSettings) {
+      setStoreLogo(storeSettings.logo_url || '');
+      setStoreName(storeSettings.name || 'PharmCare Pro');
     }
-  };
+  }, [storeSettings]);
 
   const menuItems = [
     {

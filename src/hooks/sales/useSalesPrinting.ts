@@ -36,7 +36,7 @@ export const useSalesPrinting = (
           sale_id: saleId,
           receipt_data: receiptProps as any
         }]);
-      
+
       if (error) throw error;
     } catch (error) {
       console.error("Error saving receipt data:", error);
@@ -44,7 +44,7 @@ export const useSalesPrinting = (
   }, []);
 
   const handlePrint = useCallback(async (options?: HandlePrintOptions) => {
-    if (!storeSettings) {
+    if (!storeSettings && isLoadingSettings) {
       toast({
         title: "Settings Loading",
         description: "Please wait for store settings to load...",
@@ -68,11 +68,11 @@ export const useSalesPrinting = (
         cashierId: options?.cashierId || undefined,
         storeSettings,
       };
-      
+
       // Show preview first
       setPreviewData(receiptProps);
       setShowPreview(true);
-      
+
       // Save receipt data if saleId is provided
       if (options?.saleId) {
         await saveReceiptData(options.saleId, receiptProps);
@@ -89,7 +89,7 @@ export const useSalesPrinting = (
 
   const executePrint = useCallback(async () => {
     if (!previewData) return;
-    
+
     const startTime = Date.now();
     let printStatus: 'success' | 'failed' | 'cancelled' = 'success';
     let errorType: string | undefined;
@@ -97,14 +97,14 @@ export const useSalesPrinting = (
 
     try {
       const success = await printReceipt(previewData);
-      
+
       if (!success) {
         printStatus = 'cancelled';
         throw new Error("Print operation failed");
       }
-      
+
       const duration = Date.now() - startTime;
-      
+
       // Log successful print
       await logPrintAnalytics({
         saleId: previewData.saleId,
@@ -125,7 +125,7 @@ export const useSalesPrinting = (
       });
     } catch (error: any) {
       console.error("Error printing receipt:", error);
-      
+
       // Determine error type and status
       if (error?.type === PrintError.POPUP_BLOCKED) {
         printStatus = 'failed';
@@ -161,11 +161,11 @@ export const useSalesPrinting = (
         saleType: previewData.saleType,
         totalAmount: previewData.items.reduce((sum, item) => sum + item.total, 0) - (previewData.discount || 0),
       });
-      
+
       // Provide specific error messages based on error type
       let displayMessage = "Failed to print receipt. Please try again.";
       let displayTitle = "Print Failed";
-      
+
       if (error?.type === PrintError.POPUP_BLOCKED) {
         displayTitle = "Popup Blocked";
         displayMessage = "Please allow popups for this site and try again.";
@@ -178,7 +178,7 @@ export const useSalesPrinting = (
       } else if (error instanceof Error) {
         displayMessage = error.message;
       }
-      
+
       toast({
         title: displayTitle,
         description: displayMessage,
@@ -187,11 +187,11 @@ export const useSalesPrinting = (
     }
   }, [previewData, toast]);
 
-  return { 
-    handlePrint, 
+  return {
+    handlePrint,
     executePrint,
-    showPreview, 
-    setShowPreview, 
+    showPreview,
+    setShowPreview,
     previewData,
     isLoadingSettings
   };
