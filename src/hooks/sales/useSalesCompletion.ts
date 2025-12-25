@@ -19,7 +19,7 @@ interface CompleteSaleOptions {
 }
 
 export const useSalesCompletion = (
-  items: SaleItem[], 
+  items: SaleItem[],
   calculateTotal: () => number,
   clearItems: () => void,
   clearDiscount: () => void,
@@ -61,7 +61,7 @@ export const useSalesCompletion = (
 
       const currentSaleType = options?.saleType || 'retail';
       const transactionId = `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-      
+
       const saleData = {
         items: [...items],
         total: calculateTotal(),
@@ -102,7 +102,7 @@ export const useSalesCompletion = (
           title: `${currentSaleType === 'wholesale' ? 'Wholesale' : 'Retail'} Sale Completed`,
           description: `Transaction ID: ${data.transactionId}`,
         });
-        
+
         // Clear the current sale data securely
         clearItems();
         clearDiscount();
@@ -110,11 +110,11 @@ export const useSalesCompletion = (
         secureStorage.removeItem('CURRENT_SALE_ITEMS');
         secureStorage.removeItem('CURRENT_SALE_DISCOUNT');
         secureStorage.removeItem('CURRENT_SALE_TYPE');
-        
+
         // Return the sale ID from the response
         return data.saleId || true;
       }
-      
+
       // For offline mode, clear and return true
       clearItems();
       clearDiscount();
@@ -122,8 +122,9 @@ export const useSalesCompletion = (
       secureStorage.removeItem('CURRENT_SALE_ITEMS');
       secureStorage.removeItem('CURRENT_SALE_DISCOUNT');
       secureStorage.removeItem('CURRENT_SALE_TYPE');
-      
-      return true;
+
+      // For offline mode, return transactionId so downstream logic triggers success modal
+      return transactionId;
     } catch (error) {
       console.error('Sale completion error:', error);
       toast({
