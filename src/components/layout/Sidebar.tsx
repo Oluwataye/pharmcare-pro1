@@ -18,6 +18,7 @@ import {
   ChevronLeft,
   Receipt,
   Printer,
+  DollarSign,
 } from "lucide-react";
 
 interface SidebarProps {
@@ -74,6 +75,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       icon: Printer,
       label: "Print History",
       path: "/print-history",
+      condition: canAccessReports()
+    },
+    {
+      icon: DollarSign,
+      label: "Refunds",
+      path: "/refunds",
       condition: canAccessReports()
     },
     {

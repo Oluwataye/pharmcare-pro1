@@ -10,13 +10,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
-import { CalendarIcon, Printer, RefreshCw, Download, FileText, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { CalendarIcon, Printer, RefreshCw, Download, FileText, CheckCircle, AlertCircle, Clock, DollarSign } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { useReceiptReprint } from '@/hooks/sales/useReceiptReprint';
 import { ReceiptPreview } from '@/components/receipts/ReceiptPreview';
 import { Skeleton } from '@/components/ui/skeleton';
 import { EnhancedCard } from '@/components/ui/EnhancedCard';
 import { EnhancedStatCard } from '@/components/admin/EnhancedStatCard';
+import { RefundDialog } from '@/components/refunds/RefundDialog';
+import { useAuth } from '@/contexts/AuthContext';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface PrintAnalytic {
   id: string;
@@ -35,6 +38,7 @@ interface PrintAnalytic {
 
 const PrintHistory = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { fetchAndPreviewReceipt, executePrint, showPreview, setShowPreview, previewData, openPrintWindow } = useReceiptReprint();
 
   const [analytics, setAnalytics] = useState<PrintAnalytic[]>([]);
@@ -46,6 +50,15 @@ const PrintHistory = () => {
     customer: '',
     status: 'all',
   });
+
+  // Refund dialog state
+  const [showRefundDialog, setShowRefundDialog] = useState(false);
+  const [selectedRefund, setSelectedRefund] = useState<{
+    saleId: string;
+    transactionId: string;
+    amount: number;
+    customerName?: string;
+  } | null>(null);
 
   const [stats, setStats] = useState({
     totalPrints: 0,
@@ -130,6 +143,24 @@ const PrintHistory = () => {
     // Open window synchronously to capture gesture
     const windowRef = openPrintWindow();
     await fetchAndPreviewReceipt(saleId, windowRef);
+  };
+
+  const handleRefund = (analytic: PrintAnalytic) => {
+    if (!analytic.sale_id) {
+      toast({
+        title: 'Error',
+        description: 'Cannot refund: Sale ID not found',
+        variant: 'destructive',
+      });
+      return;
+    }
+    setSelectedRefund({
+      saleId: analytic.sale_id,
+      transactionId: analytic.sale_id, // Using sale_id as transaction_id
+      amount: analytic.total_amount || 0,
+      customerName: analytic.customer_name || undefined,
+    });
+    setShowRefundDialog(true);
   };
 
   const exportToCSV = () => {
@@ -394,15 +425,47 @@ const PrintHistory = () => {
                         {analytic.total_amount ? `₦${Number(analytic.total_amount).toLocaleString()}` : '-'}
                       </TableCell>
                       <TableCell>
-                        {analytic.sale_id && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleReprint(analytic.sale_id!)}
-                          >
-                            <Printer className="w-4 h-4" />
-                          </Button>
-                        )}
+                        <TooltipProvider>
+                          <div className="flex gap-1">
+                            {/* Reprint Button */}
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleReprint(analytic.sale_id!)}
+                                  disabled={!analytic.sale_id}
+                                >
+                                  <Printer className="w-4 h-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                {analytic.sale_id ? 'Reprint Receipt' : 'Sale ID not available'}
+                              </TooltipContent>
+                            </Tooltip>
+
+                            {/* Refund Button - Only show for successful prints */}
+                            {analytic.print_status === 'success' && (
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRefund(analytic)}
+                                    disabled={!analytic.sale_id || !analytic.total_amount}
+                                  >
+                                    <DollarSign className="w-4 h-4 text-destructive" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>
+                                  {analytic.sale_id && analytic.total_amount
+                                    ? 'Request Refund'
+                                    : 'Refund not available'}
+                                </TooltipContent>
+                              </Tooltip>
+                            )}
+                          </div>
+                        </TooltipProvider>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -423,6 +486,18 @@ const PrintHistory = () => {
           }}
           onOpenChange={(open) => setShowPreview(open)}
           open={showPreview}
+        />
+      )}
+
+      {/* Refund Dialog */}
+      {selectedRefund && (
+        <RefundDialog
+          open={showRefundDialog}
+          onOpenChange={setShowRefundDialog}
+          saleId={selectedRefund.saleId}
+          transactionId={selectedRefund.transactionId}
+          originalAmount={selectedRefund.amount}
+          customerName={selectedRefund.customerName}
         />
       )}
     </div>

@@ -24,6 +24,7 @@ const Sales = lazy(() => import("./pages/Sales"));
 const NewSale = lazy(() => import("./pages/NewSale"));
 const Receipts = lazy(() => import("./pages/Receipts"));
 const PrintHistory = lazy(() => import("./pages/PrintHistory"));
+const RefundApproval = lazy(() => import("./pages/RefundApproval"));
 const Users = lazy(() => import("./pages/Users"));
 const Settings = lazy(() => import("./pages/Settings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -44,7 +45,7 @@ interface AppProps {
 const App = ({ queryClient, persister }: AppProps) => (
   <PersistQueryClientProvider
     client={queryClient}
-    persistOptions={{ 
+    persistOptions={{
       persister,
       dehydrateOptions: {
         shouldDehydrateQuery: query => {
@@ -144,6 +145,16 @@ const App = ({ queryClient, persister }: AppProps) => (
                       requiredPermission={{ action: "read", resource: "reports" }}
                     >
                       <Suspense fallback={<PageLoader />}><Reports /></Suspense>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/refunds"
+                  element={
+                    <ProtectedRoute
+                      requiredPermission={{ action: "read", resource: "reports" }}
+                    >
+                      <Suspense fallback={<PageLoader />}><RefundApproval /></Suspense>
                     </ProtectedRoute>
                   }
                 />
