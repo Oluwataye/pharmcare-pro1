@@ -8,6 +8,8 @@ import { useToast } from "@/hooks/use-toast";
 import { ProductSearch } from "./ProductSearch";
 import { SaleItemsTable } from "./SaleItemsTable";
 import { useSalesPrinting } from "@/hooks/sales/useSalesPrinting";
+import { useSalesCompletion } from "@/hooks/sales/useSalesCompletion";
+import { useAuth } from "@/contexts/AuthContext";
 import { SaleItem } from "@/types/sales";
 import SaleTotals from "../sales/SaleTotals";
 
@@ -41,19 +43,29 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
   const [discount, setDiscount] = useState(0);
   const [isWholesale, setIsWholesale] = useState(false);
   const { toast } = useToast();
-  const { handlePrint } = useSalesPrinting(items, discount, isWholesale ? 'wholesale' : 'retail');
-  
+  const { user } = useAuth();
+
+  const { handlePrint, openPrintWindow } = useSalesPrinting(items, discount, isWholesale ? 'wholesale' : 'retail');
+
+  // Calculate total and discount amounts
+  const subtotal = items.reduce((sum, item) => sum + item.total, 0);
+  const discountAmount = subtotal * (discount / 100);
+  const total = subtotal - discountAmount;
+
+  const { completeSale } = useSalesCompletion(
+    items,
+    () => total,
+    () => setItems([]),
+    () => setDiscount(0),
+    () => setIsWholesale(false)
+  );
+
   const form = useForm({
     defaultValues: {
       customerName: "",
       customerPhone: "",
     },
   });
-
-  // Calculate total and discount amounts
-  const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-  const discountAmount = subtotal * (discount / 100);
-  const total = subtotal - discountAmount;
 
   const filteredProducts = productDatabase.filter(
     product => product.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -80,7 +92,7 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
 
     const price = isWholesale ? selectedProduct.wholesalePrice : selectedProduct.price;
     const existingItemIndex = items.findIndex(item => item.id === selectedProduct.id && item.isWholesale === isWholesale);
-    
+
     if (existingItemIndex >= 0) {
       const newItems = [...items];
       newItems[existingItemIndex].quantity += quantity;
@@ -95,7 +107,8 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
           quantity: quantity,
           price: price,
           total: price * quantity,
-          isWholesale: isWholesale
+          isWholesale: isWholesale,
+          unitPrice: price // Important for sales tracking
         },
       ]);
     }
@@ -113,11 +126,11 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
   const handleToggleItemPriceType = (id: string) => {
     const itemIndex = items.findIndex(item => item.id === id);
     if (itemIndex === -1) return;
-    
+
     const item = items[itemIndex];
     const product = productDatabase.find(p => p.id === id);
     if (!product) return;
-    
+
     const newPrice = item.isWholesale ? product.price : product.wholesalePrice;
     const newItems = [...items];
     newItems[itemIndex] = {
@@ -126,7 +139,7 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
       price: newPrice,
       total: newPrice * item.quantity
     };
-    
+
     setItems(newItems);
   };
 
@@ -135,7 +148,7 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
       setItems(items.filter(item => item.id !== id));
       return;
     }
-    
+
     const newItems = items.map(item => {
       if (item.id === id) {
         return {
@@ -146,22 +159,59 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
       }
       return item;
     });
-    
+
     setItems(newItems);
   };
 
-  const printReceipt = () => {
+  const handleCompleteAndPrint = async () => {
+    if (items.length === 0) {
+      toast({
+        title: "Error",
+        description: "Please add at least one item to the sale",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
+      // 1. Generate Transaction ID client-side immediately
+      const transactionId = `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+
+      // 2. Capture the window synchronously
+      const printWindow = openPrintWindow();
+      const currentItems = [...items];
+
+      // 3. EXECUTE PRINT *IMMEDIATELY* (Optimistic UI)
       handlePrint({
         customerName: form.getValues().customerName || undefined,
         customerPhone: form.getValues().customerPhone || undefined,
+        cashierName: user ? user.username || user.name : undefined,
+        cashierEmail: user ? user.email : undefined,
+        cashierId: user ? user.id : undefined,
+        existingWindow: printWindow,
+        directPrint: true,
+        items: currentItems,
+        saleId: transactionId
       });
 
+      // 4. SAVE THE SALE IN BACKGROUND (with the same ID)
+      await completeSale({
+        customerName: form.getValues().customerName,
+        customerPhone: form.getValues().customerPhone,
+        saleType: isWholesale ? 'wholesale' : 'retail',
+        transactionId,
+        cashierName: user ? user.username || user.name : undefined,
+        cashierEmail: user ? user.email : undefined,
+        cashierId: user ? user.id : undefined,
+      });
+
+      // 5. Notify Parent
       onComplete();
+
     } catch (error) {
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to print receipt",
+        description: error instanceof Error ? error.message : "Failed to process sale",
         variant: "destructive",
       });
     }
@@ -171,8 +221,8 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-bold">{isWholesale ? 'New Wholesale Sale' : 'New Retail Sale'}</h2>
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           onClick={handleToggleWholesale}
           className="flex items-center gap-2"
         >
@@ -224,8 +274,8 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
                   setSearchQuery(product.name);
                 }}
               />
-              <Input 
-                type="number" 
+              <Input
+                type="number"
                 min="1"
                 value={quantity}
                 onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
@@ -244,14 +294,14 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
           )}
         </div>
 
-        <SaleItemsTable 
-          items={items} 
+        <SaleItemsTable
+          items={items}
           onRemoveItem={(id) => setItems(items.filter(item => item.id !== id))}
           onUpdateQuantity={handleUpdateQuantity}
           onTogglePriceType={handleToggleItemPriceType}
           isWholesale={isWholesale}
         />
-        
+
         <SaleTotals
           subtotal={subtotal}
           discount={discount}
@@ -264,19 +314,9 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
 
       <div className="flex justify-end space-x-4">
         <Button variant="outline" onClick={onCancel}>Cancel</Button>
-        <Button onClick={() => {
-          if (items.length === 0) {
-            toast({
-              title: "Error",
-              description: "Please add at least one item to the sale",
-              variant: "destructive",
-            });
-            return;
-          }
-          printReceipt();
-        }}>
+        <Button onClick={handleCompleteAndPrint}>
           <Printer className="mr-2 h-4 w-4" />
-          Complete Sale
+          Print Receipt
         </Button>
       </div>
     </div>
