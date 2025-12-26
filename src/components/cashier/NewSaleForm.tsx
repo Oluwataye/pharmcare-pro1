@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { Plus, Printer, Tag } from "lucide-react";
+import { Plus, Printer, Tag, User, ShoppingCart } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductSearch } from "./ProductSearch";
 import { SaleItemsTable } from "./SaleItemsTable";
@@ -12,6 +12,8 @@ import { useSalesCompletion } from "@/hooks/sales/useSalesCompletion";
 import { useAuth } from "@/contexts/AuthContext";
 import { SaleItem } from "@/types/sales";
 import SaleTotals from "../sales/SaleTotals";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { cn } from "@/lib/utils";
 
 interface NewSaleFormProps {
   onComplete: () => void;
@@ -217,6 +219,11 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
     }
   };
 
+  const cardStyle = cn(
+    "relative overflow-hidden transition-all duration-300 hover:shadow-lg border-l-4",
+    isWholesale ? "border-l-indigo-500" : "border-l-primary"
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -231,85 +238,118 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
         </Button>
       </div>
 
-      <Form {...form}>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <FormField
-            control={form.control}
-            name="customerName"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Customer Name (Optional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter customer name" {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-          <FormField
-            control={form.control}
-            name="customerPhone"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Customer Phone (Optional)</FormLabel>
-                <FormControl>
-                  <Input placeholder="Enter customer phone" {...field} />
-                </FormControl>
-              </FormItem>
-            )}
-          />
-        </div>
-      </Form>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card className={cardStyle}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <User className="h-5 w-5 text-muted-foreground" />
+              {isWholesale ? "Wholesale Order" : "Customer Info"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Form {...form}>
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="customerName"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{isWholesale ? "Contact Person" : "Customer Name"}</FormLabel>
+                      <FormControl>
+                        <Input placeholder={isWholesale ? "Contact person name" : "Customer name"} {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name="customerPhone"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>Phone Number</FormLabel>
+                      <FormControl>
+                        <Input placeholder="Phone number" {...field} />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
 
-      <div className="border p-4 rounded-md">
-        <div className="flex flex-col md:flex-row justify-between gap-4 mb-4">
-          <h3 className="text-lg font-semibold">Items</h3>
-          {showSearch ? (
-            <div className="flex flex-col md:flex-row gap-4">
-              <ProductSearch
-                searchQuery={searchQuery}
-                onSearchChange={setSearchQuery}
-                filteredProducts={filteredProducts}
-                onProductSelect={(product) => {
-                  setSelectedProduct(product);
-                  setSearchQuery(product.name);
-                }}
+                {isWholesale && (
+                  <div className="pt-2">
+                    <p className="text-sm font-medium text-red-500 mb-1">Business Name*</p>
+                    <Input placeholder="Business name" />
+                  </div>
+                )}
+
+                {/* Search moved here similar to dashboard */}
+                <div className="pt-4">
+                  {showSearch ? (
+                    <div className="flex flex-col gap-3">
+                      <div className="flex gap-2">
+                        <ProductSearch
+                          searchQuery={searchQuery}
+                          onSearchChange={setSearchQuery}
+                          filteredProducts={filteredProducts}
+                          onProductSelect={(product) => {
+                            setSelectedProduct(product);
+                            setSearchQuery(product.name);
+                          }}
+                        />
+                        <Input
+                          type="number"
+                          min="1"
+                          value={quantity}
+                          onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
+                          className="w-20"
+                        />
+                      </div>
+                      <Button onClick={handleAddItem} className="w-full">
+                        <Plus className="mr-2 h-4 w-4" />
+                        Add Item
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button variant="outline" className="w-full justify-start text-muted-foreground" onClick={() => setShowSearch(true)}>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Search products...
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </Form>
+          </CardContent>
+        </Card>
+
+        <Card className={cardStyle}>
+          <CardHeader className="pb-2">
+            <CardTitle className="text-lg flex items-center gap-2">
+              <ShoppingCart className="h-5 w-5 text-muted-foreground" />
+              {isWholesale ? "Wholesale Order Items" : "Current Sale"}
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="min-h-[200px] flex flex-col justify-between">
+              <SaleItemsTable
+                items={items}
+                onRemoveItem={(id) => setItems(items.filter(item => item.id !== id))}
+                onUpdateQuantity={handleUpdateQuantity}
+                onTogglePriceType={handleToggleItemPriceType}
+                isWholesale={isWholesale}
               />
-              <Input
-                type="number"
-                min="1"
-                value={quantity}
-                onChange={(e) => setQuantity(parseInt(e.target.value) || 0)}
-                className="w-20"
-              />
-              <Button onClick={handleAddItem}>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Item
-              </Button>
+
+              <div className="mt-4 pt-4 border-t">
+                <SaleTotals
+                  subtotal={subtotal}
+                  discount={discount}
+                  total={total}
+                  discountAmount={discountAmount}
+                  onDiscountChange={setDiscount}
+                  isWholesale={isWholesale}
+                />
+              </div>
             </div>
-          ) : (
-            <Button onClick={() => setShowSearch(true)}>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Item
-            </Button>
-          )}
-        </div>
-
-        <SaleItemsTable
-          items={items}
-          onRemoveItem={(id) => setItems(items.filter(item => item.id !== id))}
-          onUpdateQuantity={handleUpdateQuantity}
-          onTogglePriceType={handleToggleItemPriceType}
-          isWholesale={isWholesale}
-        />
-
-        <SaleTotals
-          subtotal={subtotal}
-          discount={discount}
-          total={total}
-          discountAmount={discountAmount}
-          onDiscountChange={setDiscount}
-          isWholesale={isWholesale}
-        />
+          </CardContent>
+        </Card>
       </div>
 
       <div className="flex justify-end space-x-4">
