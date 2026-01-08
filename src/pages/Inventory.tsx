@@ -159,4 +159,5 @@ const Inventory = () => {
   );
 };
 
+// No changes needed if file was already using it.
 export default Inventory;

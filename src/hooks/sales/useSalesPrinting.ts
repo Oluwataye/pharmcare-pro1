@@ -31,20 +31,7 @@ export const useSalesPrinting = (
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<PrintReceiptProps | null>(null);
 
-  const saveReceiptData = useCallback(async (saleId: string, receiptProps: PrintReceiptProps) => {
-    try {
-      const { error } = await supabase
-        .from('receipts')
-        .insert([{
-          sale_id: saleId,
-          receipt_data: receiptProps as any
-        }]);
 
-      if (error) throw error;
-    } catch (error) {
-      console.error("Error saving receipt data:", error);
-    }
-  }, []);
 
   const executePrint = useCallback(async (customData?: PrintReceiptProps, windowRef?: Window | null) => {
     const dataToPrint = customData || previewData;
@@ -161,9 +148,7 @@ export const useSalesPrinting = (
         setShowPreview(true);
       }
 
-      if (options?.saleId) {
-        await saveReceiptData(options.saleId, receiptProps);
-      }
+
     } catch (error) {
       if (windowRef && !windowRef.closed) windowRef.close();
       console.error("Error preparing receipt:", error);
@@ -173,7 +158,7 @@ export const useSalesPrinting = (
         variant: "destructive",
       });
     }
-  }, [items, discount, saleType, storeSettings, isLoadingSettings, toast, saveReceiptData, executePrint]);
+  }, [items, discount, saleType, storeSettings, isLoadingSettings, toast, executePrint]);
 
   return {
     handlePrint,

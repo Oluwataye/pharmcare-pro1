@@ -40,7 +40,8 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
           price: Number(item.price),
           wholesalePrice: Number(item.price) * 0.85, // 15% discount for wholesale
           minWholesaleQuantity: 5, // Default minimum
-          stock: item.quantity
+          stock: item.quantity,
+          costPrice: Number((item as any).cost_price) || 0 // Added for profit tracking
         }));
 
         setProducts(mappedProducts);
@@ -61,7 +62,7 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
     // Set up realtime subscription for inventory updates
     const channel = supabase
       .channel('inventory-changes')
-      .on('postgres_changes', 
+      .on('postgres_changes',
         { event: '*', schema: 'public', table: 'inventory' },
         () => {
           fetchProducts();
@@ -76,7 +77,7 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
 
   const searchProducts = (term: string): Product[] => {
     if (!term.trim()) return [];
-    return products.filter(p => 
+    return products.filter(p =>
       p.name.toLowerCase().includes(term.toLowerCase())
     );
   };
@@ -111,9 +112,9 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
     }
 
     // If wholesale and quantity meets minimum threshold, suggest wholesale price
-    if (isWholesale && 
-        selectedProduct.minWholesaleQuantity && 
-        quantity < selectedProduct.minWholesaleQuantity) {
+    if (isWholesale &&
+      selectedProduct.minWholesaleQuantity &&
+      quantity < selectedProduct.minWholesaleQuantity) {
       toast({
         title: "Wholesale Information",
         description: `Minimum quantity for wholesale pricing is ${selectedProduct.minWholesaleQuantity}`,
@@ -175,7 +176,7 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
             <Plus className="mr-2 h-4 w-4" />
             Add Item
           </Button>
-          
+
           {isWholesale && selectedProduct.wholesalePrice && selectedProduct.minWholesaleQuantity && (
             <Badge variant="outline" className="ml-auto">
               <Package className="h-3 w-3 mr-1" />

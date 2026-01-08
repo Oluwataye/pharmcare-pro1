@@ -67,6 +67,7 @@ export const useCartItems = () => {
         unitPrice: product.price,
         isWholesale: useWholesalePrice,
         discount: itemDiscount,
+        costPrice: product.costPrice, // Store cost price for later profit calculation
         total: price * quantity * (1 - itemDiscount / 100)
       }];
     }

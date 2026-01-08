@@ -1,14 +1,13 @@
 
 import { useNavigate } from "react-router-dom";
-import { TrendingUp, Package, AlertTriangle, DollarSign } from "lucide-react";
 import { WelcomeBanner } from "./WelcomeBanner";
-import { EnhancedStatCard } from "./EnhancedStatCard";
+import { MetricCard } from "@/components/dashboard/MetricCard";
 import { EnhancedTransactionsCard } from "./EnhancedTransactionsCard";
 import { EnhancedLowStockCard } from "./EnhancedLowStockCard";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
-  
+
   // Mock data for recent transactions and low stock alerts
   const recentTransactions = [
     { id: 1, product: "Paracetamol", customer: "John Doe", amount: 1200, date: "Today, 10:30 AM" },
@@ -81,29 +80,42 @@ const AdminDashboardContent = () => {
         <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">Dashboard</h1>
       </div>
 
-      <WelcomeBanner 
-        lowStockCount={lowStockItems.length} 
+      <WelcomeBanner
+        lowStockCount={lowStockItems.length}
         onQuickAction={() => handleCardClick('/inventory')}
       />
 
       <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
         {stats.map((stat) => (
-          <EnhancedStatCard 
+          <MetricCard
             key={stat.title}
-            {...stat}
-            onClick={handleCardClick}
+            title={stat.title}
+            value={stat.value}
+            icon={stat.icon}
+            trend={{
+              value: parseFloat(stat.trend), // MetricCard expects number. Wait, stat.trend is string like "+12.5%". MetricCard definition: `trend?: { value: number; isPositive: boolean; }`.
+              // My MetricCard definition (Step 13169) uses `trend?: { value: number; isPositive: boolean; }`.
+              // But the `stats` array has `trend: "+12.5%"` (string) and `trendUp: true` (boolean).
+              // I need to adapt the props or change MetricCard to accept string trend.
+              // Let's adapt the props here.
+              isPositive: stat.trendUp
+            }}
+            // Wait, "parseFloat('+12.5%')" works? "12.5".
+            colorScheme={stat.colorScheme}
+            description={stat.comparisonLabel}
+            onClick={() => handleCardClick(stat.route)}
           />
         ))}
       </div>
 
       <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2">
-        <EnhancedTransactionsCard 
+        <EnhancedTransactionsCard
           transactions={recentTransactions}
           onItemClick={handleItemClick}
           onViewAllClick={handleCardClick}
         />
 
-        <EnhancedLowStockCard 
+        <EnhancedLowStockCard
           items={lowStockItems}
           onItemClick={handleItemClick}
           onViewAllClick={handleCardClick}

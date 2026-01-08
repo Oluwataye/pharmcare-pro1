@@ -4,6 +4,7 @@ export interface SaleItem {
   name: string;
   quantity: number;
   price: number;
+  costPrice?: number; // Added for profit tracking
   total: number;
   discount?: number; // Optional discount per item
   unitPrice?: number; // For tracking original price vs wholesale price
@@ -14,6 +15,7 @@ export interface Sale {
   id: string;
   items: SaleItem[];
   total: number;
+  profit?: number; // Added for profit tracking
   date: string;
   status: 'completed' | 'pending' | 'cancelled';
   customerName?: string;

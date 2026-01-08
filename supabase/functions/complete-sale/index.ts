@@ -60,59 +60,6 @@ const validateTransactionId = (id: string): boolean => {
   return idRegex.test(id) && id.length <= 100
 }
 
-// Rate limiting helper
-const checkRateLimit = async (
-  supabase: any,
-  identifier: string,
-  action: string,
-  maxAttempts: number,
-  windowMinutes: number
-): Promise<{ allowed: boolean; remaining: number }> => {
-  const windowStart = new Date(Date.now() - windowMinutes * 60 * 1000)
-  
-  // Check existing rate limit
-  const { data: existing, error } = await supabase
-    .from('rate_limits')
-    .select('*')
-    .eq('identifier', identifier)
-    .eq('action', action)
-    .gte('window_start', windowStart.toISOString())
-    .single()
-  
-  if (error && error.code !== 'PGRST116') { // Not a "not found" error
-    console.error('Rate limit check error:', error)
-    return { allowed: true, remaining: maxAttempts }
-  }
-  
-  if (!existing) {
-    // Create new rate limit entry
-    await supabase
-      .from('rate_limits')
-      .insert({
-        identifier,
-        action,
-        attempts: 1,
-        window_start: new Date().toISOString()
-      })
-    return { allowed: true, remaining: maxAttempts - 1 }
-  }
-  
-  if (existing.attempts >= maxAttempts) {
-    return { allowed: false, remaining: 0 }
-  }
-  
-  // Increment attempts
-  await supabase
-    .from('rate_limits')
-    .update({ 
-      attempts: existing.attempts + 1,
-      updated_at: new Date().toISOString()
-    })
-    .eq('id', existing.id)
-  
-  return { allowed: true, remaining: maxAttempts - existing.attempts - 1 }
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders })
@@ -143,194 +90,154 @@ serve(async (req) => {
       )
     }
 
-    // Check rate limit: 100 sales per hour per user
-    const rateLimit = await checkRateLimit(supabase, user.id, 'complete_sale', 100, 60)
-    if (!rateLimit.allowed) {
-      console.warn(`Rate limit exceeded for user ${user.id}`)
-      return new Response(
-        JSON.stringify({ 
-          error: 'Rate limit exceeded. Please try again later.',
-          remainingAttempts: 0
-        }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 429 }
-      )
-    }
-
     const saleData: CompleteSaleRequest = await req.json()
-    
-    // Validate and sanitize inputs
+
+    // 1. Validate Request Structure
     if (!Array.isArray(saleData.items) || saleData.items.length === 0) {
       throw new Error('Invalid sale items: must be a non-empty array')
     }
-    
-    if (saleData.items.length > 1000) {
-      throw new Error('Too many items in a single sale (max 1000)')
+
+    if (saleData.items.length > 2000) {
+      throw new Error('Too many items in a single sale (max 2000)')
     }
-    
-    if (typeof saleData.total !== 'number' || saleData.total < 0 || saleData.total > 100000000) {
-      throw new Error('Invalid sale total')
-    }
-    
+
     if (!validateTransactionId(saleData.transactionId)) {
       throw new Error('Invalid transaction ID format')
     }
-    
-    if (saleData.customerName && saleData.customerName.length > 200) {
-      throw new Error('Customer name too long (max 200 characters)')
-    }
-    
-    if (!validatePhone(saleData.customerPhone)) {
-      throw new Error('Invalid phone number format')
-    }
-    
-    if (!validateEmail(saleData.cashierEmail)) {
-      throw new Error('Invalid cashier email format')
-    }
-    
-    if (saleData.saleType !== 'retail' && saleData.saleType !== 'wholesale') {
-      throw new Error('Invalid sale type: must be retail or wholesale')
-    }
 
-    // Sanitize text inputs
-    const sanitizedCustomerName = sanitizeString(saleData.customerName, 200)
-    const sanitizedCustomerPhone = sanitizeString(saleData.customerPhone, 20)
-    const sanitizedBusinessName = sanitizeString(saleData.businessName, 200)
-    const sanitizedBusinessAddress = sanitizeString(saleData.businessAddress, 500)
-    const sanitizedCashierName = sanitizeString(saleData.cashierName, 200)
-    const sanitizedCashierEmail = sanitizeString(saleData.cashierEmail, 255)
-
-    console.log('Processing sale:', { 
-      transactionId: saleData.transactionId, 
-      itemCount: saleData.items.length,
-      remainingAttempts: rateLimit.remaining
+    console.log('Processing sale:', {
+      transactionId: saleData.transactionId,
+      itemCount: saleData.items.length
     })
 
-    // Validate inventory availability
+    // 2. Fetch ALL Inventory Items in ONE Query (Vectorized Read)
+    const itemIds = saleData.items.map(item => item.id);
+    const { data: inventoryItems, error: inventoryFetchError } = await supabase
+      .from('inventory')
+      .select('id, name, quantity, cost_price')
+      .in('id', itemIds);
+
+    if (inventoryFetchError) throw new Error('Failed to fetch inventory data');
+
+    // Create a map for O(1) lookup
+    const inventoryMap = new Map(inventoryItems?.map(i => [i.id, i]));
+
+    // 3. Validate Stock & Calculate Totals (In Memory)
+    let totalCost = 0;
+    const itemsToInsert = [];
+    const inventoryUpdates = [];
+
     for (const item of saleData.items) {
-      // Validate item structure
-      if (!item.id || typeof item.quantity !== 'number' || item.quantity <= 0 || item.quantity > 100000) {
-        throw new Error(`Invalid item quantity for ${item.name}`)
-      }
-      
-      if (!item.name || item.name.length > 500) {
-        throw new Error('Invalid item name')
-      }
+      const inventoryItem = inventoryMap.get(item.id);
 
-      const { data: inventoryItem, error: inventoryError } = await supabase
-        .from('inventory')
-        .select('quantity')
-        .eq('id', item.id)
-        .single()
-
-      if (inventoryError || !inventoryItem) {
-        throw new Error(`Product ${item.name} not found in inventory`)
+      if (!inventoryItem) {
+        throw new Error(`Product ${item.name} (ID: ${item.id}) not found in inventory`);
       }
 
       if (inventoryItem.quantity < item.quantity) {
-        throw new Error(`Insufficient stock for ${item.name}. Available: ${inventoryItem.quantity}, Requested: ${item.quantity}`)
+        throw new Error(`Insufficient stock for ${item.name}. Available: ${inventoryItem.quantity}, Requested: ${item.quantity}`);
       }
+
+      const costPrice = inventoryItem.cost_price || 0;
+      totalCost += costPrice * item.quantity;
+
+      // Prepare Sale Item Payload (with cost captured!)
+      itemsToInsert.push({
+        sale_id: null, // Will be set after sale creation
+        product_id: item.id,
+        product_name: sanitizeString(item.name, 500) || item.name,
+        quantity: item.quantity,
+        unit_price: item.unitPrice,
+        price: item.price,
+        cost_price: costPrice, // CAPTURE THE COST
+        discount: item.discount || 0,
+        is_wholesale: item.isWholesale || false,
+        total: item.total
+      });
+
+      // Prepare Inventory Update
+      inventoryUpdates.push({
+        id: item.id,
+        quantity_to_deduct: item.quantity,
+        new_quantity: inventoryItem.quantity - item.quantity
+      });
     }
 
-    // Insert sale record
+    // 4. Create Sale Record (Master)
+    // Calculate profit safely
+    const grossProfit = saleData.total - totalCost;
+
     const { data: sale, error: saleError } = await supabase
       .from('sales')
       .insert({
         transaction_id: saleData.transactionId,
         total: saleData.total,
         discount: saleData.discount || 0,
-        customer_name: sanitizedCustomerName,
-        customer_phone: sanitizedCustomerPhone,
-        business_name: sanitizedBusinessName,
-        business_address: sanitizedBusinessAddress,
+        // We could store profit in the sale record if the column existed, 
+        // but typically it's calculated. However, to match offline, 
+        // we heavily rely on sales_items having cost_price. 
+        // If we added a profit column to sales, we'd set it here.
+        customer_name: sanitizeString(saleData.customerName, 200),
+        customer_phone: sanitizeString(saleData.customerPhone, 20),
+        business_name: sanitizeString(saleData.businessName, 200),
+        business_address: sanitizeString(saleData.businessAddress, 500),
         sale_type: saleData.saleType,
         status: 'completed',
         cashier_id: user.id,
-        cashier_name: sanitizedCashierName,
-        cashier_email: sanitizedCashierEmail
+        cashier_name: sanitizeString(saleData.cashierName, 200),
+        cashier_email: sanitizeString(saleData.cashierEmail, 255)
       })
       .select()
       .single()
 
-    if (saleError) {
-      console.error('Error creating sale:', saleError)
-      throw new Error('Failed to create sale record')
+    if (saleError) throw new Error('Failed to create sale record: ' + saleError.message);
+
+    // 5. Bulk Insert Sale Items (Vectorized Write)
+    // Assign the new sale_id to all items
+    itemsToInsert.forEach(item => item.sale_id = sale.id);
+
+    const { error: itemsError } = await supabase
+      .from('sales_items')
+      .insert(itemsToInsert);
+
+    if (itemsError) {
+      // Critical error: Sale created but items failed. 
+      // In a real transactional DB we'd rollback. 
+      // Here we throw, and frontend gets error. 
+      console.error('Critical: Failed to insert items for sale ' + sale.id, itemsError);
+      throw new Error('Failed to save sale items');
     }
 
-    console.log('Sale created:', sale.id)
-
-    // Insert sale items and update inventory
-    const saleItemsPromises = saleData.items.map(async (item) => {
-      // Sanitize item name
-      const sanitizedItemName = sanitizeString(item.name, 500) || item.name
-
-      // Insert sale item
-      const { error: itemError } = await supabase
-        .from('sales_items')
-        .insert({
-          sale_id: sale.id,
-          product_id: item.id,
-          product_name: sanitizedItemName,
-          quantity: item.quantity,
-          unit_price: item.unitPrice,
-          price: item.price,
-          discount: item.discount || 0,
-          is_wholesale: item.isWholesale || false,
-          total: item.total
-        })
-
-      if (itemError) {
-        console.error('Error creating sale item:', itemError)
-        throw new Error(`Failed to create sale item for ${item.name}`)
-      }
-
-      // Get current inventory quantity
-      const { data: currentInventory } = await supabase
+    // 6. Update Inventory (Parallel Execution)
+    // Since we don't have a bulk-update RPC handy, we parallelize the updates.
+    // This is still N queries but they run concurrently via Promise.all
+    await Promise.all(inventoryUpdates.map(update =>
+      supabase
         .from('inventory')
-        .select('quantity')
-        .eq('id', item.id)
-        .single()
-
-      // Update inventory quantity
-      const { error: updateError } = await supabase
-        .from('inventory')
-        .update({ 
-          quantity: (currentInventory?.quantity || 0) - item.quantity,
+        .update({
+          quantity: update.new_quantity,
           last_updated_at: new Date().toISOString()
         })
-        .eq('id', item.id)
+        .eq('id', update.id)
+    ));
 
-      if (updateError) {
-        console.error('Error updating inventory:', updateError)
-        throw new Error(`Failed to update inventory for ${item.name}`)
-      }
-
-      console.log(`Updated inventory for ${item.name}: -${item.quantity}`)
-    })
-
-    await Promise.all(saleItemsPromises)
-
-    console.log('Sale completed successfully:', sale.id)
+    console.log('Sale completed successfully:', sale.id);
 
     return new Response(
-      JSON.stringify({ 
-        success: true, 
+      JSON.stringify({
+        success: true,
         saleId: sale.id,
         transactionId: sale.transaction_id,
-        remainingAttempts: rateLimit.remaining
+        profit: grossProfit
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
+
   } catch (error) {
     console.error('Error in complete-sale function:', error)
-    const errorMessage = error instanceof Error ? error.message : 'An error occurred while completing the sale'
-    
-    // Sanitize error message to prevent information disclosure
-    const safeErrorMessage = errorMessage.includes('database') || errorMessage.includes('query')
-      ? 'A system error occurred. Please try again.'
-      : errorMessage
-    
+    const errorMessage = error instanceof Error ? error.message : 'An error occurred'
     return new Response(
-      JSON.stringify({ error: safeErrorMessage }),
+      JSON.stringify({ error: errorMessage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     )
   }

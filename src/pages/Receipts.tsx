@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useReceiptReprint } from "@/hooks/sales/useReceiptReprint";
 import { ReceiptPreview } from "@/components/receipts/ReceiptPreview";
+import { RefundDialog } from "@/components/refunds/RefundDialog";
 import {
   Table,
   TableBody,
@@ -13,9 +14,10 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EnhancedCard } from "@/components/ui/EnhancedCard";
-import { Printer, Receipt, Loader2 } from "lucide-react";
+import { Printer, Receipt, Loader2, Undo2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/components/ui/tooltip";
 
 interface ReceiptRecord {
   id: string;
@@ -28,6 +30,9 @@ const Receipts = () => {
   const { toast } = useToast();
   const [receipts, setReceipts] = useState<ReceiptRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [showRefundDialog, setShowRefundDialog] = useState(false);
+  const [selectedReceiptForRefund, setSelectedReceiptForRefund] = useState<ReceiptRecord | null>(null);
+
   const {
     fetchAndPreviewReceipt,
     executePrint,
@@ -64,9 +69,13 @@ const Receipts = () => {
   };
 
   const handlePreviewReceipt = (saleId: string) => {
-    // Open window synchronously to capture gesture
     const windowRef = openPrintWindow();
     fetchAndPreviewReceipt(saleId, windowRef);
+  };
+
+  const handleRefundClick = (receipt: ReceiptRecord) => {
+    setSelectedReceiptForRefund(receipt);
+    setShowRefundDialog(true);
   };
 
   return (
@@ -118,13 +127,18 @@ const Receipts = () => {
                 </TableHeader>
                 <TableBody>
                   {receipts.map((receipt) => {
-                    const data = receipt.receipt_data;
-                    const total = data.items?.reduce(
-                      (sum: number, item: any) => sum + item.price * item.quantity,
+                    const data = typeof receipt.receipt_data === 'string'
+                      ? JSON.parse(receipt.receipt_data)
+                      : receipt.receipt_data;
+
+                    if (!data) return null;
+
+                    const total = data.total || data.items?.reduce(
+                      (sum: number, item: any) => sum + (item.price || item.unit_price) * item.quantity,
                       0
                     ) || 0;
                     const discount = data.discount || 0;
-                    const finalTotal = total - (total * discount / 100);
+                    const finalTotal = total - (total * (discount / 100));
 
                     return (
                       <TableRow key={receipt.id}>
@@ -147,13 +161,38 @@ const Receipts = () => {
                           ₦{finalTotal.toLocaleString()}
                         </TableCell>
                         <TableCell>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handlePreviewReceipt(receipt.sale_id)}
-                          >
-                            <Printer className="h-4 w-4" />
-                          </Button>
+                          <div className="flex items-center space-x-2">
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handlePreviewReceipt(receipt.sale_id)}
+                                  >
+                                    <Printer className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Reprint Receipt</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleRefundClick(receipt)}
+                                    className="text-red-500 hover:text-red-600 hover:bg-red-50"
+                                  >
+                                    <Undo2 className="h-4 w-4" />
+                                  </Button>
+                                </TooltipTrigger>
+                                <TooltipContent>Refund Sale</TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -175,6 +214,35 @@ const Receipts = () => {
             executePrint(undefined, windowRef);
           }}
         />
+      )}
+
+      {selectedReceiptForRefund && (
+        (() => {
+          const data = typeof selectedReceiptForRefund.receipt_data === 'string'
+            ? JSON.parse(selectedReceiptForRefund.receipt_data)
+            : selectedReceiptForRefund.receipt_data;
+
+          if (!data) return null;
+
+          const total = data.total || data.items?.reduce(
+            (sum: number, item: any) => sum + (item.price || item.unit_price) * item.quantity,
+            0
+          ) || 0;
+          const discount = data.discount || 0;
+          const finalTotal = total - (total * (discount / 100));
+
+          return (
+            <RefundDialog
+              open={showRefundDialog}
+              onOpenChange={setShowRefundDialog}
+              saleId={selectedReceiptForRefund.sale_id}
+              transactionId={data.transactionId || selectedReceiptForRefund.id}
+              items={data.items || []}
+              customerName={data.customerName || data.businessName}
+              originalAmount={finalTotal}
+            />
+          );
+        })()
       )}
     </div>
   );

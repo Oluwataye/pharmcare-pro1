@@ -22,6 +22,7 @@ interface CompleteSaleOptions {
 export const useSalesCompletion = (
   items: SaleItem[],
   calculateTotal: () => number,
+  discount: number, // Add discount percentage
   clearItems: () => void,
   clearDiscount: () => void,
   resetSaleType: () => void
@@ -67,7 +68,7 @@ export const useSalesCompletion = (
       const saleData = {
         items: [...items],
         total: calculateTotal(),
-        discount: 0,
+        discount: discount, // Use actual discount percentage
         customerName: options?.customerName,
         customerPhone: options?.customerPhone,
         businessName: options?.businessName,

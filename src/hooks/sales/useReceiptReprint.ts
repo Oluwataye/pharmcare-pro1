@@ -35,8 +35,13 @@ export const useReceiptReprint = () => {
       if (error) throw error;
 
       if (data?.receipt_data) {
+        // Parse if it's a string, otherwise use as is
+        const rawData = typeof data.receipt_data === 'string'
+          ? JSON.parse(data.receipt_data)
+          : data.receipt_data;
+
         // Clean the receipt data
-        const cleanReceiptData = JSON.parse(JSON.stringify(data.receipt_data), (key, value) => {
+        const cleanReceiptData = JSON.parse(JSON.stringify(rawData), (key, value) => {
           if (value && typeof value === 'object' && '_type' in value && 'value' in value) {
             return value.value;
           }

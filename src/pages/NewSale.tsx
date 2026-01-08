@@ -59,7 +59,7 @@ const NewSale = () => {
     isOfflineMode,
     openPrintWindow
   } = useSales({
-    cashierName: user ? user.username || user.name : undefined,
+    cashierName: user ? (user.username || user.name || user.email) : undefined,
     cashierEmail: user ? user.email : undefined,
     cashierId: user ? user.id : undefined
   });
