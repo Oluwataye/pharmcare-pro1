@@ -15,7 +15,7 @@ const AdminDashboardContent = () => {
     { id: 3, product: "Vitamin C", customer: "Mike Johnson", amount: 850, date: "Yesterday, 04:20 PM" },
   ];
 
-  const lowStockItems = [
+  const mockLowStockItems = [
     { id: 1, product: "Paracetamol", category: "Pain Relief", quantity: 10, reorderLevel: 15 },
     { id: 2, product: "Amoxicillin", category: "Antibiotics", quantity: 5, reorderLevel: 20 },
     { id: 3, product: "Insulin", category: "Diabetes", quantity: 3, reorderLevel: 10 },
@@ -44,7 +44,7 @@ const AdminDashboardContent = () => {
     },
     {
       title: "Low Stock Items",
-      value: lowStockItems.length.toString(),
+      value: mockLowStockItems.length.toString(),
       icon: AlertTriangle,
       trend: "+5 new",
       trendUp: false,
@@ -81,7 +81,7 @@ const AdminDashboardContent = () => {
       </div>
 
       <WelcomeBanner
-        lowStockCount={lowStockItems.length}
+        lowStockCount={mockLowStockItems.length}
         onQuickAction={() => handleCardClick('/inventory')}
       />
 
@@ -116,7 +116,7 @@ const AdminDashboardContent = () => {
         />
 
         <EnhancedLowStockCard
-          items={lowStockItems}
+          items={mockLowStockItems}
           onItemClick={handleItemClick}
           onViewAllClick={handleCardClick}
         />

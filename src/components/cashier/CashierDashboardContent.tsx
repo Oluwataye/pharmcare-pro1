@@ -66,7 +66,7 @@ export const CashierDashboardContent = () => {
   ];
 
   // Mock low stock items for cashier view
-  const lowStockItems: LowStockItem[] = [
+  const mockLowStockItems: LowStockItem[] = [
     { id: 1, product: "Paracetamol", category: "Pain Relief", quantity: 10, reorderLevel: 15 },
     { id: 2, product: "Amoxicillin", category: "Antibiotics", quantity: 5, reorderLevel: 20 },
   ];
@@ -125,7 +125,7 @@ export const CashierDashboardContent = () => {
     },
     {
       title: "Low Stock Items",
-      value: lowStockItems.length.toString(),
+      value: mockLowStockItems.length.toString(),
       icon: AlertTriangle,
       description: "Needs attention",
       iconColor: "text-amber-500",
@@ -175,7 +175,7 @@ export const CashierDashboardContent = () => {
             />
 
             <EnhancedLowStockCard
-              items={lowStockItems}
+              items={mockLowStockItems}
               onItemClick={handleItemClick}
               onViewAllClick={handleCardClick}
             />

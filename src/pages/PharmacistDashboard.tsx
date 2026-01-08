@@ -36,7 +36,7 @@ const PharmacistDashboard = () => {
     { id: 2, product: "Amoxicillin", customer: "Jane Smith", amount: 2500, date: "Today, 09:45 AM" },
   ];
 
-  const lowStockItems = medications
+  const mockLowStockItems = medications
     .filter(med => med.status === "Low Stock" || med.status === "Critical")
     .slice(0, 3)
     .map((med, index) => ({
@@ -102,7 +102,7 @@ const PharmacistDashboard = () => {
             />
 
             <EnhancedLowStockCard
-              items={lowStockItems}
+              items={mockLowStockItems}
               onItemClick={handleItemClick}
               onViewAllClick={handleCardClick}
             />
