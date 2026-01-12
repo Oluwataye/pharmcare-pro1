@@ -40,7 +40,7 @@ const userSchema = z.object({
   email: z.string().email("Invalid email address"),
   username: z.string().min(3, "Username must be at least 3 characters").optional(),
   password: passwordSchema,
-  role: z.enum(["SUPER_ADMIN", "PHARMACIST", "CASHIER"] as const),
+  role: z.enum(["SUPER_ADMIN", "PHARMACIST", "DISPENSER"] as const),
 });
 
 type UserFormValues = z.infer<typeof userSchema>;
@@ -62,7 +62,7 @@ export function AddUserDialog({ onUserAdded }: AddUserDialogProps) {
       email: "",
       username: "",
       password: "",
-      role: "CASHIER",
+      role: "DISPENSER",
     },
   });
 
@@ -79,7 +79,7 @@ export function AddUserDialog({ onUserAdded }: AddUserDialogProps) {
     setIsSubmitting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      
+
       if (!session) {
         throw new Error("You must be logged in to create users");
       }
@@ -116,14 +116,14 @@ export function AddUserDialog({ onUserAdded }: AddUserDialogProps) {
         username: profile?.username || data.username || undefined,
         role: (roleData?.role as UserRole) || data.role as UserRole,
       };
-      
+
       onUserAdded(newUser);
-      
+
       toast({
         title: "Success",
         description: "User has been created successfully",
       });
-      
+
       setOpen(false);
       form.reset();
     } catch (error) {
@@ -235,7 +235,7 @@ export function AddUserDialog({ onUserAdded }: AddUserDialogProps) {
                     <SelectContent>
                       <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                       <SelectItem value="PHARMACIST">Pharmacist</SelectItem>
-                      <SelectItem value="CASHIER">Cashier</SelectItem>
+                      <SelectItem value="DISPENSER">Dispenser</SelectItem>
                     </SelectContent>
                   </Select>
                   <FormMessage />

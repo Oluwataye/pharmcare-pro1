@@ -19,7 +19,7 @@ const editUserSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters").max(50, "Name must be less than 50 characters"),
   email: z.string().email("Invalid email address"),
   username: z.string().min(3, "Username must be at least 3 characters").max(20, "Username must be less than 20 characters").optional().or(z.literal("")),
-  role: z.enum(["SUPER_ADMIN", "PHARMACIST", "CASHIER"] as const),
+  role: z.enum(["SUPER_ADMIN", "PHARMACIST", "DISPENSER"] as const),
   phone: z.string().optional().or(z.literal("")),
   department: z.string().optional().or(z.literal("")),
   notes: z.string().max(500, "Notes must be less than 500 characters").optional().or(z.literal("")),
@@ -68,7 +68,7 @@ export function EditUserDialog({ user, onUserUpdated }: EditUserDialogProps) {
 
   const onSubmit = async (data: EditUserFormValues) => {
     setIsSubmitting(true);
-    
+
     try {
       // Validate email is not already taken by another user
       const existingEmails = ["john@example.com", "jane@example.com", "mike@example.com"];
@@ -78,7 +78,7 @@ export function EditUserDialog({ user, onUserUpdated }: EditUserDialogProps) {
 
       // Simulate API call with proper delay
       await new Promise(resolve => setTimeout(resolve, 1000));
-      
+
       const updatedUser: User = {
         ...user,
         name: data.name,
@@ -89,7 +89,7 @@ export function EditUserDialog({ user, onUserUpdated }: EditUserDialogProps) {
         ...(data.department && { department: data.department }),
         ...(data.notes && { notes: data.notes }),
       };
-      
+
       onUserUpdated(updatedUser);
       toast({
         title: "Success",
@@ -135,7 +135,7 @@ export function EditUserDialog({ user, onUserUpdated }: EditUserDialogProps) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="email"
@@ -152,7 +152,7 @@ export function EditUserDialog({ user, onUserUpdated }: EditUserDialogProps) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="username"
@@ -169,7 +169,7 @@ export function EditUserDialog({ user, onUserUpdated }: EditUserDialogProps) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="role"
@@ -185,7 +185,7 @@ export function EditUserDialog({ user, onUserUpdated }: EditUserDialogProps) {
                       <SelectContent>
                         <SelectItem value="SUPER_ADMIN">Super Admin</SelectItem>
                         <SelectItem value="PHARMACIST">Pharmacist</SelectItem>
-                        <SelectItem value="CASHIER">Cashier</SelectItem>
+                        <SelectItem value="DISPENSER">Dispenser</SelectItem>
                       </SelectContent>
                     </Select>
                     <FormDescription>
@@ -195,7 +195,7 @@ export function EditUserDialog({ user, onUserUpdated }: EditUserDialogProps) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="phone"
@@ -212,7 +212,7 @@ export function EditUserDialog({ user, onUserUpdated }: EditUserDialogProps) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="department"
@@ -229,7 +229,7 @@ export function EditUserDialog({ user, onUserUpdated }: EditUserDialogProps) {
                   </FormItem>
                 )}
               />
-              
+
               <FormField
                 control={form.control}
                 name="notes"
@@ -237,11 +237,11 @@ export function EditUserDialog({ user, onUserUpdated }: EditUserDialogProps) {
                   <FormItem>
                     <FormLabel>Notes</FormLabel>
                     <FormControl>
-                      <Textarea 
+                      <Textarea
                         placeholder="Additional information about this user..."
                         className="resize-none"
                         rows={3}
-                        {...field} 
+                        {...field}
                       />
                     </FormControl>
                     <FormDescription>
@@ -252,11 +252,11 @@ export function EditUserDialog({ user, onUserUpdated }: EditUserDialogProps) {
                 )}
               />
             </div>
-            
+
             <DialogFooter className="gap-2 pt-4">
-              <Button 
-                type="button" 
-                variant="outline" 
+              <Button
+                type="button"
+                variant="outline"
                 onClick={() => setOpen(false)}
                 disabled={isSubmitting}
               >

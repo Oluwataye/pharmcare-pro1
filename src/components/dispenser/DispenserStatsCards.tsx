@@ -10,12 +10,12 @@ interface StatsCard {
   route: string;
 }
 
-interface CashierStatsCardsProps {
+interface DispenserStatsCardsProps {
   statsCards: StatsCard[];
   handleCardClick: (route: string) => void;
 }
 
-export const CashierStatsCards = ({ statsCards, handleCardClick }: CashierStatsCardsProps) => {
+export const DispenserStatsCards = ({ statsCards, handleCardClick }: DispenserStatsCardsProps) => {
   return (
     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       {statsCards.map((card, index) => {

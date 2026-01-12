@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
-import { CashierHeader } from "./CashierHeader";
-import { CashierStatsCards } from "./CashierStatsCards";
+import { DispenserHeader } from "./DispenserHeader";
+import { DispenserStatsCards } from "./DispenserStatsCards";
 import { EnhancedTransactionsCard } from "@/components/admin/EnhancedTransactionsCard";
 import { EnhancedLowStockCard } from "@/components/admin/EnhancedLowStockCard";
 import { TransactionsTable } from "./TransactionsTable";
@@ -30,7 +30,7 @@ interface LowStockItem {
   reorderLevel: number;
 }
 
-export const CashierDashboardContent = () => {
+export const DispenserDashboardContent = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [showNewSaleForm, setShowNewSaleForm] = useState(false);
@@ -66,7 +66,7 @@ export const CashierDashboardContent = () => {
     },
   ];
 
-  // Mock low stock items for cashier view
+  // Mock low stock items for dispenser view
   const mockLowStockItems: LowStockItem[] = [
     { id: 1, product: "Paracetamol", category: "Pain Relief", quantity: 10, reorderLevel: 15 },
     { id: 2, product: "Amoxicillin", category: "Antibiotics", quantity: 5, reorderLevel: 20 },
@@ -137,10 +137,10 @@ export const CashierDashboardContent = () => {
   return (
     <div className="space-y-6 animate-fade-in px-2 md:px-0">
       <div>
-        <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">Cashier Dashboard</h1>
+        <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">Dispenser Dashboard</h1>
       </div>
 
-      <CashierHeader
+      <DispenserHeader
         searchQuery={searchQuery}
         setSearchQuery={setSearchQuery}
         handleNewSale={handleNewSale}
@@ -157,7 +157,7 @@ export const CashierDashboardContent = () => {
         </Card>
       ) : (
         <>
-          <CashierStatsCards
+          <DispenserStatsCards
             statsCards={statsCards}
             handleCardClick={handleCardClick}
           />

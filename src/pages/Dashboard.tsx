@@ -1,12 +1,12 @@
 import { useAuth } from "@/contexts/AuthContext";
-import CashierDashboard from "./CashierDashboard";
+import DispenserDashboard from "./DispenserDashboard";
 import PharmacistDashboard from "./PharmacistDashboard";
 import AdminDashboardContent from "@/components/admin/AdminDashboardContent";
 import { useInventoryAlerts } from "@/hooks/useInventoryAlerts";
 
 const Dashboard = () => {
   const { user } = useAuth();
-  
+
   // Trigger inventory alert notifications
   useInventoryAlerts();
 
@@ -15,8 +15,8 @@ const Dashboard = () => {
   }
 
   switch (user.role) {
-    case "CASHIER":
-      return <CashierDashboard />;
+    case "DISPENSER":
+      return <DispenserDashboard />;
     case "PHARMACIST":
       return <PharmacistDashboard />;
     case "SUPER_ADMIN":

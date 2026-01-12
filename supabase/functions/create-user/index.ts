@@ -58,7 +58,7 @@ const checkRateLimit = async (
   windowMinutes: number
 ): Promise<{ allowed: boolean; remaining: number }> => {
   const windowStart = new Date(Date.now() - windowMinutes * 60 * 1000)
-  
+
   const { data: existing, error } = await supabase
     .from('rate_limits')
     .select('*')
@@ -66,12 +66,12 @@ const checkRateLimit = async (
     .eq('action', action)
     .gte('window_start', windowStart.toISOString())
     .single()
-  
+
   if (error && error.code !== 'PGRST116') {
     console.error('Rate limit check error:', error)
     return { allowed: true, remaining: maxAttempts }
   }
-  
+
   if (!existing) {
     await supabase
       .from('rate_limits')
@@ -83,19 +83,19 @@ const checkRateLimit = async (
       })
     return { allowed: true, remaining: maxAttempts - 1 }
   }
-  
+
   if (existing.attempts >= maxAttempts) {
     return { allowed: false, remaining: 0 }
   }
-  
+
   await supabase
     .from('rate_limits')
-    .update({ 
+    .update({
       attempts: existing.attempts + 1,
       updated_at: new Date().toISOString()
     })
     .eq('id', existing.id)
-  
+
   return { allowed: true, remaining: maxAttempts - existing.attempts - 1 }
 }
 
@@ -149,7 +149,7 @@ serve(async (req) => {
     if (!rateLimit.allowed) {
       console.warn(`Rate limit exceeded for user creation by ${user.id}`)
       return new Response(
-        JSON.stringify({ 
+        JSON.stringify({
           error: 'Rate limit exceeded. Please try again later.',
           remainingAttempts: 0
         }),
@@ -177,7 +177,7 @@ serve(async (req) => {
       throw new Error('Username must be 3-50 characters and contain only letters, numbers, underscores, and dashes')
     }
 
-    const validRoles = ['SUPER_ADMIN', 'PHARMACIST', 'CASHIER']
+    const validRoles = ['SUPER_ADMIN', 'PHARMACIST', 'DISPENSER']
     if (role && !validRoles.includes(role)) {
       throw new Error('Invalid role')
     }
@@ -187,7 +187,7 @@ serve(async (req) => {
     const sanitizedUsername = sanitizeString(username, 50)
     const sanitizedEmail = email.toLowerCase().trim()
 
-    console.log(`Creating user: ${sanitizedEmail} with role ${role || 'CASHIER'}`)
+    console.log(`Creating user: ${sanitizedEmail} with role ${role || 'DISPENSER'}`)
 
     // Create user with admin client
     const { data: newUser, error: createError } = await supabaseAdmin.auth.admin.createUser({
@@ -197,13 +197,13 @@ serve(async (req) => {
       user_metadata: {
         name: sanitizedName,
         username: sanitizedUsername,
-        role: role || 'CASHIER'
+        role: role || 'DISPENSER'
       }
     })
 
     if (createError) {
       console.error('Error creating user:', createError)
-      
+
       // Sanitize error message
       if (createError.message.includes('already registered')) {
         throw new Error('A user with this email already exists')
@@ -212,8 +212,8 @@ serve(async (req) => {
     }
 
     // The trigger will create the profile and default role
-    // But we need to update the role if it's not CASHIER
-    if (role && role !== 'CASHIER') {
+    // But we need to update the role if it's not DISPENSER
+    if (role && role !== 'DISPENSER') {
       const { error: roleUpdateError } = await supabaseAdmin
         .from('user_roles')
         .update({ role })
@@ -227,7 +227,7 @@ serve(async (req) => {
     console.log(`User created successfully: ${newUser.user.id}`)
 
     return new Response(
-      JSON.stringify({ 
+      JSON.stringify({
         user: {
           id: newUser.user.id,
           email: newUser.user.email,
@@ -240,12 +240,12 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error in create-user function:', error)
     const errorMessage = error instanceof Error ? error.message : 'An error occurred while creating user'
-    
+
     // Sanitize error message to prevent information disclosure
     const safeErrorMessage = errorMessage.includes('database') || errorMessage.includes('query')
       ? 'A system error occurred. Please try again.'
       : errorMessage
-    
+
     return new Response(
       JSON.stringify({ error: safeErrorMessage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }

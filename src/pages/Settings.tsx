@@ -226,8 +226,8 @@ const Settings = () => {
     }
   };
 
-  // Show user profile settings for cashier and pharmacist
-  if (user?.role === "CASHIER" || user?.role === "PHARMACIST") {
+  // Show user profile settings for dispenser and pharmacist
+  if (user?.role === "DISPENSER" || user?.role === "PHARMACIST") {
     return <UserProfileSettings />;
   }
 

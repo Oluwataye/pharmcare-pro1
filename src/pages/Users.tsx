@@ -82,7 +82,7 @@ const Users = () => {
         email: authUsersMap.get(profile.user_id) || '',
         name: profile.name,
         username: profile.username || undefined,
-        role: rolesMap.get(profile.user_id) || 'CASHIER',
+        role: rolesMap.get(profile.user_id) || 'DISPENSER',
       }));
 
       setUsers(usersList);
@@ -157,7 +157,7 @@ const Users = () => {
   const totalUsers = users.length;
   const activeUsers = users.length;
   const pharmacists = users.filter(user => user.role === "PHARMACIST").length;
-  const cashiers = users.filter(user => user.role === "CASHIER").length;
+  const dispensers = users.filter(user => user.role === "DISPENSER").length;
   const superAdmins = users.filter(user => user.role === "SUPER_ADMIN").length;
 
   return (
@@ -215,8 +215,8 @@ const Users = () => {
           comparisonLabel="Staff members"
         />
         <EnhancedStatCard
-          title="Cashiers"
-          value={cashiers.toString()}
+          title="Dispensers"
+          value={dispensers.toString()}
           icon={UserCheck}
           trend=""
           trendUp={true}

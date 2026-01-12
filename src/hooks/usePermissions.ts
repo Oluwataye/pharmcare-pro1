@@ -7,17 +7,17 @@ export function usePermissions() {
 
   const hasPermission = (permission: Permission): boolean => {
     if (!user) return false;
-    
+
     // Special case: all users can access and manage sales (both retail and wholesale)
     if (permission.resource === 'sales' || permission.resource === 'wholesale') {
       return true;
     }
-    
-    // Special case: CASHIER can't access inventory
-    if (user.role === 'CASHIER' && permission.resource === 'inventory') {
+
+    // Special case: DISPENSER can't access inventory
+    if (user.role === 'DISPENSER' && permission.resource === 'inventory') {
       return false;
     }
-    
+
     const rolePermissions = ROLE_PERMISSIONS[user.role];
     return rolePermissions.some(
       (p) => p.action === permission.action && p.resource === permission.resource
@@ -25,14 +25,14 @@ export function usePermissions() {
   };
 
   const canAccessInventory = (): boolean => {
-    // Explicitly prevent CASHIER from accessing inventory
-    if (user?.role === 'CASHIER') return false;
+    // Explicitly prevent DISPENSER from accessing inventory
+    if (user?.role === 'DISPENSER') return false;
     return hasPermission({ action: 'read', resource: 'inventory' });
   };
 
   const canManageInventory = (): boolean => {
-    // Explicitly prevent CASHIER from managing inventory
-    if (user?.role === 'CASHIER') return false;
+    // Explicitly prevent DISPENSER from managing inventory
+    if (user?.role === 'DISPENSER') return false;
     return hasPermission({ action: 'create', resource: 'inventory' });
   };
 
@@ -61,7 +61,7 @@ export function usePermissions() {
   const canDeleteUsers = (): boolean => {
     return hasPermission({ action: 'delete', resource: 'users' });
   };
-  
+
   const canResetPassword = (): boolean => {
     return hasPermission({ action: 'update', resource: 'users' });
   };
