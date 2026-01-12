@@ -4,7 +4,8 @@ import { WelcomeBanner } from "./WelcomeBanner";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { EnhancedTransactionsCard } from "./EnhancedTransactionsCard";
 import { EnhancedLowStockCard } from "./EnhancedLowStockCard";
-import { AlertTriangle, DollarSign, Package, TrendingUp } from "lucide-react";
+import { AlertTriangle, Package, TrendingUp } from "lucide-react";
+import { NairaSign } from "@/components/icons/NairaSign";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
@@ -35,7 +36,7 @@ const AdminDashboardContent = () => {
     {
       title: "Today's Sales",
       value: "₦1,234",
-      icon: DollarSign,
+      icon: NairaSign,
       trend: "+12.5%",
       trendUp: true,
       route: "/sales",

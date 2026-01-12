@@ -8,7 +8,8 @@ import { useRefund } from '@/hooks/sales/useRefund';
 import { RefundApprovalDialog } from '@/components/refunds/RefundApprovalDialog';
 import { Refund } from '@/types/refund';
 import { format } from 'date-fns';
-import { CheckCircle, XCircle, Clock, DollarSign } from 'lucide-react';
+import { CheckCircle, XCircle, Clock } from 'lucide-react';
+import { NairaSign } from "@/components/icons/NairaSign";
 import { Skeleton } from '@/components/ui/skeleton';
 import { EnhancedCard } from '@/components/ui/EnhancedCard';
 import { EnhancedStatCard } from '@/components/admin/EnhancedStatCard';
@@ -194,7 +195,7 @@ const RefundApproval = () => {
                 <EnhancedStatCard
                     title="Total Refunded"
                     value={`₦${stats.totalAmount.toLocaleString()}`}
-                    icon={DollarSign}
+                    icon={NairaSign}
                     trend=""
                     trendUp={false}
                     onClick={() => { }}

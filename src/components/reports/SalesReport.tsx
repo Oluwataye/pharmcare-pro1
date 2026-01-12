@@ -9,7 +9,8 @@ import {
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "@/components/dashboard/MetricCard";
-import { DollarSign, TrendingUp, TrendingDown, Percent } from "lucide-react";
+import { TrendingUp, TrendingDown, Percent } from "lucide-react";
+import { NairaSign } from "@/components/icons/NairaSign";
 import { format, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
 
@@ -125,7 +126,7 @@ const SalesReport = () => {
         <MetricCard
           title="Total Revenue (6M)"
           value={`₦${metrics.revenue.toLocaleString()}`}
-          icon={DollarSign}
+          icon={NairaSign}
           description="Last 6 months"
           trend={{ value: 12, isPositive: true }}
           colorScheme="primary"

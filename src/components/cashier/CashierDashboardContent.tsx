@@ -9,7 +9,8 @@ import { EnhancedLowStockCard } from "@/components/admin/EnhancedLowStockCard";
 import { TransactionsTable } from "./TransactionsTable";
 import { NewSaleForm } from "./NewSaleForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { AlertTriangle, DollarSign, Receipt, TrendingUp, Users } from "lucide-react";
+import { AlertTriangle, Receipt, TrendingUp, Users } from "lucide-react";
+import { NairaSign } from "@/components/icons/NairaSign";
 
 interface Transaction {
   id: number;
@@ -102,7 +103,7 @@ export const CashierDashboardContent = () => {
     {
       title: "Today's Sales",
       value: "₦9,050",
-      icon: DollarSign,
+      icon: NairaSign,
       description: "+8% from yesterday",
       iconColor: "text-primary",
       route: "/sales"

@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { format } from 'date-fns';
-import { CalendarIcon, Printer, RefreshCw, Download, FileText, CheckCircle, AlertCircle, Clock, DollarSign } from 'lucide-react';
+import { CalendarIcon, Printer, RefreshCw, Download, FileText, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { NairaSign } from "@/components/icons/NairaSign";
 import { useToast } from '@/hooks/use-toast';
 import { useReceiptReprint } from '@/hooks/sales/useReceiptReprint';
 import { ReceiptPreview } from '@/components/receipts/ReceiptPreview';
@@ -454,7 +455,7 @@ const PrintHistory = () => {
                                     onClick={() => handleRefund(analytic)}
                                     disabled={!analytic.sale_id || !analytic.total_amount}
                                   >
-                                    <DollarSign className="w-4 h-4 text-destructive" />
+                                    <NairaSign className="w-4 h-4 text-destructive" />
                                   </Button>
                                 </TooltipTrigger>
                                 <TooltipContent>

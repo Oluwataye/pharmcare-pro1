@@ -1,4 +1,5 @@
-import { DollarSign, Receipt, TrendingUp, Percent, Banknote } from "lucide-react";
+import { Receipt, TrendingUp, Percent, Banknote } from "lucide-react";
+import { NairaSign } from "@/components/icons/NairaSign";
 import { EnhancedStatCard } from "@/components/admin/EnhancedStatCard";
 
 interface SalesStatsCardsProps {
@@ -27,7 +28,7 @@ const SalesStatsCards = ({
       <EnhancedStatCard
         title="Total Sales Today"
         value={`₦${totalSalesToday.toLocaleString()}`}
-        icon={DollarSign}
+        icon={NairaSign}
         trend=""
         trendUp={true}
         route="/sales"

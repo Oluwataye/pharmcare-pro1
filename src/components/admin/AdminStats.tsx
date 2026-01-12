@@ -3,8 +3,8 @@ import {
   TrendingUp,
   Package,
   AlertTriangle,
-  DollarSign,
 } from "lucide-react";
+import { NairaSign } from "@/components/icons/NairaSign";
 import {
   Card,
   CardContent,
@@ -23,7 +23,7 @@ interface StatCardProps {
 }
 
 const StatCard = ({ title, value, icon: Icon, trend, trendUp, route, onClick }: StatCardProps) => (
-  <Card 
+  <Card
     className="relative overflow-hidden transition-all hover:shadow-lg cursor-pointer"
     onClick={() => onClick(route)}
   >
@@ -35,9 +35,8 @@ const StatCard = ({ title, value, icon: Icon, trend, trendUp, route, onClick }: 
           </p>
           <p className="text-xl md:text-2xl font-bold">{value}</p>
           <span
-            className={`inline-flex items-center text-sm font-medium ${
-              trendUp ? "text-green-600" : "text-red-600"
-            }`}
+            className={`inline-flex items-center text-sm font-medium ${trendUp ? "text-green-600" : "text-red-600"
+              }`}
           >
             {trend}
           </span>
@@ -84,7 +83,7 @@ export const AdminStats = ({ onCardClick }: AdminStatsProps) => {
     {
       title: "Revenue (MTD)",
       value: "₦45,678",
-      icon: DollarSign,
+      icon: NairaSign,
       trend: "+8.2%",
       trendUp: true,
       route: "/reports",
@@ -94,7 +93,7 @@ export const AdminStats = ({ onCardClick }: AdminStatsProps) => {
   return (
     <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat) => (
-        <StatCard 
+        <StatCard
           key={stat.title}
           {...stat}
           onClick={onCardClick}

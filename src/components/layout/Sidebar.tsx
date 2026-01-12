@@ -18,8 +18,9 @@ import {
   ChevronLeft,
   Receipt,
   Printer,
-  DollarSign,
+  Shield,
 } from "lucide-react";
+import { NairaSign } from "@/components/icons/NairaSign";
 
 interface SidebarProps {
   onClose?: () => void;
@@ -78,7 +79,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       condition: canAccessReports()
     },
     {
-      icon: DollarSign,
+      icon: NairaSign,
       label: "Refunds",
       path: "/refunds",
       condition: canAccessReports()
