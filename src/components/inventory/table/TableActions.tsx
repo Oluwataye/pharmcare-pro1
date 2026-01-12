@@ -1,17 +1,29 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Pencil, Trash } from "lucide-react";
+import { Pencil, Trash, ClipboardCheck } from "lucide-react";
 
 interface TableActionsProps {
   itemId: string;
   onEdit: (itemId: string) => void;
   onDelete: (itemId: string) => void;
+  onAdjust?: (itemId: string) => void;
 }
 
-export const TableActions = ({ itemId, onEdit, onDelete }: TableActionsProps) => {
+export const TableActions = ({ itemId, onEdit, onDelete, onAdjust }: TableActionsProps) => {
   return (
     <div className="flex justify-end gap-2">
+      {onAdjust && (
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onAdjust(itemId)}
+          title="Adjust Stock"
+          className="text-primary hover:text-primary hover:bg-primary/10"
+        >
+          <ClipboardCheck className="h-4 w-4" />
+        </Button>
+      )}
       <Button
         variant="ghost"
         size="icon"

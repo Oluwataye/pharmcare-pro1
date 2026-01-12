@@ -195,11 +195,41 @@ export const AddInventoryForm = ({
             label="Cost Price (₦)"
             type="number"
             value={formData.costPrice || 0}
-            onChange={(value) => handleInputChange("costPrice", parseFloat(value) || 0)}
+            onChange={(value) => {
+              const cost = parseFloat(value) || 0;
+              const margin = formData.profitMargin || 0;
+              const sellingPrice = cost + (cost * (margin / 100));
+              setFormData({
+                ...formData,
+                costPrice: cost,
+                price: parseFloat(sellingPrice.toFixed(2))
+              });
+            }}
             required
             min="0"
             step="0.01"
             placeholder="0.00"
+          />
+
+          <TextField
+            id="profit_margin"
+            label="Profit Margin (%)"
+            type="number"
+            value={formData.profitMargin || 0}
+            onChange={(value) => {
+              const margin = parseFloat(value) || 0;
+              const cost = formData.costPrice || 0;
+              const sellingPrice = cost + (cost * (margin / 100));
+              setFormData({
+                ...formData,
+                profitMargin: margin,
+                price: parseFloat(sellingPrice.toFixed(2))
+              });
+            }}
+            required
+            min="10"
+            max="50"
+            placeholder="20"
           />
 
           <TextField
@@ -212,6 +242,7 @@ export const AddInventoryForm = ({
             min="0"
             step="0.01"
             placeholder="0.00"
+            description={`Profit: ₦${(formData.price - (formData.costPrice || 0)).toFixed(2)}`}
           />
 
           <TextField

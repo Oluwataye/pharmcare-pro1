@@ -65,21 +65,30 @@ const Sales = () => {
         (salesData || []).map(async (sale) => {
           const { data: itemsData } = await supabase
             .from('sales_items')
-            .select('id, product_name, quantity, unit_price, price, discount, total, is_wholesale')
+            .select('id, product_name, quantity, unit_price, price, discount, total, is_wholesale, cost_price')
             .eq('sale_id', sale.id);
+
+          const items = (itemsData || []).map(item => ({
+            id: item.id,
+            name: item.product_name,
+            quantity: item.quantity,
+            price: Number(item.unit_price),
+            total: Number(item.total),
+            costPrice: Number(item.cost_price || 0),
+            discount: item.discount ? Number(item.discount) : undefined,
+            isWholesale: item.is_wholesale || false,
+          }));
+
+          const saleProfit = items.reduce((sum, item) => {
+            const cost = (item.costPrice || 0) * item.quantity;
+            return sum + (item.total - cost);
+          }, 0);
 
           return {
             id: sale.id,
-            items: (itemsData || []).map(item => ({
-              id: item.id,
-              name: item.product_name,
-              quantity: item.quantity,
-              price: Number(item.unit_price),
-              total: Number(item.total),
-              discount: item.discount ? Number(item.discount) : undefined,
-              isWholesale: item.is_wholesale || false,
-            })),
+            items,
             total: Number(sale.total),
+            profit: saleProfit,
             discount: sale.discount ? Number(sale.discount) : undefined,
             date: new Date(sale.created_at || '').toISOString().split('T')[0],
             status: sale.status as 'completed' | 'pending' | 'cancelled',

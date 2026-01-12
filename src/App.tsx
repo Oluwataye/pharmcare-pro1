@@ -29,6 +29,7 @@ const Users = lazy(() => import("./pages/Users"));
 const Settings = lazy(() => import("./pages/Settings"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const Reports = lazy(() => import("./pages/Reports"));
+const Analytics = lazy(() => import("./pages/Analytics"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -145,6 +146,16 @@ const App = ({ queryClient, persister }: AppProps) => (
                       requiredPermission={{ action: "read", resource: "reports" }}
                     >
                       <Suspense fallback={<PageLoader />}><Reports /></Suspense>
+                    </ProtectedRoute>
+                  }
+                />
+                <Route
+                  path="/analytics"
+                  element={
+                    <ProtectedRoute
+                      requiredPermission={{ action: "read", resource: "reports" }}
+                    >
+                      <Suspense fallback={<PageLoader />}><Analytics /></Suspense>
                     </ProtectedRoute>
                   }
                 />

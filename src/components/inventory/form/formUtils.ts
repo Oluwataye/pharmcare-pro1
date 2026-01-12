@@ -20,6 +20,7 @@ export const initialInventoryFormState = {
   unit: "units",
   price: 0,
   costPrice: 0,
+  profitMargin: 20, // Default to 20%
   reorderLevel: 0,
   expiryDate: "",
   manufacturer: "",

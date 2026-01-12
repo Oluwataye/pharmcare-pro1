@@ -15,6 +15,7 @@ import { TableActions } from "./table/TableActions";
 import { BatchDeleteBar } from "./table/BatchDeleteBar";
 import { InventoryTableHead } from "./table/InventoryTableHead";
 import { EmptyTableRow } from "./table/EmptyTableRow";
+import { StockAdjustmentDialog } from "./dialog/StockAdjustmentDialog";
 
 import { Supplier } from "@/types/supplier";
 
@@ -34,6 +35,7 @@ export const InventoryTable = ({
   suppliers
 }: InventoryTableProps) => {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
+  const [adjustingItem, setAdjustingItem] = useState<InventoryItem | null>(null);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
 
   const getStockStatus = (item: InventoryItem) => {
@@ -50,6 +52,16 @@ export const InventoryTable = ({
   const handleSave = (updatedItem: InventoryItem) => {
     onUpdateItem(updatedItem.id, updatedItem);
     setEditingItem(null);
+  };
+
+  const handleAdjust = (itemId: string) => {
+    const item = inventory.find(item => item.id === itemId);
+    if (item) setAdjustingItem(item);
+  };
+
+  const handleApplyAdjustment = (updatedItem: InventoryItem) => {
+    onUpdateItem(updatedItem.id, updatedItem);
+    setAdjustingItem(null);
   };
 
   const toggleSelectAll = (checked: boolean) => {
@@ -138,6 +150,7 @@ export const InventoryTable = ({
                         itemId={item.id}
                         onEdit={() => handleEdit(item.id)}
                         onDelete={() => onDeleteItem(item.id)}
+                        onAdjust={handleAdjust}
                       />
                     </TableCell>
                   </TableRow>
@@ -154,6 +167,15 @@ export const InventoryTable = ({
           onOpenChange={(open) => !open && setEditingItem(null)}
           item={editingItem}
           onSave={handleSave}
+        />
+      )}
+
+      {adjustingItem && (
+        <StockAdjustmentDialog
+          open={!!adjustingItem}
+          onOpenChange={(open) => !open && setAdjustingItem(null)}
+          item={adjustingItem}
+          onSave={handleApplyAdjustment}
         />
       )}
     </>

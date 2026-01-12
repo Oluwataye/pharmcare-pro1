@@ -8,6 +8,7 @@ export interface InventoryItem {
   unit: string;
   price: number;
   costPrice?: number;
+  profitMargin?: number;
   reorderLevel: number;
   expiryDate?: string;
   manufacturer?: string;

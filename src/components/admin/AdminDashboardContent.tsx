@@ -4,7 +4,7 @@ import { WelcomeBanner } from "./WelcomeBanner";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { EnhancedTransactionsCard } from "./EnhancedTransactionsCard";
 import { EnhancedLowStockCard } from "./EnhancedLowStockCard";
-import { AlertTriangle, Package, TrendingUp } from "lucide-react";
+import { AlertTriangle, Package, TrendingUp, Activity } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
 
 const AdminDashboardContent = () => {
@@ -74,6 +74,16 @@ const AdminDashboardContent = () => {
       colorScheme: 'success' as const,
       comparisonLabel: "vs last month"
     },
+    {
+      title: "Live Analytics",
+      value: "View Data",
+      icon: Activity,
+      trend: "Real-time",
+      trendUp: true,
+      route: "/analytics",
+      colorScheme: 'primary' as const,
+      comparisonLabel: "performance"
+    },
   ];
 
   return (
@@ -87,7 +97,7 @@ const AdminDashboardContent = () => {
         onQuickAction={() => handleCardClick('/inventory')}
       />
 
-      <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-5">
         {stats.map((stat) => (
           <MetricCard
             key={stat.title}
