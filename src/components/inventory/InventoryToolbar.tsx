@@ -11,12 +11,17 @@ import {
 } from "@/components/ui/select";
 import { useAuth } from "@/contexts/AuthContext";
 
+import { useSuppliers } from "@/hooks/useSuppliers";
+import { useEffect } from "react";
+
 interface InventoryToolbarProps {
   searchTerm: string;
   onSearchChange: (value: string) => void;
   categoryFilter?: string;
   categories?: string[];
   onCategoryChange?: (category: string) => void;
+  supplierFilter?: string;
+  onSupplierChange?: (supplierId: string) => void;
   onRefresh: () => void;
   onAddItem: () => void;
   onPrint: () => void;
@@ -29,16 +34,24 @@ export const InventoryToolbar = ({
   categoryFilter = "",
   categories = [],
   onCategoryChange,
+  supplierFilter = "all",
+  onSupplierChange,
   onRefresh,
   onAddItem,
   onPrint,
   onBulkUpload,
 }: InventoryToolbarProps) => {
   const { user } = useAuth();
+  const { suppliers, fetchSuppliers } = useSuppliers();
   const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+
+  useEffect(() => {
+    fetchSuppliers();
+  }, [fetchSuppliers]);
+
   return (
     <div className="flex flex-col md:flex-row gap-4 mb-4">
-      <div className="flex flex-1 items-center gap-2">
+      <div className="flex flex-col sm:flex-row flex-1 gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
@@ -48,30 +61,51 @@ export const InventoryToolbar = ({
             className="pl-8 w-full"
           />
         </div>
-        
-        {categories.length > 0 && (
-          <div className="w-[180px]">
+
+        <div className="flex gap-2">
+          {categories.length > 0 && (
+            <div className="w-[150px]">
+              <Select
+                value={categoryFilter}
+                onValueChange={onCategoryChange}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Categories" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {categories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          <div className="w-[150px]">
             <Select
-              value={categoryFilter}
-              onValueChange={onCategoryChange}
+              value={supplierFilter}
+              onValueChange={onSupplierChange}
             >
               <SelectTrigger>
-                <SelectValue placeholder="All Categories" />
+                <SelectValue placeholder="Suppliers" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="all">All Categories</SelectItem>
-                {categories.map((category) => (
-                  <SelectItem key={category} value={category}>
-                    {category}
+                <SelectItem value="all">All Suppliers</SelectItem>
+                {suppliers.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>
+                    {s.name}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
-        )}
+        </div>
       </div>
-      
-      <div className="flex gap-2">
+
+      <div className="flex gap-2 justify-end">
         <Button
           variant="outline"
           size="icon"
@@ -89,8 +123,8 @@ export const InventoryToolbar = ({
           <Printer className="h-4 w-4" />
         </Button>
         {isSuperAdmin && onBulkUpload && (
-          <Button onClick={onBulkUpload} variant="outline" className="shrink-0">
-            <Upload className="mr-2 h-4 w-4" /> Bulk Upload
+          <Button onClick={onBulkUpload} variant="outline" className="hidden sm:inline-flex shrink-0">
+            <Upload className="mr-2 h-4 w-4" /> Bulk
           </Button>
         )}
         <Button onClick={onAddItem} className="shrink-0">

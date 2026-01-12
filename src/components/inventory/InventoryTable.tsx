@@ -16,22 +16,26 @@ import { BatchDeleteBar } from "./table/BatchDeleteBar";
 import { InventoryTableHead } from "./table/InventoryTableHead";
 import { EmptyTableRow } from "./table/EmptyTableRow";
 
+import { Supplier } from "@/types/supplier";
+
 interface InventoryTableProps {
   inventory: InventoryItem[];
   onDeleteItem: (id: string) => void;
   onUpdateItem: (id: string, updatedItem: InventoryItem) => void;
   onBatchDelete?: (ids: string[]) => void;
+  suppliers?: Supplier[];
 }
 
-export const InventoryTable = ({ 
-  inventory, 
-  onDeleteItem, 
+export const InventoryTable = ({
+  inventory,
+  onDeleteItem,
   onUpdateItem,
-  onBatchDelete 
+  onBatchDelete,
+  suppliers
 }: InventoryTableProps) => {
   const [editingItem, setEditingItem] = useState<InventoryItem | null>(null);
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
-  
+
   const getStockStatus = (item: InventoryItem) => {
     if (item.quantity <= 0) return { color: "text-red-600" };
     if (item.quantity <= item.reorderLevel) return { color: "text-yellow-600" };
@@ -76,15 +80,15 @@ export const InventoryTable = ({
   return (
     <>
       {selectedItems.length > 0 && (
-        <BatchDeleteBar 
-          selectedCount={selectedItems.length} 
-          onBatchDelete={handleBatchDelete} 
+        <BatchDeleteBar
+          selectedCount={selectedItems.length}
+          onBatchDelete={handleBatchDelete}
         />
       )}
-      
+
       <div className="rounded-md border">
         <Table>
-          <InventoryTableHead 
+          <InventoryTableHead
             showBatchActions={!!onBatchDelete}
             hasItems={inventory.length > 0}
             allSelected={inventory.length > 0 && selectedItems.length === inventory.length}
@@ -100,13 +104,21 @@ export const InventoryTable = ({
                   <TableRow key={item.id}>
                     {onBatchDelete && (
                       <TableCell>
-                        <Checkbox 
-                          checked={selectedItems.includes(item.id)} 
+                        <Checkbox
+                          checked={selectedItems.includes(item.id)}
                           onCheckedChange={(checked) => toggleSelectItem(item.id, !!checked)}
                         />
                       </TableCell>
                     )}
-                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell className="font-medium">
+                      <div>{item.name}</div>
+                      {item.supplierId && suppliers && suppliers.length > 0 && (
+                        <div className="text-[10px] text-muted-foreground uppercase flex items-center gap-1 mt-0.5">
+                          <span className="inline-block w-2.5 h-2.5 rounded-full bg-primary/20 flex items-center justify-center text-[8px]">S</span>
+                          {suppliers.find(s => s.id === item.supplierId)?.name || 'Unknown Supplier'}
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell>{item.sku}</TableCell>
                     <TableCell>{item.category}</TableCell>
                     <TableCell>
@@ -122,7 +134,7 @@ export const InventoryTable = ({
                       ₦{item.price.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-right">
-                      <TableActions 
+                      <TableActions
                         itemId={item.id}
                         onEdit={() => handleEdit(item.id)}
                         onDelete={() => onDeleteItem(item.id)}

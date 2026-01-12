@@ -11,7 +11,7 @@ export const useInventoryCore = () => {
     // Try to get saved inventory from localStorage first
     return loadInventoryFromLocalStorage() || mockInventory;
   });
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const { toast } = useToast();
@@ -67,10 +67,13 @@ export const useInventoryCore = () => {
         quantity: item.quantity,
         unit: item.unit,
         price: Number(item.price),
+        costPrice: item.cost_price ? Number(item.cost_price) : undefined,
         reorderLevel: item.reorder_level,
         expiryDate: item.expiry_date || undefined,
         manufacturer: item.manufacturer || undefined,
         batchNumber: item.batch_number || undefined,
+        supplierId: item.supplier_id || undefined,
+        restockInvoiceNumber: item.restock_invoice_number || undefined,
         lastUpdatedBy: 'System',
         lastUpdatedAt: item.last_updated_at,
       }));
@@ -80,7 +83,7 @@ export const useInventoryCore = () => {
     } catch (err: any) {
       console.error('Error fetching inventory:', err);
       setError(err.message);
-      
+
       // Fall back to localStorage data
       const savedInventory = loadInventoryFromLocalStorage();
       if (savedInventory) {
@@ -103,10 +106,10 @@ export const useInventoryCore = () => {
 
     setIsLoading(true);
     setError(null);
-    
+
     try {
       await fetchInventoryFromCloud();
-      
+
       toast({
         title: "Inventory Refreshed",
         description: "Inventory data has been refreshed from the cloud.",

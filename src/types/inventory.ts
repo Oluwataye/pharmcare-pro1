@@ -7,11 +7,13 @@ export interface InventoryItem {
   quantity: number;
   unit: string;
   price: number;
-  costPrice?: number; // Added for profit tracking
+  costPrice?: number;
   reorderLevel: number;
   expiryDate?: string;
   manufacturer?: string;
   batchNumber?: string;
+  supplierId?: string;
+  restockInvoiceNumber?: string;
   lastUpdatedBy?: string;
   lastUpdatedAt?: string;
 }

@@ -10,6 +10,7 @@ interface BulkProductFormProps {
     onRemoveItem: (index: number) => void;
     onAddItem: () => void;
     categories: string[];
+    suppliers?: Supplier[];
 }
 
 export const BulkProductForm = ({
@@ -17,7 +18,8 @@ export const BulkProductForm = ({
     onUpdateItem,
     onRemoveItem,
     onAddItem,
-    categories
+    categories,
+    suppliers = []
 }: BulkProductFormProps) => {
     const [expandedIndexes, setExpandedIndexes] = useState<number[]>([0]);
 
@@ -55,7 +57,7 @@ export const BulkProductForm = ({
                                 <h3 className="font-semibold text-sm">
                                     {item.name || "New Product"}
                                 </h3>
-                                {item.quantity > 0 && (
+                                {(item.quantity > 0 || item.price > 0) && (
                                     <p className="text-xs text-muted-foreground">
                                         Qty: {item.quantity} {item.unit} | Price: ₦{item.price}
                                     </p>
@@ -88,22 +90,16 @@ export const BulkProductForm = ({
 
                     {expandedIndexes.includes(index) && (
                         <div className="p-6 bg-background animate-in fade-in slide-in-from-top-2 duration-300">
-                            {/* Note: We need to verify AddInventoryForm accepts these props. 
-                                 Based on offline code it does, but online might be different. 
-                                 If different, we might need to wrap or adapt. 
-                                 For now, assuming direct port compatibility or minor tweaks needed. 
-                             */}
                             <AddInventoryForm
                                 formData={item}
                                 setFormData={(data: any) => {
-                                    // Handle both direct object updates and functional updates
                                     const newData = typeof data === 'function' ? data(item) : data;
                                     onUpdateItem(index, newData);
                                 }}
                                 handleSubmit={(e) => e.preventDefault()}
                                 categories={categories}
+                                suppliers={suppliers}
                                 isBulkMode={true}
-                                // Provide expiryDate prop if AddInventoryForm expects it separately
                                 expiryDate={item.expiryDateObj}
                                 setExpiryDate={(date: any) => {
                                     onUpdateItem(index, { ...item, expiryDateObj: date });

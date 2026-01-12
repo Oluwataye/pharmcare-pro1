@@ -16,6 +16,7 @@ import { InventoryToolbar } from "@/components/inventory/InventoryToolbar";
 import { AddInventoryDialog } from "@/components/inventory/AddInventoryDialog";
 import { BulkUploadDialog } from "@/components/inventory/BulkUploadDialog";
 import { useInventory } from "@/hooks/useInventory";
+import { useSuppliers } from "@/hooks/useSuppliers";
 import { Spinner } from "@/components/ui/spinner";
 import { ExpiryWarningBanner } from "@/components/inventory/ExpiryWarningBanner";
 import { ExpiryNotificationBanner } from "@/components/notifications/ExpiryNotificationBanner";
@@ -23,6 +24,7 @@ import { ExpiryNotificationBanner } from "@/components/notifications/ExpiryNotif
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [supplierFilter, setSupplierFilter] = useState<string>("all");
   const [dialogOpen, setDialogOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -38,6 +40,7 @@ const Inventory = () => {
     handleRefresh,
     handlePrint
   } = useInventory();
+  const { suppliers, fetchSuppliers } = useSuppliers();
   const location = useLocation();
 
   // Get all categories for filtering
@@ -58,13 +61,14 @@ const Inventory = () => {
     return () => clearTimeout(timer);
   }, []);
 
-  // Apply filters (search and category)
+  // Apply filters (search, category, and supplier)
   const filteredInventory = inventory.filter(
     (item) => {
       const matchesSearch = item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         item.sku.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = categoryFilter === "all" || item.category === categoryFilter;
-      return matchesSearch && matchesCategory;
+      const matchesSupplier = supplierFilter === "all" || item.supplierId === supplierFilter;
+      return matchesSearch && matchesCategory && matchesSupplier;
     }
   );
 
@@ -127,6 +131,8 @@ const Inventory = () => {
             categoryFilter={categoryFilter}
             categories={categories}
             onCategoryChange={handleCategoryChange}
+            supplierFilter={supplierFilter}
+            onSupplierChange={setSupplierFilter}
             onRefresh={handleRefreshWithLoading}
             onAddItem={() => setDialogOpen(true)}
             onPrint={handlePrint}
@@ -138,6 +144,7 @@ const Inventory = () => {
               onDeleteItem={deleteItem}
               onUpdateItem={updateItem}
               onBatchDelete={batchDelete}
+              suppliers={suppliers}
             />
           </div>
         </CardContent>

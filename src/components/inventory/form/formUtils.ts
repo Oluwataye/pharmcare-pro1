@@ -19,8 +19,11 @@ export const initialInventoryFormState = {
   quantity: 0,
   unit: "units",
   price: 0,
+  costPrice: 0,
   reorderLevel: 0,
   expiryDate: "",
   manufacturer: "",
   batchNumber: "",
+  supplierId: "none",
+  restockInvoiceNumber: "",
 };

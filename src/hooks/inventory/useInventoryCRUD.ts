@@ -38,10 +38,13 @@ export const useInventoryCRUD = () => {
             quantity: newItem.quantity,
             unit: newItem.unit,
             price: newItem.price,
+            cost_price: newItem.costPrice,
             reorder_level: newItem.reorderLevel,
             expiry_date: newItem.expiryDate || null,
             manufacturer: newItem.manufacturer || null,
             batch_number: newItem.batchNumber || null,
+            supplier_id: newItem.supplierId === "none" ? null : newItem.supplierId,
+            restock_invoice_number: newItem.restockInvoiceNumber || null,
             last_updated_by: user.id,
           })
           .select()
@@ -58,10 +61,13 @@ export const useInventoryCRUD = () => {
           quantity: data.quantity,
           unit: data.unit,
           price: Number(data.price),
+          costPrice: data.cost_price ? Number(data.cost_price) : undefined,
           reorderLevel: data.reorder_level,
           expiryDate: data.expiry_date || undefined,
           manufacturer: data.manufacturer || undefined,
           batchNumber: data.batch_number || undefined,
+          supplierId: data.supplier_id || undefined,
+          restockInvoiceNumber: data.restock_invoice_number || undefined,
           lastUpdatedBy: user.username || user.name,
           lastUpdatedAt: data.last_updated_at,
         };
@@ -79,16 +85,16 @@ export const useInventoryCRUD = () => {
         };
 
         createOfflineItem('inventory', item);
-        
+
         const updatedInventory = [...inventory, item];
         setInventory(updatedInventory);
         saveInventoryToLocalStorage(updatedInventory);
       }
-      
+
       toast({
         title: "Success",
-        description: isOnline 
-          ? "Product added successfully" 
+        description: isOnline
+          ? "Product added successfully"
           : "Product added successfully (offline mode)",
       });
     } catch (error) {
@@ -124,10 +130,13 @@ export const useInventoryCRUD = () => {
             quantity: updatedItem.quantity,
             unit: updatedItem.unit,
             price: updatedItem.price,
+            cost_price: updatedItem.costPrice,
             reorder_level: updatedItem.reorderLevel,
             expiry_date: updatedItem.expiryDate || null,
             manufacturer: updatedItem.manufacturer || null,
             batch_number: updatedItem.batchNumber || null,
+            supplier_id: updatedItem.supplierId === "none" ? null : updatedItem.supplierId,
+            restock_invoice_number: updatedItem.restockInvoiceNumber || null,
             last_updated_by: user.id,
           })
           .eq('id', id);
@@ -137,22 +146,22 @@ export const useInventoryCRUD = () => {
         // Offline mode
         updateOfflineItem('inventory', id, updatedItem);
       }
-      
-      const newInventory = inventory.map(item => 
+
+      const newInventory = inventory.map(item =>
         item.id === id ? {
           ...updatedItem,
           lastUpdatedBy: user ? user.username || user.name : 'Unknown',
           lastUpdatedAt: new Date().toISOString(),
         } : item
       );
-      
+
       setInventory(newInventory);
       saveInventoryToLocalStorage(newInventory);
-      
+
       toast({
         title: "Success",
-        description: isOnline 
-          ? "Product updated successfully" 
+        description: isOnline
+          ? "Product updated successfully"
           : "Product updated successfully (offline mode)",
       });
     } catch (error) {
@@ -178,15 +187,15 @@ export const useInventoryCRUD = () => {
         // Offline mode
         deleteOfflineItem('inventory', id);
       }
-      
+
       const newInventory = inventory.filter((item) => item.id !== id);
       setInventory(newInventory);
       saveInventoryToLocalStorage(newInventory);
-      
+
       toast({
         title: "Success",
-        description: isOnline 
-          ? "Product deleted successfully" 
+        description: isOnline
+          ? "Product deleted successfully"
           : "Product deleted successfully (offline mode)",
       });
     } catch (error) {
@@ -212,14 +221,14 @@ export const useInventoryCRUD = () => {
         // Offline mode
         ids.forEach(id => deleteOfflineItem('inventory', id));
       }
-      
+
       const newInventory = inventory.filter((item) => !ids.includes(item.id));
       setInventory(newInventory);
       saveInventoryToLocalStorage(newInventory);
-      
+
       toast({
         title: "Success",
-        description: isOnline 
+        description: isOnline
           ? `${ids.length} products deleted successfully`
           : `${ids.length} products deleted successfully (offline mode)`,
       });
