@@ -23,7 +23,7 @@
     Permissions-Policy = "camera=(), microphone=(), geolocation=()"
     
     # CSP for Supabase and CDN resources
-    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.gpteng.co; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://luhbkhosuawobupmzzrv.supabase.co; frame-ancestors 'none';"
+    Content-Security-Policy = "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.gpteng.co data:; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://luhbkhosuawobupmzzrv.supabase.co; frame-ancestors 'none';"
 
 # Cache static assets aggressively
 [[headers]]
