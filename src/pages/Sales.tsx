@@ -92,9 +92,9 @@ const Sales = () => {
             discount: sale.discount ? Number(sale.discount) : undefined,
             date: new Date(sale.created_at || '').toISOString().split('T')[0],
             status: sale.status as 'completed' | 'pending' | 'cancelled',
-            cashierName: sale.cashier_name || undefined,
-            cashierEmail: sale.cashier_email || undefined,
-            cashierId: sale.cashier_id || undefined,
+            dispenserName: sale.cashier_name || undefined,
+            dispenserEmail: sale.cashier_email || undefined,
+            dispenserId: sale.cashier_id || undefined,
             customerName: sale.customer_name || undefined,
             customerPhone: sale.customer_phone || undefined,
             businessName: sale.business_name || undefined,
@@ -146,7 +146,7 @@ const Sales = () => {
   const filteredSales = sales.filter(sale => {
     const matchesSearch = searchTerm === "" ||
       sale.items.some(item => item.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (sale.cashierName && sale.cashierName.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (sale.dispenserName && sale.dispenserName.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (sale.businessName && sale.businessName.toLowerCase().includes(searchTerm.toLowerCase()));
 
     const saleDate = new Date(sale.date);

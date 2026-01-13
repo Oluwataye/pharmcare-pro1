@@ -154,7 +154,7 @@ const RefundApproval = () => {
         <div className="space-y-6 animate-fade-in px-2 md:px-0">
             <div>
                 <h1 className="text-3xl md:text-4xl font-bold tracking-tight mb-2">Refund Management</h1>
-                <p className="text-muted-foreground">Review and approve refund requests from cashiers</p>
+                <p className="text-muted-foreground">Review and approve refund requests from dispensers</p>
             </div>
 
             {/* Stats Cards */}
@@ -209,7 +209,7 @@ const RefundApproval = () => {
             <EnhancedCard colorScheme="primary">
                 <CardHeader>
                     <CardTitle>Refund Requests</CardTitle>
-                    <CardDescription>Manage refund requests from cashiers</CardDescription>
+                    <CardDescription>Manage refund requests from dispensers</CardDescription>
                 </CardHeader>
                 <CardContent>
                     <Tabs value={activeTab} onValueChange={setActiveTab}>

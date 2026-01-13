@@ -6,7 +6,7 @@ export const exportSalesToCSV = (sales: Sale[], filename?: string) => {
     "Transaction ID",
     "Date",
     "Customer",
-    "Cashier",
+    "Dispenser",
     "Type",
     "Items",
     "Subtotal (₦)",
@@ -19,7 +19,7 @@ export const exportSalesToCSV = (sales: Sale[], filename?: string) => {
     sale.transactionId || sale.id,
     sale.date,
     sale.customerName || sale.businessName || "Walk-in Customer",
-    sale.cashierName || "Unknown",
+    sale.dispenserName || "Unknown",
     sale.saleType,
     sale.items.map((item) => `${item.name} x${item.quantity}`).join("; "),
     sale.items.reduce((sum, item) => sum + item.total, 0).toFixed(2),
@@ -38,7 +38,7 @@ export const exportSalesToCSV = (sales: Sale[], filename?: string) => {
   const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const link = document.createElement("a");
   const url = URL.createObjectURL(blob);
-  
+
   link.setAttribute("href", url);
   link.setAttribute(
     "download",
@@ -56,7 +56,7 @@ export const exportSalesToExcel = (sales: Sale[], filename?: string) => {
     "Transaction ID",
     "Date",
     "Customer",
-    "Cashier",
+    "Dispenser",
     "Type",
     "Items",
     "Subtotal (₦)",
@@ -69,7 +69,7 @@ export const exportSalesToExcel = (sales: Sale[], filename?: string) => {
     sale.transactionId || sale.id,
     sale.date,
     sale.customerName || sale.businessName || "Walk-in Customer",
-    sale.cashierName || "Unknown",
+    sale.dispenserName || "Unknown",
     sale.saleType,
     sale.items.map((item) => `${item.name} x${item.quantity}`).join("; "),
     sale.items.reduce((sum, item) => sum + item.total, 0).toFixed(2),

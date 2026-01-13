@@ -7,7 +7,7 @@ export interface Refund {
     refund_type: 'full' | 'partial';
     status: 'pending' | 'approved' | 'rejected';
 
-    // Initiator (Cashier)
+    // Initiator (Dispenser)
     initiated_by: string;
     initiated_by_name: string;
     initiated_at: string;

@@ -119,7 +119,7 @@ const Receipts = () => {
                     <TableHead>Date & Time</TableHead>
                     <TableHead>Sale Type</TableHead>
                     <TableHead>Customer/Business</TableHead>
-                    <TableHead>Cashier</TableHead>
+                    <TableHead>Dispenser</TableHead>
                     <TableHead>Items</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Actions</TableHead>
@@ -152,7 +152,7 @@ const Receipts = () => {
                           {data.businessName || data.customerName || 'Walk-in'}
                         </TableCell>
                         <TableCell>
-                          {data.cashierName || 'Unknown'}
+                          {data.dispenserName || data.cashierName || 'Unknown'}
                         </TableCell>
                         <TableCell>
                           {data.items?.length || 0} item(s)

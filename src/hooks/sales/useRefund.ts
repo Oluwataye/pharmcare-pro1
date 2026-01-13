@@ -42,7 +42,7 @@ export const useRefund = () => {
         }
     };
 
-    // Initiate a refund (Cashier action)
+    // Initiate a refund (Dispenser action)
     const initiateRefund = async (request: RefundRequest): Promise<boolean> => {
         if (!user) {
             toast({

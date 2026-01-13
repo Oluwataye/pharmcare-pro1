@@ -59,9 +59,9 @@ const NewSale = () => {
     isOfflineMode,
     openPrintWindow
   } = useSales({
-    cashierName: user ? (user.username || user.name || user.email) : undefined,
-    cashierEmail: user ? user.email : undefined,
-    cashierId: user ? user.id : undefined
+    dispenserName: user ? (user.username || user.name || user.email) : undefined,
+    dispenserEmail: user ? user.email : undefined,
+    dispenserId: user ? user.id : undefined
   });
 
   const validateCustomerInfo = () => {
@@ -156,9 +156,9 @@ const NewSale = () => {
       // We pass the items directly so it doesn't need to fetch anything.
       // We pass the transactionId we just generated so the receipt looks valid.
       handlePrint({
-        cashierName: user ? user.username || user.name : undefined,
-        cashierEmail: user ? user.email : undefined,
-        cashierId: user ? user.id : undefined,
+        dispenserName: user ? user.username || user.name : undefined,
+        dispenserEmail: user ? user.email : undefined,
+        dispenserId: user ? user.id : undefined,
         customerName: customerName || undefined,
         customerPhone: customerPhone || undefined,
         businessName: saleType === 'wholesale' ? businessName : undefined,
@@ -224,9 +224,9 @@ const NewSale = () => {
     const windowRef = openPrintWindow();
 
     handlePrint({
-      cashierName: user ? user.username || user.name : undefined,
-      cashierEmail: user ? user.email : undefined,
-      cashierId: user ? user.id : undefined,
+      dispenserName: user ? user.username || user.name : undefined,
+      dispenserEmail: user ? user.email : undefined,
+      dispenserId: user ? user.id : undefined,
       customerName: customerName || undefined,
       customerPhone: customerPhone || undefined,
       businessName: saleType === 'wholesale' ? businessName : undefined,

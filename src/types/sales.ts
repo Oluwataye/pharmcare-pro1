@@ -21,9 +21,9 @@ export interface Sale {
   customerName?: string;
   customerPhone?: string;
   discount?: number; // Overall sale discount
-  cashierName?: string; // Added cashier name
-  cashierEmail?: string; // Added cashier email
-  cashierId?: string; // Added cashier ID for database references
+  dispenserName?: string; // Added dispenser name
+  dispenserEmail?: string; // Added dispenser email
+  dispenserId?: string; // Added dispenser ID for database references
   transactionId?: string; // Unique transaction identifier
   businessName?: string; // For wholesale customers
   businessAddress?: string; // For wholesale customers

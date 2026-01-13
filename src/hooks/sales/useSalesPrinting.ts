@@ -10,11 +10,11 @@ import { logPrintAnalytics } from '@/utils/printAnalytics';
 interface HandlePrintOptions {
   customerName?: string;
   customerPhone?: string;
-  cashierName?: string;
-  cashierEmail?: string;
+  dispenserName?: string;
+  dispenserEmail?: string;
   businessName?: string;
   businessAddress?: string;
-  cashierId?: string;
+  dispenserId?: string;
   saleId?: string;
   items?: SaleItem[];
   directPrint?: boolean;
@@ -56,8 +56,8 @@ export const useSalesPrinting = (
       // Log successful print
       await logPrintAnalytics({
         saleId: dataToPrint.saleId,
-        cashierId: dataToPrint.cashierId,
-        cashierName: dataToPrint.cashierName,
+        dispenserId: dataToPrint.dispenserId,
+        dispenserName: dataToPrint.dispenserName,
         customerName: dataToPrint.customerName,
         printStatus: 'success',
         printDurationMs: duration,
@@ -88,8 +88,8 @@ export const useSalesPrinting = (
 
       await logPrintAnalytics({
         saleId: dataToPrint.saleId,
-        cashierId: dataToPrint.cashierId,
-        cashierName: dataToPrint.cashierName,
+        dispenserId: dataToPrint.dispenserId,
+        dispenserName: dataToPrint.dispenserName,
         customerName: dataToPrint.customerName,
         printStatus,
         errorType,
@@ -128,14 +128,14 @@ export const useSalesPrinting = (
         items: options?.items || items,
         discount,
         date: new Date(),
-        cashierName: options?.cashierName || undefined,
-        cashierEmail: options?.cashierEmail || undefined,
+        dispenserName: options?.dispenserName || undefined,
+        dispenserEmail: options?.dispenserEmail || undefined,
         customerName: options?.customerName || undefined,
         customerPhone: options?.customerPhone || undefined,
         businessName: options?.businessName || undefined,
         businessAddress: options?.businessAddress || undefined,
         saleType,
-        cashierId: options?.cashierId || undefined,
+        dispenserId: options?.dispenserId || undefined,
         saleId: options?.saleId,
         storeSettings: storeSettings!,
       };

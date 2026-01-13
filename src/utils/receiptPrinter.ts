@@ -18,14 +18,14 @@ export interface PrintReceiptProps {
   items: SaleItem[];
   discount?: number;
   date?: Date;
-  cashierName?: string;
-  cashierEmail?: string;
+  dispenserName?: string;
+  dispenserEmail?: string;
   customerName?: string;
   customerPhone?: string;
   businessName?: string;
   businessAddress?: string;
   saleType?: 'retail' | 'wholesale';
-  cashierId?: string;
+  dispenserId?: string;
   saleId?: string;
   storeSettings: StoreSettings;
 }
@@ -201,7 +201,7 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
     items,
     discount = 0,
     date = new Date(),
-    cashierName,
+    dispenserName,
     customerName,
     customerPhone,
     businessName,
@@ -323,7 +323,7 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
         ${customerPhone ? `<div>Phone: ${customerPhone}</div>` : ''}
         ${businessName ? `<div>Business: ${businessName}</div>` : ''}
         ${businessAddress ? `<div>Address: ${businessAddress}</div>` : ''}
-        ${cashierName ? `<div>Cashier: ${cashierName}</div>` : ''}
+        ${dispenserName ? `<div>Dispenser: ${dispenserName}</div>` : ''}
       </div>
       
       <div class="divider"></div>

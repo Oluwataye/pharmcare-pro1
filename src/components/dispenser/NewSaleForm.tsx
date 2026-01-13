@@ -187,9 +187,9 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
       handlePrint({
         customerName: form.getValues().customerName || undefined,
         customerPhone: form.getValues().customerPhone || undefined,
-        cashierName: user ? user.username || user.name : undefined,
-        cashierEmail: user ? user.email : undefined,
-        cashierId: user ? user.id : undefined,
+        dispenserName: user ? user.username || user.name : undefined,
+        dispenserEmail: user ? user.email : undefined,
+        dispenserId: user ? user.id : undefined,
         existingWindow: printWindow,
         directPrint: true,
         items: currentItems,
@@ -202,9 +202,9 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
         customerPhone: form.getValues().customerPhone,
         saleType: isWholesale ? 'wholesale' : 'retail',
         transactionId,
-        cashierName: user ? user.username || user.name : undefined,
-        cashierEmail: user ? user.email : undefined,
-        cashierId: user ? user.id : undefined,
+        dispenserName: user ? user.username || user.name : undefined,
+        dispenserEmail: user ? user.email : undefined,
+        dispenserId: user ? user.id : undefined,
       });
 
       // 5. Notify Parent

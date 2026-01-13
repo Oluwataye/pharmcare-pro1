@@ -47,7 +47,7 @@ const PrintHistory = () => {
   const [filters, setFilters] = useState({
     startDate: undefined as Date | undefined,
     endDate: undefined as Date | undefined,
-    cashier: '',
+    dispenser: '',
     customer: '',
     status: 'all',
   });
@@ -85,8 +85,8 @@ const PrintHistory = () => {
         endOfDay.setHours(23, 59, 59, 999);
         query = query.lte('created_at', endOfDay.toISOString());
       }
-      if (filters.cashier) {
-        query = query.ilike('cashier_name', `%${filters.cashier}%`);
+      if (filters.dispenser) {
+        query = query.ilike('cashier_name', `%${filters.dispenser}%`);
       }
       if (filters.customer) {
         query = query.ilike('customer_name', `%${filters.customer}%`);
@@ -165,7 +165,7 @@ const PrintHistory = () => {
   };
 
   const exportToCSV = () => {
-    const headers = ['Date', 'Cashier', 'Customer', 'Status', 'Error Type', 'Duration (ms)', 'Is Reprint', 'Sale Type', 'Amount'];
+    const headers = ['Date', 'Dispenser', 'Customer', 'Status', 'Error Type', 'Duration (ms)', 'Is Reprint', 'Sale Type', 'Amount'];
     const rows = analytics.map(a => [
       format(new Date(a.created_at), 'yyyy-MM-dd HH:mm:ss'),
       a.cashier_name || 'N/A',
@@ -258,7 +258,7 @@ const PrintHistory = () => {
       <EnhancedCard colorScheme="primary">
         <CardHeader>
           <CardTitle>Filters</CardTitle>
-          <CardDescription>Filter print history by date, cashier, customer, or status</CardDescription>
+          <CardDescription>Filter print history by date, dispenser, customer, or status</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
@@ -303,12 +303,12 @@ const PrintHistory = () => {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="cashier">Cashier</Label>
+              <Label htmlFor="dispenser">Dispenser</Label>
               <Input
-                id="cashier"
-                placeholder="Search cashier..."
-                value={filters.cashier}
-                onChange={(e) => setFilters({ ...filters, cashier: e.target.value })}
+                id="dispenser"
+                placeholder="Search dispenser..."
+                value={filters.dispenser}
+                onChange={(e) => setFilters({ ...filters, dispenser: e.target.value })}
               />
             </div>
 
@@ -341,7 +341,7 @@ const PrintHistory = () => {
           <div className="flex gap-2">
             <Button
               variant="outline"
-              onClick={() => setFilters({ startDate: undefined, endDate: undefined, cashier: '', customer: '', status: 'all' })}
+              onClick={() => setFilters({ startDate: undefined, endDate: undefined, dispenser: '', customer: '', status: 'all' })}
             >
               Clear Filters
             </Button>
@@ -376,7 +376,7 @@ const PrintHistory = () => {
                 <TableHeader>
                   <TableRow>
                     <TableHead>Date & Time</TableHead>
-                    <TableHead>Cashier</TableHead>
+                    <TableHead>Dispenser</TableHead>
                     <TableHead>Customer</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead>Type</TableHead>

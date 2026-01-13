@@ -67,7 +67,7 @@ const SalesTable = ({
               <TableHead>Total (₦)</TableHead>
               <TableHead>Profit (₦)</TableHead>
               <TableHead>Date</TableHead>
-              <TableHead>Cashier</TableHead>
+              <TableHead>Dispenser</TableHead>
               {showBusinessInfo && <TableHead>Customer/Business</TableHead>}
               <TableHead>Status</TableHead>
               <TableHead>Actions</TableHead>
@@ -103,7 +103,7 @@ const SalesTable = ({
                     </span>
                   </TableCell>
                   <TableCell>{sale.date}</TableCell>
-                  <TableCell>{sale.cashierName || 'Unknown'}</TableCell>
+                  <TableCell>{sale.dispenserName || 'Unknown'}</TableCell>
                   {showBusinessInfo && (
                     <TableCell>
                       {sale.businessName || sale.customerName || 'Walk-in Customer'}

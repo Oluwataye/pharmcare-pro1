@@ -31,33 +31,33 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
       date = parsedDate;
     }
   }
-  
+
   // Use store settings from receipt data
   const storeName = storeSettings.name || 'PharmCare Pro';
   const storeAddress = storeSettings.address || '123 Main Street, Lagos';
   const storeEmail = storeSettings.email;
   const storePhone = storeSettings.phone;
   const logo = storeSettings.logo_url;
-  
+
   // Calculate totals
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   const discountAmount = subtotal * (discount / 100);
   const total = subtotal - discountAmount;
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Receipt Preview</DialogTitle>
         </DialogHeader>
-        
+
         <div className="border rounded-md p-4 bg-background font-mono text-xs">
           {/* Header */}
           <div className="text-center mb-4">
             {storeSettings.print_show_logo && logo && (
-              <img 
-                src={logo} 
-                alt="Store Logo" 
+              <img
+                src={logo}
+                alt="Store Logo"
                 className="max-w-[150px] max-h-[80px] mx-auto mb-2"
               />
             )}
@@ -67,9 +67,9 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
             {storeSettings.print_show_phone && storePhone && <div>{storePhone}</div>}
             <div className="mt-2 font-bold">{saleType.toUpperCase()} RECEIPT</div>
           </div>
-          
+
           <div className="border-t border-dashed border-border my-2" />
-          
+
           {/* Info */}
           <div className="mb-2 space-y-1">
             <div>Date: {date.toLocaleDateString()}</div>
@@ -78,11 +78,11 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
             {customerPhone && <div>Phone: {customerPhone}</div>}
             {businessName && <div>Business: {businessName}</div>}
             {businessAddress && <div>Address: {businessAddress}</div>}
-            {cashierName && <div>Cashier: {cashierName}</div>}
+            {cashierName && <div>Dispenser: {cashierName}</div>}
           </div>
-          
+
           <div className="border-t border-dashed border-border my-2" />
-          
+
           {/* Items */}
           <table className="w-full mb-2">
             <thead>
@@ -104,9 +104,9 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
               ))}
             </tbody>
           </table>
-          
+
           <div className="border-t border-dashed border-border my-2" />
-          
+
           {/* Totals */}
           <div className="space-y-1">
             <div className="flex justify-between">
@@ -122,9 +122,9 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
               <span>₦{total.toLocaleString()}</span>
             </div>
           </div>
-          
+
           <div className="border-t border-dashed border-border my-2" />
-          
+
           {/* Footer */}
           {storeSettings.print_show_footer && (
             <div className="text-center text-[10px] mt-4">
@@ -133,7 +133,7 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
             </div>
           )}
         </div>
-        
+
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel

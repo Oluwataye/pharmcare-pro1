@@ -13,9 +13,9 @@ interface CompleteSaleOptions {
   businessName?: string;
   businessAddress?: string;
   saleType: 'retail' | 'wholesale';
-  cashierName?: string;
-  cashierEmail?: string;
-  cashierId?: string;
+  dispenserName?: string;
+  dispenserEmail?: string;
+  dispenserId?: string;
   transactionId?: string; // Allow passing a pre-generated ID
 }
 
@@ -73,9 +73,9 @@ export const useSalesCompletion = (
         customerPhone: options?.customerPhone,
         businessName: options?.businessName,
         businessAddress: options?.businessAddress,
-        cashierName: options?.cashierName,
-        cashierEmail: options?.cashierEmail,
-        cashierId: options?.cashierId,
+        dispenserName: options?.dispenserName,
+        dispenserEmail: options?.dispenserEmail,
+        dispenserId: options?.dispenserId,
         transactionId,
         saleType: currentSaleType
       };

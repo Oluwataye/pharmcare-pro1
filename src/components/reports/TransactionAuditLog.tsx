@@ -19,8 +19,8 @@ const mockAuditLogs: AuditLogEntry[] = [
   {
     id: "2",
     userId: "3",
-    username: "cashier1",
-    email: "cashier@demo.com",
+    username: "dispenser1",
+    email: "dispenser@demo.com",
     action: "SALE_COMPLETED",
     resource: "sales",
     resourceId: "sale-124",

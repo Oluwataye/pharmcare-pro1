@@ -3,8 +3,8 @@ import { supabase } from '@/integrations/supabase/client';
 export interface LogPrintAnalyticsParams {
   saleId?: string;
   receiptId?: string;
-  cashierId?: string;
-  cashierName?: string;
+  dispenserId?: string;
+  dispenserName?: string;
   customerName?: string;
   printStatus: 'success' | 'failed' | 'cancelled';
   errorType?: string;
@@ -22,8 +22,8 @@ export const logPrintAnalytics = async (params: LogPrintAnalyticsParams) => {
       .insert([{
         sale_id: params.saleId || null,
         receipt_id: params.receiptId || null,
-        cashier_id: params.cashierId || null,
-        cashier_name: params.cashierName || null,
+        cashier_id: params.dispenserId || null,
+        cashier_name: params.dispenserName || null,
         customer_name: params.customerName || undefined,
         print_status: params.printStatus,
         error_type: params.errorType || null,

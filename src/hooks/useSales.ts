@@ -6,9 +6,9 @@ import { useSalesPrinting } from './sales/useSalesPrinting';
 import { useSalesCompletion } from './sales/useSalesCompletion';
 
 interface UseSalesOptions {
-  cashierName?: string;
-  cashierEmail?: string;
-  cashierId?: string;
+  dispenserName?: string;
+  dispenserEmail?: string;
+  dispenserId?: string;
 }
 
 export const useSales = (options?: UseSalesOptions) => {
@@ -52,25 +52,25 @@ export const useSales = (options?: UseSalesOptions) => {
   } = useSalesCompletion(items, calculateTotal, clearItems, clearDiscount, resetSaleType);
 
   // Wrap the completeSale function to include cashier info from options and reliable printing
-  const completeSale = async (completeSaleOptions?: Omit<Parameters<typeof completeTransaction>[0], 'cashierName' | 'cashierEmail' | 'cashierId'> & { existingWindow?: Window | null }) => {
+  const completeSale = async (completeSaleOptions?: Omit<Parameters<typeof completeTransaction>[0], 'dispenserName' | 'dispenserEmail' | 'dispenserId'> & { existingWindow?: Window | null }) => {
     // Capture items before they are cleared by completeTransaction
     const currentItems = [...items];
     const windowRef = completeSaleOptions?.existingWindow;
 
     const result = await completeTransaction({
       ...completeSaleOptions,
-      cashierName: options?.cashierName,
-      cashierEmail: options?.cashierEmail,
-      cashierId: options?.cashierId,
+      dispenserName: options?.dispenserName,
+      dispenserEmail: options?.dispenserEmail,
+      dispenserId: options?.dispenserId,
     } as Parameters<typeof completeTransaction>[0]);
 
     // If sale completed successfully and we have a sale ID, trigger print with the ID
     if (result && typeof result === 'string') {
       await handlePrint({
         ...completeSaleOptions,
-        cashierName: options?.cashierName,
-        cashierEmail: options?.cashierEmail,
-        cashierId: options?.cashierId,
+        dispenserName: options?.dispenserName,
+        dispenserEmail: options?.dispenserEmail,
+        dispenserId: options?.dispenserId,
         saleId: result,
         items: currentItems,
         directPrint: true,

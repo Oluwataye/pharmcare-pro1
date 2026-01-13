@@ -110,8 +110,8 @@ export const useReceiptReprint = () => {
 
       await logPrintAnalytics({
         saleId: dataToPrint.saleId,
-        cashierId: dataToPrint.cashierId,
-        cashierName: dataToPrint.cashierName,
+        dispenserId: dataToPrint.dispenserId,
+        dispenserName: dataToPrint.dispenserName,
         customerName: dataToPrint.customerName,
         printStatus: 'success',
         printDurationMs: duration,
@@ -142,8 +142,8 @@ export const useReceiptReprint = () => {
 
       await logPrintAnalytics({
         saleId: dataToPrint.saleId,
-        cashierId: dataToPrint.cashierId,
-        cashierName: dataToPrint.cashierName,
+        dispenserId: dataToPrint.dispenserId,
+        dispenserName: dataToPrint.dispenserName,
         customerName: dataToPrint.customerName,
         printStatus,
         errorType,
