@@ -11,6 +11,7 @@ import { NewSaleForm } from "./NewSaleForm";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Receipt, TrendingUp, Users } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
+import { useSystemConfig } from "@/hooks/useSystemConfig";
 
 interface Transaction {
   id: number;
@@ -99,10 +100,12 @@ export const DispenserDashboardContent = () => {
     navigate(route);
   };
 
+  const { config } = useSystemConfig();
+
   const statsCards = [
     {
       title: "Today's Sales",
-      value: "₦9,050",
+      value: `${config.currencySymbol}9,050`,
       icon: NairaSign,
       description: "+8% from yesterday",
       iconColor: "text-primary",

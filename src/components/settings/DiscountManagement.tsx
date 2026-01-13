@@ -1,25 +1,30 @@
-import { useState } from "react";
+
 import { useToast } from "@/hooks/use-toast";
 import { DiscountSettings } from "@/components/admin/DiscountSettings";
 import { DiscountHistory } from "@/components/admin/DiscountHistory";
 import { DiscountConfig } from "@/types/sales";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-
-// Mock initial discount configuration
-const initialDiscountConfig: DiscountConfig = {
-  defaultDiscount: 5,
-  maxDiscount: 20,
-  enabled: true,
-};
+import { useSystemConfig } from "@/hooks/useSystemConfig";
 
 export const DiscountManagement = () => {
-  const [discountConfig, setDiscountConfig] = useState<DiscountConfig>(initialDiscountConfig);
+  const { config, updateConfig } = useSystemConfig();
   const { toast } = useToast();
 
-  const handleSaveDiscountConfig = (config: DiscountConfig) => {
-    setDiscountConfig(config);
-    // In a real app, this would save to backend/database
+  // Map system config to discount config format
+  const discountConfig: DiscountConfig = {
+    defaultDiscount: config.defaultDiscount,
+    maxDiscount: config.maxDiscount,
+    enabled: config.enableDiscounts,
+  };
+
+  const handleSaveDiscountConfig = (newConfig: DiscountConfig) => {
+    updateConfig({
+      defaultDiscount: newConfig.defaultDiscount,
+      maxDiscount: newConfig.maxDiscount,
+      enableDiscounts: newConfig.enabled
+    });
+
     toast({
       title: "Success",
       description: "Discount settings saved successfully",
@@ -37,14 +42,14 @@ export const DiscountManagement = () => {
             <TabsTrigger value="settings">Settings</TabsTrigger>
             <TabsTrigger value="history">Discount History</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="settings">
-            <DiscountSettings 
-              initialConfig={discountConfig} 
-              onSave={handleSaveDiscountConfig} 
+            <DiscountSettings
+              initialConfig={discountConfig}
+              onSave={handleSaveDiscountConfig}
             />
           </TabsContent>
-          
+
           <TabsContent value="history">
             <DiscountHistory />
           </TabsContent>

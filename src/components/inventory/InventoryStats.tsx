@@ -1,5 +1,6 @@
 import { Package, PackageOpen, TrendingUp } from "lucide-react";
 import { EnhancedStatCard } from "@/components/admin/EnhancedStatCard";
+import { useSystemConfig } from "@/hooks/useSystemConfig";
 
 interface InventoryItem {
   id: string;
@@ -30,6 +31,8 @@ export const InventoryStats = ({ inventory }: InventoryStatsProps) => {
     // Navigate logic or just do nothing if only for stats
   };
 
+  const { config } = useSystemConfig();
+
   return (
     <div className="grid gap-4 md:grid-cols-3">
       <EnhancedStatCard
@@ -56,7 +59,8 @@ export const InventoryStats = ({ inventory }: InventoryStatsProps) => {
       />
       <EnhancedStatCard
         title="Total Value"
-        value={`₦${totalValue.toLocaleString()}`}
+        value={`${config.currencySymbol}${totalValue.toLocaleString()}`}
+
         icon={Package}
         trend=""
         trendUp={true}

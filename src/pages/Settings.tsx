@@ -19,8 +19,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { DiscountManagement } from "@/components/settings/DiscountManagement";
 import { UserProfileSettings } from "@/components/settings/UserProfileSettings";
 import { GdprSettings } from "@/components/settings/GdprSettings";
+import { RetentionSettings } from "@/components/settings/RetentionSettings";
 import { EnhancedCard } from "@/components/ui/EnhancedCard";
 import { supabase } from "@/integrations/supabase/client";
+import { useSystemConfig } from "@/hooks/useSystemConfig";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Settings = () => {
   const { toast } = useToast();
@@ -41,9 +44,11 @@ const Settings = () => {
     showAddress: true,
     showEmail: true,
     showPhone: true,
+    showPhone: true,
     showFooter: true,
   });
 
+  const { config: systemConfig, updateConfig: updateSystemConfig } = useSystemConfig();
   const { settings: currentSettings, isLoading: isFetchingSettings } = useStoreSettings();
 
   // Load settings from database on component mount
@@ -242,11 +247,15 @@ const Settings = () => {
       </div>
 
       <Tabs defaultValue="store" className="w-full">
-        <TabsList className="grid w-full md:w-2/3 grid-cols-4">
+        <TabsList className="grid w-full md:w-full grid-cols-3 md:grid-cols-6 mb-4">
           <TabsTrigger value="store">Store</TabsTrigger>
           <TabsTrigger value="printing">Printing</TabsTrigger>
+          <TabsTrigger value="system">System</TabsTrigger>
           {user?.role === "SUPER_ADMIN" && (
-            <TabsTrigger value="discount">Discount</TabsTrigger>
+            <>
+              <TabsTrigger value="discount">Discount</TabsTrigger>
+              <TabsTrigger value="retention">Data</TabsTrigger>
+            </>
           )}
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
         </TabsList>
@@ -418,9 +427,73 @@ const Settings = () => {
           </Card>
         </TabsContent>
 
+        <TabsContent value="system">
+          <Card>
+            <CardHeader>
+              <CardTitle>System Configuration</CardTitle>
+              <CardDescription>Configure global system preferences</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label>Currency</Label>
+                <div className="flex gap-4">
+                  <Select
+                    value={systemConfig.currency}
+                    onValueChange={(val) => {
+                      const symbol = val === 'NGN' ? '₦' : val === 'USD' ? '$' : val === 'EUR' ? '€' : val === 'GBP' ? '£' : '₦';
+                      updateSystemConfig({ currency: val, currencySymbol: symbol });
+                    }}
+                  >
+                    <SelectTrigger className="w-[180px]">
+                      <SelectValue placeholder="Select Currency" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="NGN">Nigerian Naira (₦)</SelectItem>
+                      <SelectItem value="USD">US Dollar ($)</SelectItem>
+                      <SelectItem value="EUR">Euro (€)</SelectItem>
+                      <SelectItem value="GBP">British Pound (£)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Low Stock Threshold</Label>
+                <div className="flex gap-4 items-center">
+                  <Input
+                    type="number"
+                    value={systemConfig.lowStockThreshold}
+                    onChange={(e) => updateSystemConfig({ lowStockThreshold: parseInt(e.target.value) || 0 })}
+                    className="w-[180px]"
+                  />
+                  <span className="text-sm text-muted-foreground">units</span>
+                </div>
+                <p className="text-xs text-muted-foreground">Products with quantity below this value will be flagged as low stock.</p>
+              </div>
+              <div className="space-y-2">
+                <Label>Tax Rate (%)</Label>
+                <div className="flex gap-4 items-center">
+                  <Input
+                    type="number"
+                    value={systemConfig.taxRate}
+                    onChange={(e) => updateSystemConfig({ taxRate: parseFloat(e.target.value) || 0 })}
+                    className="w-[180px]"
+                    step="0.1"
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
         {user?.role === "SUPER_ADMIN" && (
           <TabsContent value="discount">
             <DiscountManagement />
+          </TabsContent>
+        )}
+
+        {user?.role === "SUPER_ADMIN" && (
+          <TabsContent value="retention">
+            <RetentionSettings />
           </TabsContent>
         )}
 
