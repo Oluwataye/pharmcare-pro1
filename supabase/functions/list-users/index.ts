@@ -48,7 +48,7 @@ serve(async (req) => {
 
     // Get the current user
     const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
-    
+
     if (userError || !user) {
       console.error('Failed to get user:', userError);
       return new Response(
@@ -108,16 +108,15 @@ serve(async (req) => {
 
     return new Response(
       JSON.stringify({ users: sanitizedUsers }),
-      { 
-        status: 200, 
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
+      {
+        status: 200,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' }
       }
     );
 
   } catch (error) {
     console.error('Unexpected error in list-users:', error);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

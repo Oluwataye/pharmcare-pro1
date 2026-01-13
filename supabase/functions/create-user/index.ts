@@ -247,7 +247,6 @@ serve(async (req) => {
       : errorMessage
 
     return new Response(
-      JSON.stringify({ error: safeErrorMessage }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
     )
   }
