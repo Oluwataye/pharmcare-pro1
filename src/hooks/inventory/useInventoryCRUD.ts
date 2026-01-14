@@ -140,12 +140,15 @@ export const useInventoryCRUD = () => {
           ? "Product added successfully"
           : "Product added successfully (offline mode)",
       });
-    } catch (error) {
+    } catch (error: any) {
+      const errorMessage = error?.message || "Failed to add product";
+      console.error('Add item error:', error);
       toast({
         title: "Error",
-        description: error instanceof Error ? error.message : "Failed to add product",
+        description: errorMessage,
         variant: "destructive",
       });
+      throw error; // Re-throw so callers know it failed
     }
   };
 

@@ -92,27 +92,42 @@ export const AddInventoryDialog = ({
     setIsSubmitting(true);
     try {
       let successCount = 0;
+      const failedItems: string[] = [];
+
       for (const item of items) {
         if (!item.name) continue;
 
-        const submitData = {
-          ...item,
-          expiryDate: item.expiryDateObj ? item.expiryDateObj.toISOString().split('T')[0] : item.expiryDate,
-          supplierId: supplierId === "none" ? undefined : supplierId,
-          restockInvoiceNumber: invoiceNumber || undefined,
-        };
-        // Remove helper object
-        delete submitData.expiryDateObj;
+        try {
+          const submitData = {
+            ...item,
+            expiryDate: item.expiryDateObj ? item.expiryDateObj.toISOString().split('T')[0] : item.expiryDate,
+            supplierId: supplierId === "none" ? undefined : supplierId,
+            restockInvoiceNumber: invoiceNumber || undefined,
+          };
+          // Remove helper object
+          delete submitData.expiryDateObj;
 
-        await onAddItem(submitData);
-        successCount++;
+          await onAddItem(submitData);
+          successCount++;
+        } catch (err) {
+          console.error(`Failed to add item: ${item.name}`, err);
+          failedItems.push(item.name);
+        }
       }
 
-      onOpenChange(false);
-      toast({
-        title: "Success",
-        description: `${successCount} product(s) added successfully`,
-      });
+      if (failedItems.length === 0) {
+        onOpenChange(false);
+        toast({
+          title: "Success",
+          description: `${successCount} product(s) added successfully`,
+        });
+      } else {
+        toast({
+          title: "Partial Success",
+          description: `Added ${successCount} products, but ${failedItems.length} failed: ${failedItems.join(', ')}`,
+          variant: "destructive"
+        });
+      }
     } catch (err) {
       console.error(err);
       toast({
