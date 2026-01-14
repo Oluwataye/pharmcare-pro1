@@ -30,6 +30,7 @@ export const AddInventoryDialog = ({
   const [supplierId, setSupplierId] = useState<string>("none");
   const [invoiceNumber, setInvoiceNumber] = useState<string>("");
   const [items, setItems] = useState<any[]>([{ ...initialInventoryFormState, id: Date.now() }]);
+  const [localCategories, setLocalCategories] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { toast } = useToast();
   const { suppliers, fetchSuppliers } = useSuppliers();
@@ -41,12 +42,30 @@ export const AddInventoryDialog = ({
       setItems([{ ...initialInventoryFormState, id: Date.now() }]);
       setSupplierId("none");
       setInvoiceNumber("");
+      setLocalCategories(categories);
     }
-  }, [open, fetchSuppliers]);
+  }, [open, fetchSuppliers, categories]);
+
+  // Keep local categories in sync if props update
+  useEffect(() => {
+    if (categories.length > 0) {
+      setLocalCategories(prev => {
+        const combined = [...new Set([...prev, ...categories])];
+        return combined.sort();
+      });
+    }
+  }, [categories]);
 
   const handleUpdateItem = (index: number, data: any) => {
     const newItems = [...items];
+    const prevCategory = newItems[index].category;
     newItems[index] = data;
+
+    // If a new category was added, update localCategories
+    if (data.category && data.category !== prevCategory && !localCategories.includes(data.category)) {
+      setLocalCategories(prev => [...prev, data.category].sort());
+    }
+
     setItems(newItems);
   };
 
@@ -148,7 +167,7 @@ export const AddInventoryDialog = ({
               onUpdateItem={handleUpdateItem}
               onRemoveItem={handleRemoveItem}
               onAddItem={handleAddItemForm}
-              categories={categories}
+              categories={localCategories}
               suppliers={suppliers}
             />
           </div>
