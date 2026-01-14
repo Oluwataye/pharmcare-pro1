@@ -186,10 +186,10 @@ const App = ({ queryClient, persister }: AppProps) => (
                 </Route>
               </Routes>
             </BrowserRouter>
+          </TooltipProvider>
         </InventoryProvider>
-      </TooltipProvider>
-    </AuthProvider>
-  </OfflineProvider>
+      </AuthProvider>
+    </OfflineProvider>
   </PersistQueryClientProvider >
 );
 
