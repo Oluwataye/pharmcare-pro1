@@ -44,7 +44,6 @@ const Settings = () => {
     showAddress: true,
     showEmail: true,
     showPhone: true,
-    showPhone: true,
     showFooter: true,
   });
 
