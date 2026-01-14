@@ -17,7 +17,7 @@ interface StockAdjustmentDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     item: InventoryItem;
-    onSave: (updatedItem: InventoryItem) => void;
+    onSave: (id: string, newQuantity: number, reason: string) => void;
 }
 
 export const StockAdjustmentDialog = ({
@@ -28,11 +28,13 @@ export const StockAdjustmentDialog = ({
 }: StockAdjustmentDialogProps) => {
     const [physicalStock, setPhysicalStock] = useState<number>(item.quantity);
     const [difference, setDifference] = useState<number>(0);
+    const [reason, setReason] = useState<string>("");
     const { toast } = useToast();
 
     useEffect(() => {
         setPhysicalStock(item.quantity);
         setDifference(0);
+        setReason("");
     }, [item]);
 
     useEffect(() => {
@@ -40,17 +42,17 @@ export const StockAdjustmentDialog = ({
     }, [physicalStock, item.quantity]);
 
     const handleSave = () => {
-        onSave({
-            ...item,
-            quantity: physicalStock,
-        });
-        onOpenChange(false);
+        if (difference !== 0 && !reason.trim()) {
+            toast({
+                title: "Reason Required",
+                description: "Please provide a reason for the stock adjustment.",
+                variant: "destructive"
+            });
+            return;
+        }
 
-        const status = difference > 0 ? "gain" : difference < 0 ? "loss" : "no change";
-        toast({
-            title: "Stock Adjusted",
-            description: `Stock for ${item.name} updated. Difference: ${difference > 0 ? '+' : ''}${difference} (${status}).`,
-        });
+        onSave(item.id, physicalStock, reason || "Manual adjustment");
+        onOpenChange(false);
     };
 
     const getDiffColor = () => {
@@ -82,6 +84,15 @@ export const StockAdjustmentDialog = ({
                         value={physicalStock}
                         onChange={(val) => setPhysicalStock(parseInt(val) || 0)}
                         min="0"
+                    />
+
+                    <TextField
+                        id="adjustment-reason"
+                        label="Reason for Adjustment"
+                        placeholder="e.g., Damaged, Found in warehouse, Reconciliation"
+                        value={reason}
+                        onChange={setReason}
+                        required={difference !== 0}
                     />
 
                     <div className="flex justify-between items-center p-4 border rounded-lg">

@@ -1,15 +1,16 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0'
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 import { parse } from 'https://deno.land/std@0.181.0/encoding/csv.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { status: 204, headers: corsHeaders })
   }
 
   try {
@@ -18,6 +19,11 @@ serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
       { auth: { autoRefreshToken: false, persistSession: false } }
     )
+
+    // Get auth user
+    const authHeader = req.headers.get('Authorization')!
+    const token = authHeader.replace('Bearer ', '')
+    const { data: { user } } = await supabase.auth.getUser(token)
 
     const { csvContent } = await req.json()
 
@@ -81,13 +87,49 @@ serve(async (req) => {
     const CHUNK_SIZE = 100;
     for (let i = 0; i < itemsToInsert.length; i += CHUNK_SIZE) {
       const chunk = itemsToInsert.slice(i, i + CHUNK_SIZE);
-      const { error } = await supabase
+
+      // Get existing items to calculate movements
+      const skus = chunk.map(item => item.sku);
+      const { data: existingItems } = await supabase
         .from('inventory')
-        .upsert(chunk, { onConflict: 'sku' }); // critical assumption: sku is unique
+        .select('id, sku, quantity')
+        .in('sku', skus);
+
+      const existingMap = new Map(existingItems?.map(item => [item.sku, item]));
+
+      const { data: upsertedItems, error } = await supabase
+        .from('inventory')
+        .upsert(chunk, { onConflict: 'sku' })
+        .select();
 
       if (error) {
         console.error('Batch error:', error);
         throw new Error(`Batch insert failed: ${error.message}`);
+      }
+
+      // Log movements
+      if (upsertedItems && user) {
+        const movements = upsertedItems.map(item => {
+          const existing = existingMap.get(item.sku);
+          const prevQty = existing ? existing.quantity : 0;
+          const diff = item.quantity - prevQty;
+
+          if (diff === 0) return null;
+
+          return {
+            product_id: item.id,
+            quantity_change: diff,
+            previous_quantity: prevQty,
+            new_quantity: item.quantity,
+            type: existing ? 'ADJUSTMENT' : 'INITIAL',
+            reason: 'Bulk upload restock',
+            created_by: user.id
+          };
+        }).filter(Boolean);
+
+        if (movements.length > 0) {
+          await supabase.from('stock_movements').insert(movements);
+        }
       }
     }
 

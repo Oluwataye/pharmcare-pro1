@@ -37,6 +37,8 @@ const Users = () => {
 
       // Get auth users via secure edge function (only SUPER_ADMIN can access)
       const { data: sessionData } = await supabase.auth.getSession();
+      const session = sessionData?.session;
+      console.log("[UsersPage] Fetching users, session:", session ? "Active" : "None");
       const accessToken = sessionData?.session?.access_token;
 
       let authUsers: Array<{ id: string; email: string }> = [];

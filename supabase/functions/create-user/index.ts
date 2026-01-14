@@ -117,18 +117,30 @@ serve(async (req) => {
       }
     )
 
+    console.log(`[create-user] Request received: ${req.method} ${req.url}`);
+
     // Verify the requesting user has permission
-    const authHeader = req.headers.get('Authorization')!
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader) {
+      console.warn('[create-user] No authorization header');
+      return new Response(
+        JSON.stringify({ error: 'No authorization header' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
+    }
+
     const token = authHeader.replace('Bearer ', '')
     const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token)
 
     if (authError || !user) {
-      console.error('Authentication error:', authError)
+      console.error('[create-user] Auth verification failed:', authError?.message || 'No user');
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized', details: authError?.message }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
       )
     }
+
+    console.log(`[create-user] Request by: ${user.id} (${user.email})`);
 
     // Check if user has SUPER_ADMIN role
     const { data: roleData, error: roleError } = await supabaseAdmin
@@ -138,12 +150,14 @@ serve(async (req) => {
       .single()
 
     if (roleError || roleData?.role !== 'SUPER_ADMIN') {
-      console.warn(`Unauthorized user creation attempt by user ${user.id}`)
+      console.warn(`[create-user] Forbidden attempt by ${user.id} - Role: ${roleData?.role}`);
       return new Response(
         JSON.stringify({ error: 'Only SUPER_ADMIN can create users' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
       )
     }
+
+    console.log('[create-user] Authorized - User is SUPER_ADMIN');
 
     // Check rate limit: 10 user creations per hour per admin
     const rateLimit = await checkRateLimit(supabaseAdmin, user.id, 'create_user', 10, 60)
@@ -158,7 +172,19 @@ serve(async (req) => {
       )
     }
 
-    const { email, password, name, username, role } = await req.json()
+    let body;
+    try {
+      body = await req.json();
+      console.log('[create-user] Body parsed successfully');
+    } catch (e) {
+      console.error('[create-user] Failed to parse JSON body');
+      return new Response(
+        JSON.stringify({ error: 'Invalid JSON body' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
+    }
+
+    const { email, password, name, username, role } = body
 
     // Validate inputs
     if (!email || !validateEmail(email)) {

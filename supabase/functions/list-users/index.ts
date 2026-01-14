@@ -14,15 +14,19 @@ serve(async (req) => {
   }
 
   try {
+    console.log(`[list-users] Request received: ${req.method} ${req.url}`);
+
     // Get the authorization header
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      console.error('No authorization header provided');
+      console.warn('[list-users] No authorization header provided');
       return new Response(
         JSON.stringify({ error: 'No authorization header' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log('[list-users] Authorization header present');
 
     // Create Supabase client with service role for admin operations
     const supabaseAdmin = createClient(
@@ -36,27 +40,18 @@ serve(async (req) => {
       }
     );
 
-    // Create client with user's token to verify their role
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        global: {
-          headers: { Authorization: authHeader },
-        },
-      }
-    );
-
-    // Get the current user
-    const { data: { user }, error: userError } = await supabaseClient.auth.getUser();
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error: userError } = await supabaseAdmin.auth.getUser(token);
 
     if (userError || !user) {
-      console.error('Failed to get user:', userError);
+      console.error('[list-users] Auth error:', userError?.message || 'No user');
       return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
+        JSON.stringify({ error: 'Unauthorized', details: userError?.message }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log(`[list-users] Request by: ${user.id} (${user.email})`);
 
     console.log('Checking role for user:', user.id);
 
@@ -68,20 +63,22 @@ serve(async (req) => {
       .single();
 
     if (roleError) {
-      console.error('Failed to fetch role:', roleError);
+      console.error(`[list-users] Failed to fetch role for ${user.id}:`, roleError);
       return new Response(
-        JSON.stringify({ error: 'Failed to verify permissions' }),
+        JSON.stringify({ error: 'Failed to verify permissions', details: roleError.message }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
     if (roleData?.role !== 'SUPER_ADMIN') {
-      console.error('Access denied - user role:', roleData?.role);
+      console.warn(`[list-users] Access denied for ${user.id} - Role: ${roleData?.role}`);
       return new Response(
         JSON.stringify({ error: 'Access denied. Only SUPER_ADMIN can list users.' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    console.log(`[list-users] Authorized - User ${user.id} is SUPER_ADMIN`);
 
     console.log('User has SUPER_ADMIN role, fetching users list');
 

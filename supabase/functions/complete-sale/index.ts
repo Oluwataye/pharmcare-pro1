@@ -1,9 +1,10 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.75.0'
+import { serve } from "https://deno.land/std@0.177.0/http/server.ts"
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.39.3'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
 interface SaleItem {
@@ -62,7 +63,7 @@ const validateTransactionId = (id: string): boolean => {
 
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders })
+    return new Response(null, { status: 204, headers: corsHeaders })
   }
 
   try {
@@ -159,9 +160,22 @@ serve(async (req) => {
       inventoryUpdates.push({
         id: item.id,
         quantity_to_deduct: item.quantity,
-        new_quantity: inventoryItem.quantity - item.quantity
+        new_quantity: inventoryItem.quantity - item.quantity,
+        previous_quantity: inventoryItem.quantity
       });
     }
+
+    // Prepare Stock Movements
+    const movementsToInsert = inventoryUpdates.map(update => ({
+      product_id: update.id,
+      quantity_change: -update.quantity_to_deduct,
+      previous_quantity: update.previous_quantity,
+      new_quantity: update.new_quantity,
+      type: 'SALE',
+      reason: `Sale ${saleData.transactionId}`,
+      reference_id: null, // Will be set after sale creation
+      created_by: user.id
+    }));
 
     // 4. Create Sale Record (Master)
     // Calculate profit safely
@@ -220,6 +234,17 @@ serve(async (req) => {
         })
         .eq('id', update.id)
     ));
+
+    // 7. Log Stock Movements
+    movementsToInsert.forEach(m => m.reference_id = sale.id);
+    const { error: movementsError } = await supabase
+      .from('stock_movements')
+      .insert(movementsToInsert);
+
+    if (movementsError) {
+      console.error('Failed to log stock movements for sale ' + sale.id, movementsError);
+      // We don't throw here as the sale is already completed and stock deducted
+    }
 
     console.log('Sale completed successfully:', sale.id);
 

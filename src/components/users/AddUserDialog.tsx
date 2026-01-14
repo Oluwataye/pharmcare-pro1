@@ -80,6 +80,10 @@ export function AddUserDialog({ onUserAdded }: AddUserDialogProps) {
     setIsSubmitting(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
+      console.log("[AddUserDialog] Current session:", session ? "Active" : "None");
+      if (session) {
+        console.log("[AddUserDialog] Token first 10 chars:", session.access_token.substring(0, 10));
+      }
 
       if (!session) {
         throw new Error("You must be logged in to create users");

@@ -14,6 +14,39 @@ export const useInventoryCRUD = () => {
   const { isOnline } = useOffline();
   const { createOfflineItem, updateOfflineItem, deleteOfflineItem } = useOfflineData();
 
+  const logStockMovement = async (params: {
+    productId: string;
+    quantityChange: number;
+    prevQuantity: number;
+    newQuantity: number;
+    type: 'SALE' | 'ADJUSTMENT' | 'ADDITION' | 'RETURN' | 'INITIAL';
+    reason?: string;
+    referenceId?: string;
+  }) => {
+    if (!isOnline || !user) return;
+
+    try {
+      const { error } = await supabase
+        .from('stock_movements')
+        .insert({
+          product_id: params.productId,
+          quantity_change: params.quantityChange,
+          previous_quantity: params.prevQuantity,
+          new_quantity: params.newQuantity,
+          type: params.type,
+          reason: params.reason,
+          reference_id: params.referenceId,
+          created_by: user.id
+        });
+
+      if (error) {
+        console.error('Failed to log stock movement:', error);
+      }
+    } catch (err) {
+      console.error('Error logging stock movement:', err);
+    }
+  };
+
   const addItem = async (newItem: Omit<InventoryItem, "id" | "lastUpdatedBy" | "lastUpdatedAt">) => {
     try {
       // Validate the item before adding
@@ -51,6 +84,16 @@ export const useInventoryCRUD = () => {
           .single();
 
         if (error) throw error;
+
+        // Log the initial stock movement
+        await logStockMovement({
+          productId: data.id,
+          quantityChange: data.quantity,
+          prevQuantity: 0,
+          newQuantity: data.quantity,
+          type: 'INITIAL',
+          reason: 'Initial stock entry'
+        });
 
         // Convert database format to app format
         const item: InventoryItem = {
@@ -142,6 +185,20 @@ export const useInventoryCRUD = () => {
           .eq('id', id);
 
         if (error) throw error;
+
+        // Log movement if quantity changed
+        const oldItem = inventory.find(i => i.id === id);
+        if (oldItem && oldItem.quantity !== updatedItem.quantity) {
+          const diff = updatedItem.quantity - oldItem.quantity;
+          await logStockMovement({
+            productId: id,
+            quantityChange: diff,
+            prevQuantity: oldItem.quantity,
+            newQuantity: updatedItem.quantity,
+            type: diff > 0 ? 'ADDITION' : 'ADJUSTMENT',
+            reason: diff > 0 ? 'Stock addition' : 'Manual adjustment'
+          });
+        }
       } else {
         // Offline mode
         updateOfflineItem('inventory', id, updatedItem);
@@ -241,10 +298,67 @@ export const useInventoryCRUD = () => {
     }
   };
 
+  const adjustStock = async (id: string, newQuantity: number, reason: string) => {
+    try {
+      const item = inventory.find(i => i.id === id);
+      if (!item) throw new Error("Item not found");
+
+      const diff = newQuantity - item.quantity;
+      if (diff === 0) return;
+
+      if (isOnline && user) {
+        const { error } = await supabase
+          .from('inventory')
+          .update({
+            quantity: newQuantity,
+            last_updated_by: user.id,
+          })
+          .eq('id', id);
+
+        if (error) throw error;
+
+        await logStockMovement({
+          productId: id,
+          quantityChange: diff,
+          prevQuantity: item.quantity,
+          newQuantity: newQuantity,
+          type: 'ADJUSTMENT',
+          reason: reason
+        });
+      } else {
+        updateOfflineItem('inventory', id, { ...item, quantity: newQuantity });
+      }
+
+      const newInventory = inventory.map(i =>
+        i.id === id ? {
+          ...i,
+          quantity: newQuantity,
+          lastUpdatedBy: user ? user.username || user.name : 'Unknown',
+          lastUpdatedAt: new Date().toISOString(),
+        } : i
+      );
+
+      setInventory(newInventory);
+      saveInventoryToLocalStorage(newInventory);
+
+      toast({
+        title: "Success",
+        description: `Stock adjusted by ${diff > 0 ? '+' : ''}${diff}`,
+      });
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to adjust stock",
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     addItem,
     updateItem,
     deleteItem,
     batchDelete,
+    adjustStock,
   };
 };

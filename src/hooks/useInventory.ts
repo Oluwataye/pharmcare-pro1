@@ -9,7 +9,7 @@ export type { InventoryItem };
 
 export const useInventory = () => {
   const { inventory, isLoading, error, handleRefresh } = useInventoryCore();
-  const { addItem, updateItem, deleteItem, batchDelete } = useInventoryCRUD();
+  const { addItem, updateItem, deleteItem, batchDelete, adjustStock } = useInventoryCRUD();
   const { getCategories, getExpiringItems } = useInventoryFilters();
   const { handlePrint: printInventory } = useInventoryPrint();
 
@@ -25,6 +25,7 @@ export const useInventory = () => {
     updateItem,
     deleteItem,
     batchDelete,
+    adjustStock,
     getCategories,
     getExpiringItems,
     handleRefresh,

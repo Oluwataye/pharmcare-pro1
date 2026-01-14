@@ -19,6 +19,7 @@ import {
   Receipt,
   Printer,
   Shield,
+  Truck,
 } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
 
@@ -95,6 +96,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       label: "Reports",
       path: "/reports",
       condition: canAccessReports()
+    },
+    {
+      icon: Truck,
+      label: "Suppliers",
+      path: "/suppliers",
+      condition: canAccessInventory()
     },
     {
       icon: Settings,

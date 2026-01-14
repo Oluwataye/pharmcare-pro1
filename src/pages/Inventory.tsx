@@ -20,6 +20,9 @@ import { useSuppliers } from "@/hooks/useSuppliers";
 import { Spinner } from "@/components/ui/spinner";
 import { ExpiryWarningBanner } from "@/components/inventory/ExpiryWarningBanner";
 import { ExpiryNotificationBanner } from "@/components/notifications/ExpiryNotificationBanner";
+import { StockMovementHistory } from "@/components/inventory/StockMovementHistory";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { History, Package, AlertTriangle } from "lucide-react";
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -28,8 +31,7 @@ const Inventory = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [showNotification, setShowNotification] = useState(true);
-  const {
+  const [showNotification, setShowNotification] = useState(true); const {
     inventory,
     addItem,
     updateItem,
@@ -38,7 +40,8 @@ const Inventory = () => {
     getCategories,
     getExpiringItems,
     handleRefresh,
-    handlePrint
+    handlePrint,
+    adjustStock
   } = useInventory();
   const { suppliers, fetchSuppliers } = useSuppliers();
   const location = useLocation();
@@ -117,38 +120,68 @@ const Inventory = () => {
 
       <InventoryStats inventory={inventory} />
 
-      <EnhancedCard className="z-10" colorScheme="primary">
-        <CardHeader className="p-4 md:p-6">
-          <CardTitle>Inventory List</CardTitle>
-          <CardDescription>
-            View and manage all products in your inventory
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="p-4 md:p-6">
-          <InventoryToolbar
-            searchTerm={searchTerm}
-            onSearchChange={setSearchTerm}
-            categoryFilter={categoryFilter}
-            categories={categories}
-            onCategoryChange={handleCategoryChange}
-            supplierFilter={supplierFilter}
-            onSupplierChange={setSupplierFilter}
-            onRefresh={handleRefreshWithLoading}
-            onAddItem={() => setDialogOpen(true)}
-            onPrint={handlePrint}
-            onBulkUpload={() => setBulkUploadOpen(true)}
-          />
-          <div className="responsive-table">
-            <InventoryTable
-              inventory={filteredInventory}
-              onDeleteItem={deleteItem}
-              onUpdateItem={updateItem}
-              onBatchDelete={batchDelete}
-              suppliers={suppliers}
-            />
-          </div>
-        </CardContent>
-      </EnhancedCard>
+      <Tabs defaultValue="list" className="space-y-4">
+        <TabsList>
+          <TabsTrigger value="list" className="flex items-center gap-2">
+            <Package className="h-4 w-4" />
+            Inventory List
+          </TabsTrigger>
+          <TabsTrigger value="history" className="flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Stock History
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="list" className="space-y-4">
+          <EnhancedCard className="z-10" colorScheme="primary">
+            <CardHeader className="p-4 md:p-6">
+              <CardTitle>Inventory List</CardTitle>
+              <CardDescription>
+                View and manage all products in your inventory
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="p-4 md:p-6">
+              <InventoryToolbar
+                searchTerm={searchTerm}
+                onSearchChange={setSearchTerm}
+                categoryFilter={categoryFilter}
+                categories={categories}
+                onCategoryChange={handleCategoryChange}
+                supplierFilter={supplierFilter}
+                onSupplierChange={setSupplierFilter}
+                onRefresh={handleRefreshWithLoading}
+                onAddItem={() => setDialogOpen(true)}
+                onPrint={handlePrint}
+                onBulkUpload={() => setBulkUploadOpen(true)}
+              />
+              <div className="responsive-table">
+                <InventoryTable
+                  inventory={filteredInventory}
+                  onDeleteItem={deleteItem}
+                  onUpdateItem={updateItem}
+                  onAdjustStock={adjustStock}
+                  onBatchDelete={batchDelete}
+                  suppliers={suppliers}
+                />
+              </div>
+            </CardContent>
+          </EnhancedCard>
+        </TabsContent>
+
+        <TabsContent value="history">
+          <EnhancedCard colorScheme="primary">
+            <CardHeader>
+              <CardTitle>Global Stock Movement History</CardTitle>
+              <CardDescription>
+                Audit log of all additions, adjustments, and sales
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <StockMovementHistory limit={100} />
+            </CardContent>
+          </EnhancedCard>
+        </TabsContent>
+      </Tabs>
 
       <AddInventoryDialog
         open={dialogOpen}

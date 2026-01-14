@@ -23,6 +23,7 @@ interface InventoryTableProps {
   inventory: InventoryItem[];
   onDeleteItem: (id: string) => void;
   onUpdateItem: (id: string, updatedItem: InventoryItem) => void;
+  onAdjustStock?: (id: string, newQuantity: number, reason: string) => void;
   onBatchDelete?: (ids: string[]) => void;
   suppliers?: Supplier[];
 }
@@ -31,6 +32,7 @@ export const InventoryTable = ({
   inventory,
   onDeleteItem,
   onUpdateItem,
+  onAdjustStock,
   onBatchDelete,
   suppliers
 }: InventoryTableProps) => {
@@ -59,8 +61,14 @@ export const InventoryTable = ({
     if (item) setAdjustingItem(item);
   };
 
-  const handleApplyAdjustment = (updatedItem: InventoryItem) => {
-    onUpdateItem(updatedItem.id, updatedItem);
+  const handleApplyAdjustment = (id: string, newQuantity: number, reason: string) => {
+    if (onAdjustStock) {
+      onAdjustStock(id, newQuantity, reason);
+    } else {
+      // Fallback if not provided (shouldn't happen with new hook)
+      const item = inventory.find(i => i.id === id);
+      if (item) onUpdateItem(id, { ...item, quantity: newQuantity });
+    }
     setAdjustingItem(null);
   };
 

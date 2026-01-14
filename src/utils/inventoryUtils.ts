@@ -32,7 +32,7 @@ export const validateInventoryItem = (item: Partial<InventoryItem>): { valid: bo
   if (item.reorderLevel === undefined || item.reorderLevel < 0) {
     return { valid: false, message: "Reorder level must be 0 or greater" };
   }
-  
+
   // Check if expiry date is valid if provided
   if (item.expiryDate) {
     const expiryDate = new Date(item.expiryDate);
@@ -40,7 +40,16 @@ export const validateInventoryItem = (item: Partial<InventoryItem>): { valid: bo
       return { valid: false, message: "Invalid expiry date format" };
     }
   }
-  
+
+  // Consistency checks
+  if (item.costPrice !== undefined && item.price !== undefined && item.costPrice > item.price) {
+    return { valid: false, message: "Cost price cannot be greater than selling price" };
+  }
+
+  if (item.supplierId && item.supplierId.trim() === "" && item.supplierId !== "none") {
+    return { valid: false, message: "Valid supplier must be selected" };
+  }
+
   return { valid: true, message: "" };
 };
 
@@ -55,7 +64,7 @@ export const getExpiringItems = (inventory: InventoryItem[], daysThreshold: numb
   const today = new Date();
   const thresholdDate = new Date();
   thresholdDate.setDate(today.getDate() + daysThreshold);
-  
+
   return inventory.filter(item => {
     if (!item.expiryDate) return false;
     const expiryDate = new Date(item.expiryDate);
@@ -100,8 +109,8 @@ export const generateInventoryReport = (inventory: InventoryItem[], username: st
           </thead>
           <tbody>
             ${inventory
-              .map(
-                (item) => `
+      .map(
+        (item) => `
               <tr>
                 <td>${item.name}</td>
                 <td>${item.sku}</td>
@@ -112,8 +121,8 @@ export const generateInventoryReport = (inventory: InventoryItem[], username: st
                 <td>${item.lastUpdatedBy || 'Unknown'} (${item.lastUpdatedAt ? new Date(item.lastUpdatedAt).toLocaleDateString() : 'N/A'})</td>
               </tr>
             `
-              )
-              .join("")}
+      )
+      .join("")}
           </tbody>
         </table>
       </body>
