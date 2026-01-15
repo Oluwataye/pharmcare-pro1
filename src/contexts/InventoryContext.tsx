@@ -6,6 +6,7 @@ import { mockInventory } from "@/utils/mockInventoryData";
 import { saveInventoryToLocalStorage, loadInventoryFromLocalStorage } from "@/utils/inventoryUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useOffline } from "@/contexts/OfflineContext";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface InventoryContextType {
     inventory: InventoryItem[];
@@ -28,6 +29,7 @@ export const InventoryProvider = ({ children }: { children: ReactNode }) => {
     const [error, setError] = useState<string | null>(null);
     const { toast } = useToast();
     const { isOnline } = useOffline();
+    const { isAuthenticated, user, isLoading: authLoading } = useAuth();
 
     const fetchInventoryFromCloud = useCallback(async () => {
         try {
@@ -117,8 +119,13 @@ export const InventoryProvider = ({ children }: { children: ReactNode }) => {
 
     // Handle initial fetch and real-time subscription
     useEffect(() => {
-        if (isOnline) {
+        // Fetch if online and either authenticated or if we're not using RLS for reading (though we are)
+        // Re-fetch when isAuthenticated changes to true
+        if (isOnline && isAuthenticated) {
+            console.log("Auth state change detected or mount: Fetching inventory...");
             fetchInventoryFromCloud();
+        } else if (isOnline && !authLoading && !isAuthenticated) {
+            console.log("User not authenticated yet. Waiting for login to fetch inventory.");
         }
 
         const channel = supabase
@@ -132,7 +139,7 @@ export const InventoryProvider = ({ children }: { children: ReactNode }) => {
                 },
                 (payload) => {
                     console.log("Real-time inventory change received:", payload.eventType);
-                    if (isOnline) {
+                    if (isOnline && isAuthenticated) {
                         fetchInventoryFromCloud();
                     }
                 }
@@ -142,7 +149,7 @@ export const InventoryProvider = ({ children }: { children: ReactNode }) => {
         return () => {
             supabase.removeChannel(channel);
         };
-    }, [isOnline, fetchInventoryFromCloud]);
+    }, [isOnline, isAuthenticated, authLoading, fetchInventoryFromCloud]);
 
     return (
         <InventoryContext.Provider
