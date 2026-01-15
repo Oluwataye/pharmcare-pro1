@@ -16,6 +16,7 @@ interface AuthContextType extends AuthState {
 const AuthContext = React.createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
+  console.log("[AuthProvider] Pulse: Mounting...");
   const [authState, setAuthState] = React.useState<AuthState>({
     user: null,
     isAuthenticated: false,
@@ -26,6 +27,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Fetch user profile and role from database
   const fetchUserProfile = async (userId: string): Promise<AppUser | null> => {
+    console.log(`[AuthProvider] Pulse: Fetching profile for user ${userId}...`);
     try {
       // Use specific columns and limit to stabilize the 406-prone single fetch
       const { data: profiles, error: profileError } = await supabase
@@ -80,9 +82,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setSession(session);
 
         if (session?.user) {
+          console.log("[AuthProvider] Pulse: Session detected for user:", session.user.id);
           // Defer profile fetching
           setTimeout(async () => {
             const userProfile = await fetchUserProfile(session.user.id);
+            console.log("[AuthProvider] Pulse: Auth state being set to authenticated:", !!userProfile);
             setAuthState({
               user: userProfile,
               isAuthenticated: !!userProfile,

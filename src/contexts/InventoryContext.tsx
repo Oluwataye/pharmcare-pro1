@@ -22,6 +22,7 @@ interface InventoryContextType {
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
 export const InventoryProvider = ({ children }: { children: ReactNode }) => {
+    console.log("[InventoryProvider] Pulse: Initializing...");
     const [inventory, setInventory] = useState<InventoryItem[]>(() => {
         return loadInventoryFromLocalStorage() || mockInventory;
     });
