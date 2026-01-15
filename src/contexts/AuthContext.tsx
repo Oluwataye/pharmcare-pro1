@@ -76,24 +76,53 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Initialize auth state and session security
   React.useEffect(() => {
-    // Set up auth state listener
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
+    console.log("[AuthProvider] Pulse: Initializing listener...");
+
+    // Initial session check
+    const initAuth = async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
         setSession(session);
 
         if (session?.user) {
-          console.log("[AuthProvider] Pulse: Session detected for user:", session.user.id);
-          // Defer profile fetching
-          setTimeout(async () => {
-            const userProfile = await fetchUserProfile(session.user.id);
-            console.log("[AuthProvider] Pulse: Auth state being set to authenticated:", !!userProfile);
-            setAuthState({
-              user: userProfile,
-              isAuthenticated: !!userProfile,
-              isLoading: false,
-            });
-          }, 0);
+          console.log("[AuthProvider] Pulse: Initial session detected, fetching profile...");
+          const userProfile = await fetchUserProfile(session.user.id);
+          setAuthState({
+            user: userProfile,
+            isAuthenticated: !!userProfile,
+            isLoading: false,
+          });
         } else {
+          setAuthState({
+            user: null,
+            isAuthenticated: false,
+            isLoading: false,
+          });
+        }
+      } catch (error) {
+        console.error("[AuthProvider] Auth initialization error:", error);
+        setAuthState(prev => ({ ...prev, isLoading: false }));
+      }
+    };
+
+    initAuth();
+
+    // Set up auth state listener
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      async (event, session) => {
+        console.log(`[AuthProvider] Pulse: Auth state change event: ${event}`);
+        setSession(session);
+
+        if (session?.user) {
+          // Only fetch if session is new or user ID differs
+          // This avoids flickering during token refreshes
+          const userProfile = await fetchUserProfile(session.user.id);
+          setAuthState({
+            user: userProfile,
+            isAuthenticated: !!userProfile,
+            isLoading: false,
+          });
+        } else if (event === 'SIGNED_OUT') {
           setAuthState({
             user: null,
             isAuthenticated: false,
@@ -102,26 +131,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     );
-
-    // Check for existing session
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setSession(session);
-
-      if (session?.user) {
-        const userProfile = await fetchUserProfile(session.user.id);
-        setAuthState({
-          user: userProfile,
-          isAuthenticated: !!userProfile,
-          isLoading: false,
-        });
-      } else {
-        setAuthState({
-          user: null,
-          isAuthenticated: false,
-          isLoading: false,
-        });
-      }
-    });
 
     // Automatic logout on window close/tab close (for shared workstations)
     const handleBeforeUnload = () => {
@@ -246,13 +255,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const authValue = React.useMemo(() => ({
+    ...authState,
+    login,
+    logout,
+    session,
+  }), [authState, session]);
+
   return (
-    <AuthContext.Provider value={{
-      ...authState,
-      login,
-      logout,
-      session,
-    }}>
+    <AuthContext.Provider value={authValue}>
       {children}
     </AuthContext.Provider>
   );

@@ -92,7 +92,9 @@ const Inventory = () => {
     setShowNotification(false);
   };
 
-  if (isLoading) {
+  const isFirstLoad = isLoading && inventory.length === 0;
+
+  if (isFirstLoad) {
     return (
       <div className="flex items-center justify-center h-[80vh]">
         <Spinner size="lg" />
