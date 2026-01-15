@@ -87,12 +87,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session?.user) {
           console.log("[AuthProvider] Pulse: Initial session detected, fetching profile...");
           const userProfile = await fetchUserProfile(session.user.id);
+          console.log("[AuthProvider] Pulse: Profile fetch complete. User:", !!userProfile);
           setAuthState({
             user: userProfile,
             isAuthenticated: !!userProfile,
             isLoading: false,
           });
         } else {
+          console.log("[AuthProvider] Pulse: No session found, setting unauthenticated state");
           setAuthState({
             user: null,
             isAuthenticated: false,
@@ -101,7 +103,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.error("[AuthProvider] Auth initialization error:", error);
-        setAuthState(prev => ({ ...prev, isLoading: false }));
+        setAuthState({
+          user: null,
+          isAuthenticated: false,
+          isLoading: false,
+        });
       }
     };
 
@@ -117,12 +123,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Only fetch if session is new or user ID differs
           // This avoids flickering during token refreshes
           const userProfile = await fetchUserProfile(session.user.id);
+          console.log(`[AuthProvider] Pulse: Profile fetch complete for event ${event}. User:`, !!userProfile);
           setAuthState({
             user: userProfile,
             isAuthenticated: !!userProfile,
             isLoading: false,
           });
         } else if (event === 'SIGNED_OUT') {
+          console.log("[AuthProvider] Pulse: User signed out");
           setAuthState({
             user: null,
             isAuthenticated: false,
