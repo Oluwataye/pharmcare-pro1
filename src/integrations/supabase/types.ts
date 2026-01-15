@@ -142,6 +142,7 @@ export type Database = {
           batch_number: string | null
           category: string
           created_at: string
+          cost_price: number | null
           expiry_date: string | null
           id: string
           last_updated_at: string
@@ -151,13 +152,16 @@ export type Database = {
           price: number
           quantity: number
           reorder_level: number
+          restock_invoice_number: string | null
           sku: string
+          supplier_id: string | null
           unit: string
         }
         Insert: {
           batch_number?: string | null
           category: string
           created_at?: string
+          cost_price?: number | null
           expiry_date?: string | null
           id?: string
           last_updated_at?: string
@@ -167,13 +171,16 @@ export type Database = {
           price: number
           quantity?: number
           reorder_level?: number
+          restock_invoice_number?: string | null
           sku: string
+          supplier_id?: string | null
           unit: string
         }
         Update: {
           batch_number?: string | null
           category?: string
           created_at?: string
+          cost_price?: number | null
           expiry_date?: string | null
           id?: string
           last_updated_at?: string
@@ -183,7 +190,9 @@ export type Database = {
           price?: number
           quantity?: number
           reorder_level?: number
+          restock_invoice_number?: string | null
           sku?: string
+          supplier_id?: string | null
           unit?: string
         }
         Relationships: []

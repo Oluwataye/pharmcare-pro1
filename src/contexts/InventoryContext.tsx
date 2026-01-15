@@ -38,14 +38,19 @@ export const InventoryProvider = ({ children }: { children: ReactNode }) => {
             const { data, error: fetchError } = await supabase
                 .from('inventory')
                 .select('*')
-                .order('created_at', { ascending: false });
+                .order('name', { ascending: true });
 
-            if (fetchError) throw fetchError;
+            if (fetchError) {
+                console.error('Supabase fetch error:', fetchError);
+                throw new Error(`Failed to fetch inventory: ${fetchError.message}`);
+            }
 
             // Debug: Log the raw data from Supabase
             console.log(`Supabase returned ${data?.length || 0} items.`);
             if (data && data.length > 0) {
-                console.table(data.slice(0, 5)); // Log first 5 items to verify structure
+                console.log('Sample data from Supabase:', data[0]);
+            } else if (data && data.length === 0) {
+                console.warn('Supabase returned an empty array for inventory. Check if table is empty or RLS is blocking access.');
             }
 
             const inventoryItems: InventoryItem[] = (data || []).map((item: any) => ({
