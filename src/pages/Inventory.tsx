@@ -31,7 +31,8 @@ const Inventory = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [bulkUploadOpen, setBulkUploadOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [showNotification, setShowNotification] = useState(true); const {
+  const [showNotification, setShowNotification] = useState(true);
+  const {
     inventory,
     addItem,
     updateItem,

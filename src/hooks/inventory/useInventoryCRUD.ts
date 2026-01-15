@@ -48,7 +48,7 @@ export const useInventoryCRUD = () => {
   };
 
   const addItem = async (newItem: Omit<InventoryItem, "id" | "lastUpdatedBy" | "lastUpdatedAt">) => {
-    console.log("[useInventoryCRUD] Pulse: addItem called for", newItem.name);
+    console.log("[useInventoryCRUD] Pulse: addItem called for", newItem.name, { isOnline, userId: user?.id, userRole: user?.role });
     try {
       // Validate the item before adding
       const validation = validateInventoryItem(newItem);
@@ -61,8 +61,8 @@ export const useInventoryCRUD = () => {
         return;
       }
 
-      // If online, save to Supabase
       if (isOnline && user) {
+        console.log("[useInventoryCRUD] Pulse: Attempting Supabase insert...");
         const { data, error } = await supabase
           .from('inventory')
           .insert({
@@ -84,7 +84,13 @@ export const useInventoryCRUD = () => {
           .select()
           .single();
 
-        if (error) throw error;
+        if (error) {
+          console.error('[useInventoryCRUD] Pulse: Supabase insert error!', error);
+          console.error('[useInventoryCRUD] Error details:', JSON.stringify(error, null, 2));
+          throw error;
+        }
+
+        console.log("[useInventoryCRUD] Pulse: Supabase insert successful:", data.id);
 
         // Log the initial stock movement
         await logStockMovement({
@@ -121,6 +127,7 @@ export const useInventoryCRUD = () => {
         saveInventoryToLocalStorage(updatedInventory);
       } else {
         // Offline mode - use local storage
+        console.log("[useInventoryCRUD] Pulse: Adding in OFFLINE mode.");
         const item = {
           ...newItem,
           id: Math.random().toString(36).substr(2, 9),

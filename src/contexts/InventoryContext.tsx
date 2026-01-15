@@ -120,6 +120,7 @@ export const InventoryProvider = ({ children }: { children: ReactNode }) => {
 
     // Handle initial fetch and real-time subscription
     useEffect(() => {
+        console.log("[InventoryProvider] Pulse: useEffect triggered", { isOnline, isAuthenticated, authLoading });
         // Fetch if online and either authenticated or if we're not using RLS for reading (though we are)
         // Re-fetch when isAuthenticated changes to true
         if (isOnline && isAuthenticated) {
