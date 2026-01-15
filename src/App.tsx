@@ -46,7 +46,7 @@ interface AppProps {
 }
 
 const App = ({ queryClient, persister }: AppProps) => {
-  console.log("[App] Pulse: Component rendering...");
+  console.log("[App] Pulse: Component rendering... [VERSION: 2026-01-15-RESILIENCE-FIX]");
   return (
     <PersistQueryClientProvider
       client={queryClient}
