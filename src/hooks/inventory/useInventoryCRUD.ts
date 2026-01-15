@@ -48,6 +48,7 @@ export const useInventoryCRUD = () => {
   };
 
   const addItem = async (newItem: Omit<InventoryItem, "id" | "lastUpdatedBy" | "lastUpdatedAt">) => {
+    console.log("[useInventoryCRUD] Pulse: addItem called for", newItem.name);
     try {
       // Validate the item before adding
       const validation = validateInventoryItem(newItem);
