@@ -48,11 +48,16 @@ export const useInventoryCRUD = () => {
   };
 
   const addItem = async (newItem: Omit<InventoryItem, "id" | "lastUpdatedBy" | "lastUpdatedAt">) => {
-    console.log("[useInventoryCRUD] Pulse: addItem called for", newItem.name, { isOnline, userId: user?.id, userRole: user?.role });
+    console.log("[useInventoryCRUD] Pulse: ===== addItem START =====");
+    console.log("[useInventoryCRUD] Pulse: Product name:", newItem.name);
+    console.log("[useInventoryCRUD] Pulse: Context state:", { isOnline, userId: user?.id, userRole: user?.role });
+
     try {
       // Validate the item before adding
+      console.log("[useInventoryCRUD] Pulse: Step 1 - Validating item...");
       const validation = validateInventoryItem(newItem);
       if (!validation.valid) {
+        console.warn("[useInventoryCRUD] Pulse: Validation failed:", validation.message);
         toast({
           title: "Validation Error",
           description: validation.message,
@@ -60,39 +65,55 @@ export const useInventoryCRUD = () => {
         });
         return;
       }
+      console.log("[useInventoryCRUD] Pulse: Step 1 - Validation passed ✓");
 
+      console.log("[useInventoryCRUD] Pulse: Step 2 - Checking if online and user exists...");
       if (isOnline && user) {
-        console.log("[useInventoryCRUD] Pulse: Attempting Supabase insert...");
+        console.log("[useInventoryCRUD] Pulse: Step 2 - Online mode, proceeding with Supabase insert ✓");
+        console.log("[useInventoryCRUD] Pulse: Step 3 - Preparing insert data...");
+
+        const insertData = {
+          name: newItem.name,
+          sku: newItem.sku,
+          category: newItem.category,
+          quantity: newItem.quantity,
+          unit: newItem.unit,
+          price: newItem.price,
+          cost_price: newItem.costPrice,
+          reorder_level: newItem.reorderLevel,
+          expiry_date: newItem.expiryDate || null,
+          manufacturer: newItem.manufacturer || null,
+          batch_number: newItem.batchNumber || null,
+          supplier_id: newItem.supplierId === "none" ? null : newItem.supplierId,
+          restock_invoice_number: newItem.restockInvoiceNumber || null,
+          last_updated_by: user.id,
+        };
+
+        console.log("[useInventoryCRUD] Pulse: Step 3 - Insert data prepared ✓");
+        console.log("[useInventoryCRUD] Pulse: Step 4 - Calling Supabase insert...");
+
         const { data, error } = await supabase
           .from('inventory')
-          .insert({
-            name: newItem.name,
-            sku: newItem.sku,
-            category: newItem.category,
-            quantity: newItem.quantity,
-            unit: newItem.unit,
-            price: newItem.price,
-            cost_price: newItem.costPrice,
-            reorder_level: newItem.reorderLevel,
-            expiry_date: newItem.expiryDate || null,
-            manufacturer: newItem.manufacturer || null,
-            batch_number: newItem.batchNumber || null,
-            supplier_id: newItem.supplierId === "none" ? null : newItem.supplierId,
-            restock_invoice_number: newItem.restockInvoiceNumber || null,
-            last_updated_by: user.id,
-          })
+          .insert(insertData)
           .select()
           .single();
 
+        console.log("[useInventoryCRUD] Pulse: Step 4 - Supabase call completed");
+        console.log("[useInventoryCRUD] Pulse: Step 4 - Has error:", !!error);
+        console.log("[useInventoryCRUD] Pulse: Step 4 - Has data:", !!data);
+
         if (error) {
-          console.error('[useInventoryCRUD] Pulse: Supabase insert error!', error);
-          console.error('[useInventoryCRUD] Error details:', JSON.stringify(error, null, 2));
+          console.error('[useInventoryCRUD] Pulse: ❌ Supabase insert error!', error);
+          console.error('[useInventoryCRUD] Pulse: Error code:', error.code);
+          console.error('[useInventoryCRUD] Pulse: Error message:', error.message);
+          console.error('[useInventoryCRUD] Pulse: Error details:', JSON.stringify(error, null, 2));
           throw error;
         }
 
-        console.log("[useInventoryCRUD] Pulse: Supabase insert successful:", data.id);
+        console.log("[useInventoryCRUD] Pulse: Step 5 - ✅ Supabase insert successful! ID:", data.id);
 
         // Log the initial stock movement
+        console.log("[useInventoryCRUD] Pulse: Step 6 - Logging initial stock movement...");
         await logStockMovement({
           productId: data.id,
           quantityChange: data.quantity,
@@ -101,6 +122,9 @@ export const useInventoryCRUD = () => {
           type: 'INITIAL',
           reason: 'Initial stock entry'
         });
+
+        console.log("[useInventoryCRUD] Pulse: Step 6 - Stock movement logged ✓");
+        console.log("[useInventoryCRUD] Pulse: Step 7 - Converting database format to app format...");
 
         // Convert database format to app format
         const item: InventoryItem = {
@@ -122,12 +146,18 @@ export const useInventoryCRUD = () => {
           lastUpdatedAt: data.last_updated_at,
         };
 
+        console.log("[useInventoryCRUD] Pulse: Step 7 - Format conversion complete ✓");
+        console.log("[useInventoryCRUD] Pulse: Step 8 - Updating local state...");
+
         const updatedInventory = [...inventory, item];
         setInventory(updatedInventory);
         saveInventoryToLocalStorage(updatedInventory);
+
+        console.log("[useInventoryCRUD] Pulse: Step 8 - Local state updated ✓");
       } else {
         // Offline mode - use local storage
-        console.log("[useInventoryCRUD] Pulse: Adding in OFFLINE mode.");
+        console.log("[useInventoryCRUD] Pulse: Step 2 - OFFLINE mode detected");
+        console.log("[useInventoryCRUD] Pulse: Adding in OFFLINE mode...");
         const item = {
           ...newItem,
           id: Math.random().toString(36).substr(2, 9),
@@ -140,17 +170,22 @@ export const useInventoryCRUD = () => {
         const updatedInventory = [...inventory, item];
         setInventory(updatedInventory);
         saveInventoryToLocalStorage(updatedInventory);
+        console.log("[useInventoryCRUD] Pulse: Offline item added ✓");
       }
 
+      console.log("[useInventoryCRUD] Pulse: Step 9 - Showing success toast...");
       toast({
         title: "Success",
         description: isOnline
           ? "Product added successfully"
           : "Product added successfully (offline mode)",
       });
+      console.log("[useInventoryCRUD] Pulse: ===== addItem COMPLETE ✅ =====");
     } catch (error: any) {
       const errorMessage = error?.message || "Failed to add product";
-      console.error('Add item error:', error);
+      console.error('[useInventoryCRUD] Pulse: ===== addItem FAILED ❌ =====');
+      console.error('[useInventoryCRUD] Pulse: Error caught:', error);
+      console.error('[useInventoryCRUD] Pulse: Error message:', errorMessage);
       toast({
         title: "Error",
         description: errorMessage,
