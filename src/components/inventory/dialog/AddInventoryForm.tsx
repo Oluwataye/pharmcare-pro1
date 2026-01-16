@@ -80,8 +80,13 @@ export const AddInventoryForm = ({
     }
   };
 
+  const FormComponent = isBulkMode ? "div" : "form";
+  const formProps = isBulkMode
+    ? { className: "space-y-6" }
+    : { onSubmit: handleSubmit, className: "space-y-6" };
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <FormComponent {...formProps}>
       <div className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 border-b pb-6">
           <div className="col-span-1 sm:col-span-2">
@@ -308,6 +313,6 @@ export const AddInventoryForm = ({
           <Button type="submit">Add Product</Button>
         </DialogFooter>
       )}
-    </form>
+    </FormComponent>
   );
 };

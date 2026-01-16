@@ -33,7 +33,5 @@ const persister = createSyncStoragePersister({
 });
 
 createRoot(document.getElementById("root")!).render(
-  <StrictMode>
-    <App queryClient={queryClient} persister={persister} />
-  </StrictMode>
+  <App queryClient={queryClient} persister={persister} />
 );
