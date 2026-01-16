@@ -28,35 +28,58 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // Fetch user profile and role from database
   const fetchUserProfile = async (userId: string): Promise<AppUser | null> => {
     console.log(`[AuthProvider] Pulse: Fetching profile for user ${userId}...`);
+
+    // Add timeout wrapper to prevent hanging on slow networks
+    const fetchWithTimeout = async (promise: Promise<any>, timeoutMs: number = 10000) => {
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error('Request timeout')), timeoutMs)
+      );
+      return Promise.race([promise, timeout]);
+    };
+
     try {
       // Use specific columns and limit to stabilize the 406-prone single fetch
-      const { data: profiles, error: profileError } = await supabase
+      console.log('[AuthProvider] Pulse: Querying profiles table...');
+      const profileQuery = supabase
         .from('profiles')
         .select('name, username')
         .eq('user_id', userId)
         .limit(1);
 
-      if (profileError) throw profileError;
+      const { data: profiles, error: profileError } = await fetchWithTimeout(profileQuery) as any;
+
+      if (profileError) {
+        console.error('[AuthProvider] Pulse: Profile query error:', profileError);
+        throw profileError;
+      }
 
       const profile = (profiles as any[])?.[0];
       if (!profile) {
-        console.warn('No profile found for user:', userId);
+        console.warn('[AuthProvider] Pulse: No profile found for user:', userId);
         return null;
       }
+      console.log('[AuthProvider] Pulse: Profile found:', profile.name);
 
-      const { data: roles, error: rolesError } = await supabase
+      console.log('[AuthProvider] Pulse: Querying user_roles table...');
+      const rolesQuery = supabase
         .from('user_roles')
         .select('role')
         .eq('user_id', userId)
         .limit(1);
 
-      if (rolesError) throw rolesError;
+      const { data: roles, error: rolesError } = await fetchWithTimeout(rolesQuery) as any;
+
+      if (rolesError) {
+        console.error('[AuthProvider] Pulse: Roles query error:', rolesError);
+        throw rolesError;
+      }
 
       const roleData = (roles as any[])?.[0];
       if (!roleData) {
-        console.warn('No role found for user:', userId);
+        console.warn('[AuthProvider] Pulse: No role found for user:', userId);
         return null;
       }
+      console.log('[AuthProvider] Pulse: Role found:', roleData.role);
 
       const { data: { user } } = await supabase.auth.getUser();
 
@@ -69,7 +92,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       };
     } catch (error) {
       // Expand error object logging for better diagnostics
-      console.error('Error fetching user profile details:', JSON.stringify(error, null, 2));
+      console.error('[AuthProvider] Pulse: Error fetching user profile details:', error);
+      console.error('[AuthProvider] Pulse: Error details:', JSON.stringify(error, null, 2));
       return null;
     }
   };
