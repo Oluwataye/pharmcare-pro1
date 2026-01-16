@@ -79,6 +79,7 @@ export const AddInventoryDialog = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
 
     if (supplierId === "none" && items.length > 0) {
       toast({
@@ -189,10 +190,27 @@ export const AddInventoryDialog = ({
         </div>
 
         <div className="p-6 border-t bg-muted/20 flex justify-end gap-2">
-          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              onOpenChange(false);
+            }}
+            disabled={isSubmitting}
+          >
             Cancel
           </Button>
-          <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
+          <Button
+            type="button"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              handleSubmit(e);
+            }}
+            disabled={isSubmitting}
+          >
             {isSubmitting ? "Processing..." : `Receive ${items.length} Product${items.length !== 1 ? 's' : ''}`}
           </Button>
         </div>
