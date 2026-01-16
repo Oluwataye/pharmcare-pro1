@@ -1,16 +1,26 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { MedicationForm } from "@/components/pharmacist/MedicationForm";
 import { PharmacistHeader } from "@/components/pharmacist/PharmacistHeader";
 import { MedicationStats } from "@/components/pharmacist/MedicationStats";
 import { MedicationTable } from "@/components/pharmacist/MedicationTable";
-import { medications } from "@/data/mockMedications";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { useNavigate } from "react-router-dom";
 import { EnhancedTransactionsCard } from "@/components/admin/EnhancedTransactionsCard";
 import { EnhancedLowStockCard } from "@/components/admin/EnhancedLowStockCard";
+import { useInventory } from "@/hooks/useInventory";
+import { supabase } from "@/integrations/supabase/client";
+
+interface Medication {
+  id: string | number;
+  name: string;
+  category: string;
+  stock: number;
+  expiry: string;
+  status: "In Stock" | "Low Stock" | "Critical";
+}
 
 const PharmacistDashboard = () => {
   const { toast } = useToast();
@@ -18,6 +28,24 @@ const PharmacistDashboard = () => {
   const [showMedicationForm, setShowMedicationForm] = useState(false);
   const isMobile = useIsMobile();
   const navigate = useNavigate();
+  const { inventory, isLoading } = useInventory();
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+
+  // Map inventory to medications format
+  const medications: Medication[] = inventory.map(item => {
+    let status: "In Stock" | "Low Stock" | "Critical" = "In Stock";
+    if (item.quantity <= 0) status = "Critical";
+    else if (item.quantity <= item.reorderLevel) status = "Low Stock";
+
+    return {
+      id: item.id,
+      name: item.name,
+      category: item.category,
+      stock: item.quantity,
+      expiry: item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : 'N/A',
+      status: status
+    };
+  });
 
   const filteredMedications = medications.filter(
     med =>
@@ -28,23 +56,49 @@ const PharmacistDashboard = () => {
 
   const lowStockCount = medications.filter(med => med.status === "Low Stock").length;
   const criticalStockCount = medications.filter(med => med.status === "Critical").length;
-  const expiringSoonCount = 3; // Mock data for medications expiring within 30 days
 
-  // Mock data for recent transactions and low stock alerts for pharmacist
-  const recentTransactions = [
-    { id: 1, product: "Paracetamol", customer: "John Doe", amount: 1200, date: "Today, 10:30 AM" },
-    { id: 2, product: "Amoxicillin", customer: "Jane Smith", amount: 2500, date: "Today, 09:45 AM" },
-  ];
+  // Calculate expiring soon (within 30 days)
+  const expiringSoonCount = inventory.filter(item => {
+    if (!item.expiryDate) return false;
+    const expiry = new Date(item.expiryDate);
+    const today = new Date();
+    const diffTime = expiry.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    return diffDays > 0 && diffDays <= 30;
+  }).length;
 
-  const mockLowStockItems = medications
-    .filter(med => med.status === "Low Stock" || med.status === "Critical")
+  useEffect(() => {
+    const fetchTransactions = async () => {
+      const { data: transactions, error } = await supabase
+        .from('sales')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+
+      if (transactions) {
+        const formattedTx = transactions.map(tx => ({
+          id: tx.transaction_id || tx.id,
+          product: tx.customer_name || 'Walk-in Customer',
+          customer: `Items: ${(tx.items && Array.isArray(tx.items)) ? tx.items.length : 'N/A'}`,
+          amount: Number(tx.total || tx.total_amount || 0),
+          date: new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }));
+        setRecentTransactions(formattedTx);
+      }
+    };
+    fetchTransactions();
+  }, []);
+
+  // Low stock items for card
+  const lowStockItems = inventory
+    .filter(item => item.quantity <= item.reorderLevel)
     .slice(0, 3)
-    .map((med, index) => ({
-      id: index + 1,
-      product: med.name,
-      category: med.category,
-      quantity: med.stock, // Updated from 'quantity' to 'stock' to match the Medication interface
-      reorderLevel: 20, // Mock reorder level
+    .map((item, index) => ({
+      id: item.id,
+      product: item.name,
+      category: item.category,
+      quantity: item.quantity,
+      reorderLevel: item.reorderLevel,
     }));
 
   const handleMedicationComplete = (isNew: boolean) => {
@@ -59,8 +113,7 @@ const PharmacistDashboard = () => {
     navigate(route);
   };
 
-  const handleItemClick = (route: string, id: number) => {
-    // For future implementation: navigate to specific item detail
+  const handleItemClick = (route: string, id: number | string) => {
     navigate(route);
   };
 
@@ -102,7 +155,7 @@ const PharmacistDashboard = () => {
             />
 
             <EnhancedLowStockCard
-              items={mockLowStockItems}
+              items={lowStockItems}
               onItemClick={handleItemClick}
               onViewAllClick={handleCardClick}
             />

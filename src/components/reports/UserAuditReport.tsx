@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Table,
@@ -8,32 +9,31 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { supabase } from "@/integrations/supabase/client";
 
 const UserAuditReport = () => {
-  // Mock data - replace with real data from your backend
-  const auditLogs = [
-    {
-      id: 1,
-      user: "John Doe",
-      action: "Login",
-      timestamp: "2024-04-15 10:30 AM",
-      details: "Successfully logged in",
-    },
-    {
-      id: 2,
-      user: "Jane Smith",
-      action: "Inventory Update",
-      timestamp: "2024-04-15 11:15 AM",
-      details: "Updated stock for Paracetamol",
-    },
-    {
-      id: 3,
-      user: "Admin User",
-      action: "User Creation",
-      timestamp: "2024-04-15 12:00 PM",
-      details: "Created new user account",
-    },
-  ];
+  const [auditLogs, setAuditLogs] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(25);
+
+      if (data) {
+        setAuditLogs(data.map(log => ({
+          id: log.id,
+          user: log.user_email || log.user_id || 'System',
+          action: log.action,
+          timestamp: new Date(log.created_at).toLocaleString(),
+          details: typeof log.details === 'string' ? log.details : JSON.stringify(log.details)
+        })));
+      }
+    };
+    fetchLogs();
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -52,14 +52,22 @@ const UserAuditReport = () => {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {auditLogs.map((log) => (
-                <TableRow key={log.id}>
-                  <TableCell>{log.user}</TableCell>
-                  <TableCell>{log.action}</TableCell>
-                  <TableCell>{log.timestamp}</TableCell>
-                  <TableCell>{log.details}</TableCell>
+              {auditLogs.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                    No recent activity found.
+                  </TableCell>
                 </TableRow>
-              ))}
+              ) : (
+                auditLogs.map((log) => (
+                  <TableRow key={log.id}>
+                    <TableCell>{log.user}</TableCell>
+                    <TableCell>{log.action.replace(/_/g, ' ')}</TableCell>
+                    <TableCell>{log.timestamp}</TableCell>
+                    <TableCell className="max-w-md truncate" title={log.details}>{log.details}</TableCell>
+                  </TableRow>
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

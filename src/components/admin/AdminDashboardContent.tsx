@@ -1,4 +1,5 @@
 
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { WelcomeBanner } from "./WelcomeBanner";
 import { MetricCard } from "@/components/dashboard/MetricCard";
@@ -6,73 +7,136 @@ import { EnhancedTransactionsCard } from "./EnhancedTransactionsCard";
 import { EnhancedLowStockCard } from "./EnhancedLowStockCard";
 import { AlertTriangle, Package, TrendingUp, Activity } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
+import { useInventory } from "@/hooks/useInventory";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
+  const { inventory, isLoading: isInventoryLoading } = useInventory();
+  const { toast } = useToast();
 
-  // Mock data for recent transactions and low stock alerts
-  const recentTransactions = [
-    { id: 1, product: "Paracetamol", customer: "John Doe", amount: 1200, date: "Today, 10:30 AM" },
-    { id: 2, product: "Amoxicillin", customer: "Jane Smith", amount: 2500, date: "Today, 09:45 AM" },
-    { id: 3, product: "Vitamin C", customer: "Mike Johnson", amount: 850, date: "Yesterday, 04:20 PM" },
-  ];
+  const [todaySales, setTodaySales] = useState(0);
+  const [revenueMTD, setRevenueMTD] = useState(0);
+  const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
+  const [isLoadingSales, setIsLoadingSales] = useState(true);
 
-  const mockLowStockItems = [
-    { id: 1, product: "Paracetamol", category: "Pain Relief", quantity: 10, reorderLevel: 15 },
-    { id: 2, product: "Amoxicillin", category: "Antibiotics", quantity: 5, reorderLevel: 20 },
-    { id: 3, product: "Insulin", category: "Diabetes", quantity: 3, reorderLevel: 10 },
-  ];
+  // Calculate inventory stats
+  const lowStockItems = inventory.filter(item => item.quantity <= item.reorderLevel);
+  const totalProducts = inventory.length;
+
+  useEffect(() => {
+    const fetchSalesStats = async () => {
+      try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+
+        // Fetch Recent Transactions
+        const { data: transactions, error: txError } = await supabase
+          .from('sales')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(5);
+
+        if (txError) {
+          console.error('Error fetching transactions:', txError);
+          // Fallback to empty if table issue
+        } else if (transactions) {
+          // Transform to match EnhancedTransactionsCard props
+          const formattedTx = transactions.map(tx => ({
+            id: tx.transaction_id || tx.id, // Use transaction_id if available, else UUID
+            product: tx.customer_name || 'Walk-in Customer',
+            customer: `Items: ${(tx.items && Array.isArray(tx.items)) ? tx.items.length : 'N/A'}`,
+            amount: Number(tx.total || tx.total_amount || 0),
+            date: new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+          }));
+          setRecentTransactions(formattedTx);
+        }
+
+        // Fetch Today's Sales Sum
+        // Note: Supabase doesn't have a simple sum() without RPC or fetching all relevant rows. 
+        // For scalability, RPC is better, but for now we fetch rows (assuming volume isn't massive yet).
+        const { data: todayData, error: todayError } = await supabase
+          .from('sales')
+          .select('total, total_amount')
+          .gte('created_at', today.toISOString());
+
+        if (todayError) throw todayError;
+
+        const todayTotal = todayData?.reduce((sum, sale) => sum + Number(sale.total || sale.total_amount || 0), 0) || 0;
+        setTodaySales(todayTotal);
+
+        // Fetch Month's Revenue
+        const { data: monthData, error: monthError } = await supabase
+          .from('sales')
+          .select('total, total_amount')
+          .gte('created_at', firstDayOfMonth.toISOString());
+
+        if (monthError) throw monthError;
+
+        const monthTotal = monthData?.reduce((sum, sale) => sum + Number(sale.total || sale.total_amount || 0), 0) || 0;
+        setRevenueMTD(monthTotal);
+
+      } catch (error) {
+        console.error("Error fetching sales stats:", error);
+      } finally {
+        setIsLoadingSales(false);
+      }
+    };
+
+    fetchSalesStats();
+  }, []); // Run once on mount
 
   const handleCardClick = (route: string) => {
     navigate(route);
   };
 
-  const handleItemClick = (route: string, id: number) => {
-    // For future implementation: navigate to specific item detail
+  const handleItemClick = (route: string, id: number | string) => {
     navigate(route);
   };
 
   const stats = [
     {
       title: "Today's Sales",
-      value: "₦1,234",
+      value: `₦${todaySales.toLocaleString()}`,
       icon: NairaSign,
-      trend: "+12.5%",
+      trend: "+0%", // Needs real trend calculation in future
       trendUp: true,
       route: "/sales",
       colorScheme: 'success' as const,
-      size: 'large' as const,
-      comparisonLabel: "vs yesterday (₦1,097)"
+      comparisonLabel: "vs yesterday"
     },
     {
       title: "Low Stock Items",
-      value: mockLowStockItems.length.toString(),
+      value: lowStockItems.length.toString(),
       icon: AlertTriangle,
-      trend: "+5 new",
+      trend: "Action Needed",
       trendUp: false,
       route: "/inventory",
       colorScheme: 'warning' as const,
-      comparisonLabel: "since yesterday"
+      comparisonLabel: "restock now"
     },
     {
       title: "Total Products",
-      value: "1,456",
+      value: totalProducts.toLocaleString(),
       icon: Package,
-      trend: "+3",
+      trend: "Active",
       trendUp: true,
       route: "/inventory",
       colorScheme: 'primary' as const,
-      comparisonLabel: "this week"
+      comparisonLabel: "in inventory"
     },
     {
       title: "Revenue (MTD)",
-      value: "₦45,678",
+      value: `₦${revenueMTD.toLocaleString()}`,
       icon: TrendingUp,
-      trend: "+8.2%",
+      trend: "Month to Date",
       trendUp: true,
       route: "/reports",
       colorScheme: 'success' as const,
-      comparisonLabel: "vs last month"
+      comparisonLabel: "current month"
     },
     {
       title: "Live Analytics",
@@ -93,7 +157,7 @@ const AdminDashboardContent = () => {
       </div>
 
       <WelcomeBanner
-        lowStockCount={mockLowStockItems.length}
+        lowStockCount={lowStockItems.length}
         onQuickAction={() => handleCardClick('/inventory')}
       />
 
@@ -105,14 +169,9 @@ const AdminDashboardContent = () => {
             value={stat.value}
             icon={stat.icon}
             trend={{
-              value: parseFloat(stat.trend), // MetricCard expects number. Wait, stat.trend is string like "+12.5%". MetricCard definition: `trend?: { value: number; isPositive: boolean; }`.
-              // My MetricCard definition (Step 13169) uses `trend?: { value: number; isPositive: boolean; }`.
-              // But the `stats` array has `trend: "+12.5%"` (string) and `trendUp: true` (boolean).
-              // I need to adapt the props or change MetricCard to accept string trend.
-              // Let's adapt the props here.
+              value: 0, // Placeholder
               isPositive: stat.trendUp
             }}
-            // Wait, "parseFloat('+12.5%')" works? "12.5".
             colorScheme={stat.colorScheme}
             description={stat.comparisonLabel}
             onClick={() => handleCardClick(stat.route)}
@@ -128,7 +187,7 @@ const AdminDashboardContent = () => {
         />
 
         <EnhancedLowStockCard
-          items={mockLowStockItems}
+          items={lowStockItems.slice(0, 5)} // Show top 5
           onItemClick={handleItemClick}
           onViewAllClick={handleCardClick}
         />
@@ -138,4 +197,3 @@ const AdminDashboardContent = () => {
 };
 
 export default AdminDashboardContent;
-

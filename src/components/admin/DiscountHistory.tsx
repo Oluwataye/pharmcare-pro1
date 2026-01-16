@@ -20,54 +20,14 @@ import { Calendar, History } from "lucide-react";
 import { format, subDays, subMonths, subYears, isWithinInterval } from "date-fns";
 
 // Enhanced mock data with more entries and actual dates
-const discountHistoryData = [
-  {
-    id: "1",
-    date: new Date("2025-04-22").toISOString(),
-    time: "14:30",
-    itemName: "Paracetamol",
-    originalPrice: 500,
-    discountPercentage: 10,
-    finalPrice: 450,
-    appliedBy: "John Doe"
-  },
-  {
-    id: "2",
-    date: new Date("2025-04-21").toISOString(),
-    time: "15:45",
-    itemName: "Amoxicillin",
-    originalPrice: 1200,
-    discountPercentage: 15,
-    finalPrice: 1020,
-    appliedBy: "Jane Smith"
-  },
-  {
-    id: "3",
-    date: new Date("2025-03-15").toISOString(),
-    time: "09:30",
-    itemName: "Vitamin C",
-    originalPrice: 800,
-    discountPercentage: 20,
-    finalPrice: 640,
-    appliedBy: "Mike Johnson"
-  },
-  {
-    id: "4",
-    date: new Date("2025-01-10").toISOString(),
-    time: "11:20",
-    itemName: "Ibuprofen",
-    originalPrice: 600,
-    discountPercentage: 5,
-    finalPrice: 570,
-    appliedBy: "Sarah Wilson"
-  }
-];
+// Mock data removed. TODO: Implement fetch from sales items
+const discountHistoryData: any[] = [];
 
 type TimePeriod = "daily" | "weekly" | "monthly" | "yearly" | "all";
 
 export const DiscountHistory = () => {
   const [timePeriod, setTimePeriod] = useState<TimePeriod>("daily");
-  
+
   const filterDiscountsByPeriod = (period: TimePeriod) => {
     const now = new Date();
     let startDate: Date;
@@ -140,7 +100,7 @@ export const DiscountHistory = () => {
               <span className="text-lg font-bold">₦{totalDiscount.toFixed(2)}</span>
             </div>
           </div>
-          
+
           <div className="rounded-md border">
             <Table>
               <TableHeader>

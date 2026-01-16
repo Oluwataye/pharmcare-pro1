@@ -5,7 +5,7 @@ import { Receipt, ChevronRight, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface Transaction {
-  id: number;
+  id: string | number;
   product: string;
   customer: string;
   amount: number;
@@ -14,7 +14,7 @@ interface Transaction {
 
 interface EnhancedTransactionsCardProps {
   transactions: Transaction[];
-  onItemClick: (route: string, id: number) => void;
+  onItemClick: (route: string, id: string | number) => void;
   onViewAllClick: (route: string) => void;
 }
 

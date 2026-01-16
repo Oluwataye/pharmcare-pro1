@@ -1,46 +1,38 @@
 
+import { useEffect, useState } from "react";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AuditLogEntry } from "@/types/sales";
-
-// Mock audit log data - in a real application, this would come from an API
-const mockAuditLogs: AuditLogEntry[] = [
-  {
-    id: "1",
-    userId: "1",
-    username: "admin",
-    email: "admin@demo.com",
-    action: "SALE_COMPLETED",
-    resource: "sales",
-    resourceId: "sale-123",
-    details: "Completed sale of 3 items for ₦4500",
-    timestamp: new Date("2025-04-22T10:30:00")
-  },
-  {
-    id: "2",
-    userId: "3",
-    username: "dispenser1",
-    email: "dispenser@demo.com",
-    action: "SALE_COMPLETED",
-    resource: "sales",
-    resourceId: "sale-124",
-    details: "Completed sale of 1 item for ₦1500",
-    timestamp: new Date("2025-04-22T11:15:00")
-  },
-  {
-    id: "3",
-    userId: "2",
-    username: "pharmacist1",
-    email: "pharmacist@demo.com",
-    action: "INVENTORY_UPDATED",
-    resource: "inventory",
-    resourceId: "item-456",
-    details: "Updated stock for Paracetamol to 200 units",
-    timestamp: new Date("2025-04-22T09:45:00")
-  }
-];
+import { supabase } from "@/integrations/supabase/client";
 
 const TransactionAuditLog = () => {
+  const [logs, setLogs] = useState<AuditLogEntry[]>([]);
+
+  useEffect(() => {
+    const fetchLogs = async () => {
+      const { data, error } = await supabase
+        .from('audit_logs')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (data) {
+        setLogs(data.map((log: any) => ({
+          id: log.id,
+          userId: log.user_id,
+          username: log.user_email?.split('@')[0] || 'System', // Derive username
+          email: log.user_email || '',
+          action: log.action,
+          resource: log.resource_type || '',
+          resourceId: log.resource_id,
+          details: typeof log.details === 'string' ? log.details : JSON.stringify(log.details),
+          timestamp: new Date(log.created_at)
+        })));
+      }
+    };
+    fetchLogs();
+  }, []);
+
   return (
     <Card>
       <CardHeader>
@@ -57,17 +49,25 @@ const TransactionAuditLog = () => {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {mockAuditLogs.map(log => (
-              <TableRow key={log.id}>
-                <TableCell>{log.timestamp.toLocaleString()}</TableCell>
-                <TableCell>
-                  <div className="font-medium">{log.username}</div>
-                  <div className="text-sm text-muted-foreground">{log.email}</div>
+            {logs.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-4 text-muted-foreground">
+                  No audit logs found.
                 </TableCell>
-                <TableCell>{log.action.replace(/_/g, " ")}</TableCell>
-                <TableCell>{log.details}</TableCell>
               </TableRow>
-            ))}
+            ) : (
+              logs.map(log => (
+                <TableRow key={log.id}>
+                  <TableCell>{log.timestamp.toLocaleString()}</TableCell>
+                  <TableCell>
+                    <div className="font-medium">{log.username}</div>
+                    <div className="text-sm text-muted-foreground">{log.email}</div>
+                  </TableCell>
+                  <TableCell>{log.action.replace(/_/g, " ")}</TableCell>
+                  <TableCell className="max-w-md truncate" title={log.details}>{log.details}</TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </CardContent>

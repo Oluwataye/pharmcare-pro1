@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { DispenserHeader } from "./DispenserHeader";
@@ -12,9 +12,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { AlertTriangle, Receipt, TrendingUp, Users } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
 import { useSystemConfig } from "@/hooks/useSystemConfig";
+import { useInventory } from "@/hooks/useInventory";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Transaction {
-  id: number;
+  id: number | string;
   customer: string;
   items: number;
   amount: number;
@@ -24,7 +26,7 @@ interface Transaction {
 }
 
 interface LowStockItem {
-  id: number;
+  id: number | string; // Updated to allow string (UUID)
   product: string;
   category: string;
   quantity: number;
@@ -36,42 +38,64 @@ export const DispenserDashboardContent = () => {
   const { toast } = useToast();
   const [showNewSaleForm, setShowNewSaleForm] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const { config } = useSystemConfig();
+  const { inventory } = useInventory(); // Fetch live inventory
 
-  const recentTransactions: Transaction[] = [
-    {
-      id: 1,
-      customer: "John Smith",
-      items: 3,
-      amount: 2500,
-      time: "10:30 AM",
-      date: "2023-04-15",
-      status: "Completed"
-    },
-    {
-      id: 2,
-      customer: "Sarah Wilson",
-      items: 5,
-      amount: 4750,
-      time: "11:45 AM",
-      date: "2023-04-15",
-      status: "Completed"
-    },
-    {
-      id: 3,
-      customer: "Michael Brown",
-      items: 2,
-      amount: 1800,
-      time: "01:15 PM",
-      date: "2023-04-15",
-      status: "Completed"
-    },
-  ];
+  const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
+  const [todaySalesTotal, setTodaySalesTotal] = useState(0);
+  const [todayTxCount, setTodayTxCount] = useState(0);
+  const [uniqueCustomers, setUniqueCustomers] = useState(0);
 
-  // Mock low stock items for dispenser view
-  const mockLowStockItems: LowStockItem[] = [
-    { id: 1, product: "Paracetamol", category: "Pain Relief", quantity: 10, reorderLevel: 15 },
-    { id: 2, product: "Amoxicillin", category: "Antibiotics", quantity: 5, reorderLevel: 20 },
-  ];
+  // Fetch sales data
+  useEffect(() => {
+    const fetchSalesData = async () => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
+      // Fetch Today's Sales
+      const { data: sales, error } = await supabase
+        .from('sales')
+        .select('*') // Get all columns for Today
+        .gte('created_at', today.toISOString())
+        .order('created_at', { ascending: false });
+
+      if (sales) {
+        // Calculate Stats
+        const total = sales.reduce((sum, sale) => sum + Number(sale.total || sale.total_amount || 0), 0);
+        setTodaySalesTotal(total);
+        setTodayTxCount(sales.length);
+
+        const customers = new Set(sales.map(s => s.customer_name).filter(Boolean));
+        setUniqueCustomers(customers.size);
+
+        // Set Recent Transactions for Table/Cards
+        const formattedTx: Transaction[] = sales.map(tx => ({
+          id: tx.transaction_id || tx.id,
+          customer: tx.customer_name || 'Walk-in Customer',
+          items: (tx.items && Array.isArray(tx.items)) ? tx.items.length : 1, // approximate items count if array
+          amount: Number(tx.total || tx.total_amount || 0),
+          time: new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          date: new Date(tx.created_at).toISOString().split('T')[0],
+          status: "Completed" // Assume completed for history
+        }));
+        setRecentTransactions(formattedTx);
+      }
+    };
+
+    fetchSalesData();
+  }, []);
+
+  // Filter low stock items from live inventory
+  // Limit to 5 for the card
+  const lowStockItems: LowStockItem[] = inventory
+    .filter(item => item.quantity <= item.reorderLevel)
+    .map(item => ({
+      id: item.id,
+      product: item.name,
+      category: item.category,
+      quantity: item.quantity,
+      reorderLevel: item.reorderLevel
+    }));
 
   const filteredTransactions = recentTransactions.filter(
     transaction =>
@@ -89,39 +113,38 @@ export const DispenserDashboardContent = () => {
       description: "The transaction was processed successfully",
     });
     setShowNewSaleForm(false);
+    // Refresh sales could be triggered here if we moved logic to function
+    // For now we rely on simple state update or page refresh (or real-time subscription in future)
   };
 
   const handleCardClick = (route: string) => {
     navigate(route);
   };
 
-  const handleItemClick = (route: string, id: number) => {
-    // For future implementation: navigate to specific item detail
+  const handleItemClick = (route: string, id: number | string) => {
     navigate(route);
   };
-
-  const { config } = useSystemConfig();
 
   const statsCards = [
     {
       title: "Today's Sales",
-      value: `${config.currencySymbol}9,050`,
+      value: `${config.currencySymbol}${todaySalesTotal.toLocaleString()}`,
       icon: NairaSign,
-      description: "+8% from yesterday",
+      description: "Today's revenue",
       iconColor: "text-primary",
       route: "/sales"
     },
     {
       title: "Transactions",
-      value: "12",
+      value: todayTxCount.toString(),
       icon: Receipt,
-      description: "+2 since last shift",
+      description: "Sales today",
       iconColor: "text-primary",
       route: "/sales"
     },
     {
       title: "Customers",
-      value: "8",
+      value: uniqueCustomers.toString(),
       icon: Users,
       description: "Unique customers today",
       iconColor: "text-primary",
@@ -129,7 +152,7 @@ export const DispenserDashboardContent = () => {
     },
     {
       title: "Low Stock Items",
-      value: mockLowStockItems.length.toString(),
+      value: lowStockItems.length.toString(),
       icon: AlertTriangle,
       description: "Needs attention",
       iconColor: "text-amber-500",
@@ -167,7 +190,7 @@ export const DispenserDashboardContent = () => {
 
           <div className="grid gap-4 md:grid-cols-2">
             <EnhancedTransactionsCard
-              transactions={filteredTransactions.map(t => ({
+              transactions={filteredTransactions.slice(0, 5).map(t => ({
                 id: t.id,
                 product: `${t.items} items`,
                 customer: t.customer,
@@ -179,7 +202,7 @@ export const DispenserDashboardContent = () => {
             />
 
             <EnhancedLowStockCard
-              items={mockLowStockItems}
+              items={lowStockItems.slice(0, 5)}
               onItemClick={handleItemClick}
               onViewAllClick={handleCardClick}
             />

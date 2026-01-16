@@ -14,7 +14,7 @@ import { Package, RefreshCw } from "lucide-react";
 import { Card, CardHeader, CardContent, CardTitle } from "@/components/ui/card";
 
 interface Medication {
-  id: number;
+  id: string | number;
   name: string;
   category: string;
   stock: number;
@@ -70,10 +70,10 @@ export const MedicationTable = ({ medications, filteredMedications }: Medication
                   <TableCell>{medication.expiry}</TableCell>
                   <TableCell>
                     <Badge variant={
-                      medication.status === "In Stock" 
-                        ? "default" 
-                        : medication.status === "Low Stock" 
-                          ? "outline" 
+                      medication.status === "In Stock"
+                        ? "default"
+                        : medication.status === "Low Stock"
+                          ? "outline"
                           : "destructive"
                     } className="font-medium">
                       {medication.status}
@@ -81,10 +81,10 @@ export const MedicationTable = ({ medications, filteredMedications }: Medication
                   </TableCell>
                   <TableCell>
                     <div className="flex space-x-2">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
-                        className="h-8 px-3 text-xs hover:bg-muted/80" 
+                        className="h-8 px-3 text-xs hover:bg-muted/80"
                         onClick={() => {
                           toast({
                             title: "Not Implemented",
@@ -94,10 +94,10 @@ export const MedicationTable = ({ medications, filteredMedications }: Medication
                       >
                         Edit
                       </Button>
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         size="sm"
-                        className="h-8 px-3 text-xs hover:bg-muted/80" 
+                        className="h-8 px-3 text-xs hover:bg-muted/80"
                         onClick={() => {
                           toast({
                             title: "Not Implemented",

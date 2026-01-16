@@ -2,7 +2,6 @@
 import { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { InventoryItem } from "@/types/inventory";
-import { mockInventory } from "@/utils/mockInventoryData";
 import { saveInventoryToLocalStorage, loadInventoryFromLocalStorage } from "@/utils/inventoryUtils";
 import { supabase } from "@/integrations/supabase/client";
 import { useOffline } from "@/contexts/OfflineContext";
@@ -24,7 +23,7 @@ const InventoryContext = createContext<InventoryContextType | undefined>(undefin
 export const InventoryProvider = ({ children }: { children: ReactNode }) => {
     console.log("[InventoryProvider] Pulse: Initializing...");
     const [inventory, setInventory] = useState<InventoryItem[]>(() => {
-        return loadInventoryFromLocalStorage() || mockInventory;
+        return loadInventoryFromLocalStorage() || [];
     });
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
