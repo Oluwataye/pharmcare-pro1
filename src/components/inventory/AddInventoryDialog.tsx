@@ -189,10 +189,10 @@ export const AddInventoryDialog = ({
         </div>
 
         <div className="p-6 border-t bg-muted/20 flex justify-end gap-2">
-          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
+          <Button type="button" variant="outline" onClick={() => onOpenChange(false)} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={isSubmitting}>
+          <Button type="button" onClick={handleSubmit} disabled={isSubmitting}>
             {isSubmitting ? "Processing..." : `Receive ${items.length} Product${items.length !== 1 ? 's' : ''}`}
           </Button>
         </div>
