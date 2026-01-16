@@ -52,10 +52,18 @@ export const useInventoryCRUD = () => {
     console.log("[useInventoryCRUD] Pulse: Product name:", newItem.name);
     console.log("[useInventoryCRUD] Pulse: Context state:", { isOnline, userId: user?.id, userRole: user?.role });
 
+    // Auto-generate SKU if missing
+    let itemToProcess = { ...newItem };
+    if (!itemToProcess.sku || itemToProcess.sku.trim() === '') {
+      const generatedSku = `SKU-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      console.log("[useInventoryCRUD] Pulse: Auto-generating SKU:", generatedSku);
+      itemToProcess.sku = generatedSku;
+    }
+
     try {
       // Validate the item before adding
       console.log("[useInventoryCRUD] Pulse: Step 1 - Validating item...");
-      const validation = validateInventoryItem(newItem);
+      const validation = validateInventoryItem(itemToProcess);
       if (!validation.valid) {
         console.warn("[useInventoryCRUD] Pulse: Validation failed:", validation.message);
         toast({
@@ -73,19 +81,19 @@ export const useInventoryCRUD = () => {
         console.log("[useInventoryCRUD] Pulse: Step 3 - Preparing insert data...");
 
         const insertData = {
-          name: newItem.name,
-          sku: newItem.sku,
-          category: newItem.category,
-          quantity: newItem.quantity,
-          unit: newItem.unit,
-          price: newItem.price,
-          cost_price: newItem.costPrice,
-          reorder_level: newItem.reorderLevel,
-          expiry_date: newItem.expiryDate || null,
-          manufacturer: newItem.manufacturer || null,
-          batch_number: newItem.batchNumber || null,
-          supplier_id: newItem.supplierId === "none" ? null : newItem.supplierId,
-          restock_invoice_number: newItem.restockInvoiceNumber || null,
+          name: itemToProcess.name,
+          sku: itemToProcess.sku,
+          category: itemToProcess.category,
+          quantity: itemToProcess.quantity,
+          unit: itemToProcess.unit,
+          price: itemToProcess.price,
+          cost_price: itemToProcess.costPrice,
+          reorder_level: itemToProcess.reorderLevel,
+          expiry_date: itemToProcess.expiryDate || null,
+          manufacturer: itemToProcess.manufacturer || null,
+          batch_number: itemToProcess.batchNumber || null,
+          supplier_id: itemToProcess.supplierId === "none" ? null : itemToProcess.supplierId,
+          restock_invoice_number: itemToProcess.restockInvoiceNumber || null,
           last_updated_by: user.id,
         };
 
@@ -159,7 +167,7 @@ export const useInventoryCRUD = () => {
         console.log("[useInventoryCRUD] Pulse: Step 2 - OFFLINE mode detected");
         console.log("[useInventoryCRUD] Pulse: Adding in OFFLINE mode...");
         const item = {
-          ...newItem,
+          ...itemToProcess,
           id: Math.random().toString(36).substr(2, 9),
           lastUpdatedBy: user ? user.username || user.name : 'Unknown',
           lastUpdatedAt: new Date().toISOString(),
