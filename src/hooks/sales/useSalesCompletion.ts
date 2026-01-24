@@ -22,10 +22,11 @@ interface CompleteSaleOptions {
 export const useSalesCompletion = (
   items: SaleItem[],
   calculateTotal: () => number,
-  discount: number, // Add discount percentage
   clearItems: () => void,
   clearDiscount: () => void,
-  resetSaleType: () => void
+  resetSaleType: () => void,
+  discount: number = 0, // Add discount percentage
+  manualDiscount: number = 0 // Add manual discount amount
 ) => {
   const { toast } = useToast();
   const { isOnline } = useOffline();
@@ -69,6 +70,7 @@ export const useSalesCompletion = (
         items: [...items],
         total: calculateTotal(),
         discount: discount, // Use actual discount percentage
+        manualDiscount: manualDiscount, // Include manual discount amount
         customerName: options?.customerName,
         customerPhone: options?.customerPhone,
         businessName: options?.businessName,
@@ -108,6 +110,7 @@ export const useSalesCompletion = (
           resetSaleType();
           secureStorage.removeItem('CURRENT_SALE_ITEMS');
           secureStorage.removeItem('CURRENT_SALE_DISCOUNT');
+          secureStorage.removeItem('CURRENT_SALE_MANUAL_DISCOUNT');
           secureStorage.removeItem('CURRENT_SALE_TYPE');
 
           return data.saleId || true;
@@ -130,6 +133,7 @@ export const useSalesCompletion = (
           resetSaleType();
           secureStorage.removeItem('CURRENT_SALE_ITEMS');
           secureStorage.removeItem('CURRENT_SALE_DISCOUNT');
+          secureStorage.removeItem('CURRENT_SALE_MANUAL_DISCOUNT');
           secureStorage.removeItem('CURRENT_SALE_TYPE');
 
           // Return transactionId so printing still happens!
@@ -143,6 +147,7 @@ export const useSalesCompletion = (
       resetSaleType();
       secureStorage.removeItem('CURRENT_SALE_ITEMS');
       secureStorage.removeItem('CURRENT_SALE_DISCOUNT');
+      secureStorage.removeItem('CURRENT_SALE_MANUAL_DISCOUNT');
       secureStorage.removeItem('CURRENT_SALE_TYPE');
 
       // For offline mode, return transactionId so downstream logic triggers success modal

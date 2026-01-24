@@ -40,12 +40,14 @@ const NewSale = () => {
   const {
     items,
     discount,
+    manualDiscount,
     saleType,
     addItem,
     removeItem,
     updateQuantity,
     toggleItemPriceType,
     setOverallDiscount,
+    setManualDiscount,
     setSaleType,
     calculateTotal,
     calculateSubtotal,
@@ -137,6 +139,16 @@ const NewSale = () => {
       toast({
         title: "Validation Error",
         description: "Please check customer information",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate manual discount range if used
+    if (manualDiscount > 0 && (manualDiscount < 500 || manualDiscount > 1000)) {
+      toast({
+        title: "Invalid Discount",
+        description: "Manual discount must be between ₦500 and ₦1,000",
         variant: "destructive",
       });
       return;
@@ -399,10 +411,13 @@ const NewSale = () => {
                 <SaleTotals
                   subtotal={calculateSubtotal()}
                   discount={discount}
+                  manualDiscount={manualDiscount}
                   total={calculateTotal()}
                   discountAmount={calculateDiscountAmount()}
                   onDiscountChange={setOverallDiscount}
+                  onManualDiscountChange={setManualDiscount}
                   isWholesale={saleType === 'wholesale'}
+                  manualDiscountEnabled={true}
                 />
 
                 <div className="mt-4 flex justify-between items-center">

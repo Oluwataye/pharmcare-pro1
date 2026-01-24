@@ -30,7 +30,9 @@ export const useSales = (options?: UseSalesOptions) => {
 
   const {
     discount,
+    manualDiscount,
     setOverallDiscount,
+    setManualDiscount,
     calculateSubtotal,
     calculateDiscountAmount,
     calculateTotal,
@@ -44,12 +46,12 @@ export const useSales = (options?: UseSalesOptions) => {
     setShowPreview,
     previewData,
     openPrintWindow
-  } = useSalesPrinting(items, discount, saleType);
+  } = useSalesPrinting(items, discount, saleType, manualDiscount);
 
   const {
     completeSale: completeTransaction,
     isOfflineMode
-  } = useSalesCompletion(items, calculateTotal, clearItems, clearDiscount, resetSaleType);
+  } = useSalesCompletion(items, calculateTotal, clearItems, clearDiscount, resetSaleType, discount, manualDiscount);
 
   // Wrap the completeSale function to include cashier info from options and reliable printing
   const completeSale = async (completeSaleOptions?: Omit<Parameters<typeof completeTransaction>[0], 'dispenserName' | 'dispenserEmail' | 'dispenserId'> & { existingWindow?: Window | null }) => {
@@ -93,6 +95,7 @@ export const useSales = (options?: UseSalesOptions) => {
   return {
     items,
     discount,
+    manualDiscount,
     saleType,
     addItem: (product: any, quantity: number, isWholesale: boolean = false) => {
       const { success, usedWholesalePrice } = addItem(product, quantity, isWholesale);
@@ -106,6 +109,7 @@ export const useSales = (options?: UseSalesOptions) => {
     updateItemDiscount,
     toggleItemPriceType: enhancedToggleItemPriceType,
     setOverallDiscount,
+    setManualDiscount,
     setSaleType: setSaleTypeMode,
     calculateSubtotal,
     calculateDiscountAmount,

@@ -24,7 +24,8 @@ interface HandlePrintOptions {
 export const useSalesPrinting = (
   items: SaleItem[],
   discount: number,
-  saleType: 'retail' | 'wholesale'
+  saleType: 'retail' | 'wholesale',
+  manualDiscount: number = 0
 ) => {
   const { toast } = useToast();
   const { settings: storeSettings, isLoading: isLoadingSettings } = useStoreSettings();
@@ -63,7 +64,7 @@ export const useSalesPrinting = (
         printDurationMs: duration,
         isReprint: false,
         saleType: dataToPrint.saleType,
-        totalAmount: dataToPrint.items.reduce((sum, item) => sum + item.total, 0) - (dataToPrint.discount || 0),
+        totalAmount: dataToPrint.items.reduce((sum, item) => sum + item.total, 0) - (dataToPrint.discount || 0) - (dataToPrint.manualDiscount || 0),
       });
 
       setShowPreview(false);
@@ -97,7 +98,7 @@ export const useSalesPrinting = (
         printDurationMs: duration,
         isReprint: false,
         saleType: dataToPrint.saleType,
-        totalAmount: dataToPrint.items.reduce((sum, item) => sum + item.total, 0) - (dataToPrint.discount || 0),
+        totalAmount: dataToPrint.items.reduce((sum, item) => sum + item.total, 0) - (dataToPrint.discount || 0) - (dataToPrint.manualDiscount || 0),
       });
 
       toast({
@@ -127,6 +128,7 @@ export const useSalesPrinting = (
       const receiptProps: PrintReceiptProps = {
         items: options?.items || items,
         discount,
+        manualDiscount,
         date: new Date(),
         dispenserName: options?.dispenserName || undefined,
         dispenserEmail: options?.dispenserEmail || undefined,
@@ -158,7 +160,7 @@ export const useSalesPrinting = (
         variant: "destructive",
       });
     }
-  }, [items, discount, saleType, storeSettings, isLoadingSettings, toast, executePrint]);
+  }, [items, discount, manualDiscount, saleType, storeSettings, isLoadingSettings, toast, executePrint]);
 
   return {
     handlePrint,
