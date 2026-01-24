@@ -67,7 +67,14 @@ const SaleTotals = ({
                   placeholder="500 - 1000"
                   className="pl-6 w-32"
                   value={manualDiscount || ''}
-                  onChange={(e) => onManualDiscountChange?.(parseInt(e.target.value) || 0)}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value) || 0;
+                    // Strictly enforce upper limit while typing
+                    if (val <= 1000) {
+                      onManualDiscountChange?.(val);
+                    }
+                  }}
+                  max={1000}
                 />
               </div>
             </div>
