@@ -232,6 +232,16 @@ const NewSale = () => {
   };
 
   const handleManualPrint = () => {
+    // Validate manual discount range if used
+    if (manualDiscount > 0 && (manualDiscount < 500 || manualDiscount > 1000)) {
+      toast({
+        title: "Invalid Discount",
+        description: `Manual discount of ₦${manualDiscount} is invalid. Must be between ₦500 and ₦1,000.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Open window synchronously
     const windowRef = openPrintWindow();
 
@@ -250,240 +260,43 @@ const NewSale = () => {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">New Sale</h1>
-          {!isOnline && (
-            <p className="text-sm text-amber-600">Working in offline mode - sale will sync when you're back online</p>
-          )}
-        </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={() => navigate("/sales")}>
-            Cancel
-          </Button>
-          <Button onClick={handleCompleteSale} disabled={isCompleting}>
-            {isCompleting ? "Processing..." : (isOfflineMode ? (
-              <>
-                <Save className="mr-2 h-4 w-4" />
-                Save Offline
-              </>
-            ) : (
-              <>
-                <Printer className="mr-2 h-4 w-4" />
-                Print Receipt
-              </>
-            ))}
-          </Button>
-        </div>
-      </div>
+      {/* ... existing code ... */}
+      <DialogFooter className="flex sm:justify-center gap-2">
+        <Button
+          variant="outline"
+          onClick={() => {
+            // Validate manual discount range just in case (though it should be cleared or valid if sale completed)
+            // But for reprint of *current* state (if they didn't clear), we should check.
+            // Actually, lastCompletedItems are captured, but if they changed discount *after* completion...
+            // The reprint uses lastCompletedItems, but handlePrint might use current discount if not passed explicitly?
+            // handlePrint uses `options?.discount || discount`.
+            // If we reprint `lastCompletedItems`, we re-use the current discount state if not passed from history?
+            // `handlePrint` takes `discount` from hook state if no options.
+            // But Wait! `lastCompletedSaleId` is set.
+            // We should probably rely on the fact that if sale completed, it was valid.
+            // BUT user said "no print to take place...".
+            // If I am re-printing a *past* sale, the discount is fixed in history.
+            // If I am printing the *current* cart (handleManualPrint), I validate.
 
-      {canCreateWholesale && (
-        <Tabs
-          defaultValue={saleType}
-          onValueChange={(value) => setSaleType(value as 'retail' | 'wholesale')}
-          className="w-full"
-        >
-          <TabsList className="grid w-full max-w-md grid-cols-2">
-            <TabsTrigger value="retail" className="flex items-center">
-              <ShoppingBag className="mr-2 h-4 w-4" />
-              Retail Sale
-            </TabsTrigger>
-            <TabsTrigger value="wholesale" className="flex items-center">
-              <Package className="mr-2 h-4 w-4" />
-              Wholesale
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      )}
-
-      <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Shield className="mr-2 h-4 w-4" />
-              {saleType === 'wholesale' ? 'Wholesale Order' : 'Customer Info'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="sensitive-data">
-            <div className="space-y-4">
-              {validationErrors.general && (
-                <div className="text-red-500 text-sm">{validationErrors.general}</div>
-              )}
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <Label htmlFor="customer-name">
-                    {saleType === 'wholesale' ? 'Contact Person' : 'Customer Name'}
-                  </Label>
-                  <Input
-                    id="customer-name"
-                    value={customerName}
-                    onChange={(e) => handleInputChange('customerName', e.target.value)}
-                    placeholder={saleType === 'wholesale' ? 'Contact person name' : 'Customer name'}
-                    className={validationErrors.customerName ? 'border-red-500' : ''}
-                    maxLength={100}
-                  />
-                  {validationErrors.customerName && (
-                    <p className="text-red-500 text-xs mt-1">{validationErrors.customerName}</p>
-                  )}
-                </div>
-                <div>
-                  <Label htmlFor="customer-phone">Phone Number</Label>
-                  <Input
-                    id="customer-phone"
-                    value={customerPhone}
-                    onChange={(e) => handleInputChange('customerPhone', e.target.value)}
-                    placeholder="Phone number"
-                    className={validationErrors.customerPhone ? 'border-red-500' : ''}
-                    maxLength={20}
-                  />
-                  {validationErrors.customerPhone && (
-                    <p className="text-red-500 text-xs mt-1">{validationErrors.customerPhone}</p>
-                  )}
-                </div>
-              </div>
-
-              {saleType === 'wholesale' && (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <Label htmlFor="business-name" className="text-red-500">Business Name*</Label>
-                    <Input
-                      id="business-name"
-                      value={businessName}
-                      onChange={(e) => handleInputChange('businessName', e.target.value)}
-                      placeholder="Business name"
-                      required
-                      className={validationErrors.businessName ? 'border-red-500' : ''}
-                      maxLength={200}
-                    />
-                    {validationErrors.businessName && (
-                      <p className="text-red-500 text-xs mt-1">{validationErrors.businessName}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="business-address">Business Address</Label>
-                    <Input
-                      id="business-address"
-                      value={businessAddress}
-                      onChange={(e) => handleInputChange('businessAddress', e.target.value)}
-                      placeholder="Business address"
-                      className={validationErrors.businessAddress ? 'border-red-500' : ''}
-                      maxLength={500}
-                    />
-                    {validationErrors.businessAddress && (
-                      <p className="text-red-500 text-xs mt-1">{validationErrors.businessAddress}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
-              <ProductSearchSection
-                onAddProduct={(product, quantity) => {
-                  console.log('NewSale: onAddProduct called', { product, quantity, saleType });
-                  try {
-                    const result = addItem(product, quantity, saleType === 'wholesale');
-                    console.log('NewSale: addItem result', result.success ? 'Success' : 'Failed', result);
-                  } catch (error) {
-                    console.error('NewSale: Error in addItem', error);
-                  }
-                }}
-                isWholesale={saleType === 'wholesale'}
-              />
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>{saleType === 'wholesale' ? 'Wholesale Order Items' : 'Current Sale'}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <CurrentSaleTable
-              items={items}
-              onUpdateQuantity={updateQuantity}
-              onRemoveItem={removeItem}
-              onTogglePriceType={canCreateWholesale ? toggleItemPriceType : undefined}
-              isWholesale={saleType === 'wholesale'}
-            />
-
-            {items.length > 0 && (
-              <>
-                <SaleTotals
-                  subtotal={calculateSubtotal()}
-                  discount={discount}
-                  manualDiscount={manualDiscount}
-                  total={calculateTotal()}
-                  discountAmount={calculateDiscountAmount()}
-                  onDiscountChange={setOverallDiscount}
-                  onManualDiscountChange={setManualDiscount}
-                  isWholesale={saleType === 'wholesale'}
-                  manualDiscountEnabled={true}
-                />
-
-                <div className="mt-4 flex justify-between items-center">
-                  <Button
-                    variant="outline"
-                    onClick={handleManualPrint}
-                  >
-                    <Printer className="mr-2 h-4 w-4" />
-                    Print Receipt
-                  </Button>
-                </div>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      </div>
-
-      {previewData && (
-        <ReceiptPreview
-          open={showPreview}
-          onOpenChange={setShowPreview}
-          receiptData={previewData}
-          onPrint={() => {
             const windowRef = openPrintWindow();
-            executePrint(undefined, windowRef);
+            handlePrint({
+              saleId: lastCompletedSaleId || undefined,
+              items: lastCompletedItems, // Use the captured items
+              existingWindow: windowRef,
+              directPrint: true
+            });
           }}
-        />
-      )}
-
-      {/* Sale Success Modal */}
-      <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center text-2xl font-bold text-green-600">Sale Successful!</DialogTitle>
-          </DialogHeader>
-          <div className="flex flex-col items-center justify-center space-y-4 py-6">
-            <div className="rounded-full bg-green-100 p-3">
-              <Shield className="h-12 w-12 text-green-600" />
-            </div>
-            <p className="text-center text-muted-foreground">
-              Transaction has been completed successfully. The receipt should be printing now.
-            </p>
-          </div>
-          <DialogFooter className="flex sm:justify-center gap-2">
-            <Button
-              variant="outline"
-              onClick={() => {
-                const windowRef = openPrintWindow();
-                handlePrint({
-                  saleId: lastCompletedSaleId || undefined,
-                  items: lastCompletedItems, // Use the captured items
-                  existingWindow: windowRef,
-                  directPrint: true
-                });
-              }}
-            >
-              <Printer className="mr-2 h-4 w-4" />
-              Reprint Receipt
-            </Button>
-            <Button onClick={() => navigate("/sales")}>
-              Go to Sales List
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        >
+          <Printer className="mr-2 h-4 w-4" />
+          Reprint Receipt
+        </Button>
+        <Button onClick={() => navigate("/sales")}>
+          Go to Sales List
+        </Button>
+      </DialogFooter>
+    </DialogContent>
+      </Dialog >
+    </div >
   );
 };
 
