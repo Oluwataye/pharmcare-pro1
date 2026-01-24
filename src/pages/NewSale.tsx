@@ -148,7 +148,7 @@ const NewSale = () => {
     if (manualDiscount > 0 && (manualDiscount < 500 || manualDiscount > 1000)) {
       toast({
         title: "Invalid Discount",
-        description: "Manual discount must be between ₦500 and ₦1,000",
+        description: `Manual discount of ₦${manualDiscount} is invalid. Must be between ₦500 and ₦1,000.`,
         variant: "destructive",
       });
       return;

@@ -68,10 +68,21 @@ const SaleTotals = ({
                   className="pl-6 w-32"
                   value={manualDiscount || ''}
                   onChange={(e) => {
-                    const val = parseInt(e.target.value) || 0;
+                    const val = parseInt(e.target.value);
+                    // Handle empty/NaN as 0
+                    if (isNaN(val)) {
+                      onManualDiscountChange?.(0);
+                      return;
+                    }
                     // Strictly enforce upper limit while typing
                     if (val <= 1000) {
                       onManualDiscountChange?.(val);
+                    }
+                  }}
+                  onBlur={() => {
+                    // Auto-correct values below 500 to 500 (unless 0)
+                    if (manualDiscount > 0 && manualDiscount < 500) {
+                      onManualDiscountChange?.(500);
                     }
                   }}
                   max={1000}
