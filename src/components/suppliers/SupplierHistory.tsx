@@ -142,7 +142,15 @@ export const SupplierHistory = () => {
                                 </TableHeader>
                                 <TableBody>
                                     {history.map((item) => {
-                                        const supplier = suppliers.find(s => s.id === item.inventory?.supplier_id);
+                                        // Ensure we match IDs correctly (UUID vs String)
+                                        const supplierId = item.inventory?.supplier_id;
+                                        const supplier = suppliers.find(s => s.id === supplierId || String(s.id) === String(supplierId));
+
+                                        // Debug log if we have an ID but no match (dev only)
+                                        if (supplierId && !supplier) {
+                                            console.debug(`Supplier mismatch: ID ${supplierId} not found in ${suppliers.length} suppliers`);
+                                        }
+
                                         const isInitial = item.type === 'INITIAL';
 
                                         return (
@@ -151,7 +159,13 @@ export const SupplierHistory = () => {
                                                     {format(new Date(item.created_at), 'MMM dd, yyyy HH:mm')}
                                                 </TableCell>
                                                 <TableCell className="font-medium">
-                                                    {supplier?.name || <span className="text-muted-foreground text-xs italic">Unknown/Deleted</span>}
+                                                    {supplier ? (
+                                                        <span className="text-primary">{supplier.name}</span>
+                                                    ) : supplierId ? (
+                                                        <span className="text-muted-foreground text-xs italic" title={`ID: ${supplierId}`}>Unknown Supplier</span>
+                                                    ) : (
+                                                        <span className="text-muted-foreground text-xs">-</span>
+                                                    )}
                                                 </TableCell>
                                                 <TableCell>{item.inventory?.name || "Unknown Product"}</TableCell>
                                                 <TableCell>

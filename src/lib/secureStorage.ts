@@ -1,8 +1,9 @@
 
 // Secure storage utility to replace direct localStorage usage for sensitive data
+// Secure storage utility to replace direct localStorage usage for sensitive data
 class SecureStorage {
   private readonly PREFIX = 'PHARMACARE_';
-  private readonly SESSION_TIMEOUT = 8 * 60 * 60 * 1000; // 8 hours in milliseconds
+  // Removed timeout to match Supabase's persistent session behavior
 
   // Simple encryption/decryption using base64 (not cryptographically secure, but better than plain text)
   private encrypt(data: string): string {
@@ -25,33 +26,29 @@ class SecureStorage {
     return {
       data: this.encrypt(JSON.stringify(data)),
       timestamp: Date.now(),
-      expires: Date.now() + this.SESSION_TIMEOUT
+      // No expiration date needed for persistent storage
     };
   }
 
-  // Store data with expiration
+  // Store data persistently
   setItem(key: string, value: any): void {
     try {
       const storageItem = this.createStorageItem(value);
-      sessionStorage.setItem(this.PREFIX + key, JSON.stringify(storageItem));
+      localStorage.setItem(this.PREFIX + key, JSON.stringify(storageItem));
     } catch (error) {
       console.error('Failed to store data securely:', error);
     }
   }
 
-  // Retrieve data with expiration check
+  // Retrieve data
   getItem(key: string): any | null {
     try {
-      const item = sessionStorage.getItem(this.PREFIX + key);
+      const item = localStorage.getItem(this.PREFIX + key);
       if (!item) return null;
 
       const storageItem = JSON.parse(item);
-      
-      // Check if item has expired
-      if (Date.now() > storageItem.expires) {
-        this.removeItem(key);
-        return null;
-      }
+
+      // No expiration check needed
 
       return JSON.parse(this.decrypt(storageItem.data));
     } catch (error) {
@@ -64,7 +61,7 @@ class SecureStorage {
   // Remove specific item
   removeItem(key: string): void {
     try {
-      sessionStorage.removeItem(this.PREFIX + key);
+      localStorage.removeItem(this.PREFIX + key);
     } catch (error) {
       console.error('Failed to remove data securely:', error);
     }
@@ -73,10 +70,10 @@ class SecureStorage {
   // Clear all secure storage
   clear(): void {
     try {
-      const keys = Object.keys(sessionStorage);
+      const keys = Object.keys(localStorage);
       keys.forEach(key => {
         if (key.startsWith(this.PREFIX)) {
-          sessionStorage.removeItem(key);
+          localStorage.removeItem(key);
         }
       });
     } catch (error) {
@@ -84,38 +81,10 @@ class SecureStorage {
     }
   }
 
-  // Clean up expired items
+  // Clean up function kept for API compatibility but does nothing
   cleanupExpired(): void {
-    try {
-      const keys = Object.keys(sessionStorage);
-      keys.forEach(key => {
-        if (key.startsWith(this.PREFIX)) {
-          const item = sessionStorage.getItem(key);
-          if (item) {
-            try {
-              const storageItem = JSON.parse(item);
-              if (Date.now() > storageItem.expires) {
-                sessionStorage.removeItem(key);
-              }
-            } catch {
-              // Remove corrupted items
-              sessionStorage.removeItem(key);
-            }
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Failed to cleanup expired data:', error);
-    }
+    // No-op as we no longer enforce client-side timeouts
   }
 }
 
 export const secureStorage = new SecureStorage();
-
-// Initialize cleanup on app start
-secureStorage.cleanupExpired();
-
-// Cleanup expired items every 30 minutes
-setInterval(() => {
-  secureStorage.cleanupExpired();
-}, 30 * 60 * 1000);
