@@ -5,8 +5,7 @@ import {
     ChartContainer,
     ChartTooltip,
     ChartTooltipContent,
-    ChartLegend,
-    ChartLegendContent
+    ChartLegend
 } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell, PieChart, Pie } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
@@ -270,7 +269,7 @@ const DiscountReport = () => {
                                         <XAxis dataKey="month" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                                         <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `₦${value}`} />
                                         <ChartTooltip content={<ChartTooltipContent />} />
-                                        <ChartLegend content={<ChartLegendContent />} />
+                                        <ChartLegend />
                                         <Area type="monotone" stackId="1" dataKey="Item" stroke="#10b981" fill="url(#colorItem)" />
                                         <Area type="monotone" stackId="1" dataKey="Percentage" stroke="#3b82f6" fill="url(#colorPercent)" />
                                         <Area type="monotone" stackId="1" dataKey="Manual" stroke="#f97316" fill="url(#colorManual)" />
@@ -305,7 +304,7 @@ const DiscountReport = () => {
                                                 ))}
                                             </Pie>
                                             <ChartTooltip content={<ChartTooltipContent hideLabel />} />
-                                            <ChartLegend content={<ChartLegendContent />} />
+                                            <ChartLegend />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </ChartContainer>
