@@ -36,7 +36,12 @@ export const SupplierHistory = () => {
     const [history, setHistory] = useState<SupplierHistoryItem[]>([]);
     const [loading, setLoading] = useState(true);
     const [selectedSupplier, setSelectedSupplier] = useState<string>("all");
-    const { suppliers } = useSuppliers();
+    const { suppliers, fetchSuppliers } = useSuppliers();
+
+    useEffect(() => {
+        // Load suppliers reference data
+        fetchSuppliers();
+    }, [fetchSuppliers]);
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -162,7 +167,7 @@ export const SupplierHistory = () => {
                                                     {supplier ? (
                                                         <span className="text-primary">{supplier.name}</span>
                                                     ) : supplierId ? (
-                                                        <span className="text-muted-foreground text-xs italic" title={`ID: ${supplierId}`}>Unknown Supplier</span>
+                                                        <span className="text-muted-foreground text-xs italic" title={`ID: ${supplierId}`}>Supplier Not Found</span>
                                                     ) : (
                                                         <span className="text-muted-foreground text-xs">-</span>
                                                     )}
