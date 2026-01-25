@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CardContent } from "@/components/ui/card";
 import { EnhancedCard } from "@/components/ui/EnhancedCard";
 import { useLocation } from "react-router-dom";
 import {
@@ -11,12 +11,14 @@ import {
   Users,
   History,
   Calendar,
-  Shield
+  Shield,
+  Tag
 } from "lucide-react";
 import InventoryReport from "@/components/reports/InventoryReport";
 import TransactionsReport from "@/components/reports/TransactionsReport";
 import UserAuditReport from "@/components/reports/UserAuditReport";
 import SalesReport from "@/components/reports/SalesReport";
+import DiscountReport from "@/components/reports/DiscountReport";
 import TransactionAuditLog from "@/components/reports/TransactionAuditLog";
 import ExpiringDrugsReport from "@/components/reports/ExpiringDrugsReport";
 import { AuditLogReport } from "@/components/reports/AuditLogReport";
@@ -92,15 +94,20 @@ const Reports = () => {
               <span className="hidden sm:inline">Transactions</span>
               <span className="sm:hidden">Trans</span>
             </TabsTrigger>
-            <TabsTrigger value="users" className="flex items-center gap-2 whitespace-nowrap">
-              <Users className="h-4 w-4" />
-              <span className="hidden sm:inline">User Audit</span>
-              <span className="sm:hidden">Users</span>
-            </TabsTrigger>
             <TabsTrigger value="sales" className="flex items-center gap-2 whitespace-nowrap">
               <ShoppingCart className="h-4 w-4" />
               <span className="hidden sm:inline">Sales</span>
               <span className="sm:hidden">Sales</span>
+            </TabsTrigger>
+            <TabsTrigger value="discounts" className="flex items-center gap-2 whitespace-nowrap">
+              <Tag className="h-4 w-4" />
+              <span className="hidden sm:inline">Discounts</span>
+              <span className="sm:hidden">Disc</span>
+            </TabsTrigger>
+            <TabsTrigger value="users" className="flex items-center gap-2 whitespace-nowrap">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">User Audit</span>
+              <span className="sm:hidden">Users</span>
             </TabsTrigger>
             <TabsTrigger value="audit" className="flex items-center gap-2 whitespace-nowrap">
               <History className="h-4 w-4" />
@@ -143,12 +150,16 @@ const Reports = () => {
               <TransactionsReport />
             </TabsContent>
 
-            <TabsContent value="users">
-              <UserAuditReport />
-            </TabsContent>
-
             <TabsContent value="sales">
               <SalesReport />
+            </TabsContent>
+
+            <TabsContent value="discounts">
+              <DiscountReport />
+            </TabsContent>
+
+            <TabsContent value="users">
+              <UserAuditReport />
             </TabsContent>
 
             <TabsContent value="audit">

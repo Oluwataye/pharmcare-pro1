@@ -20,7 +20,8 @@ export interface Sale {
   status: 'completed' | 'pending' | 'cancelled';
   customerName?: string;
   customerPhone?: string;
-  discount?: number; // Overall sale discount
+  discount?: number; // Overall sale discount (percentage)
+  manualDiscount?: number; // Fixed amount manual discount
   dispenserName?: string; // Added dispenser name
   dispenserEmail?: string; // Added dispenser email
   dispenserId?: string; // Added dispenser ID for database references
