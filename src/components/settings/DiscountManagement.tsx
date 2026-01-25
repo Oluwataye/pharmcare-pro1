@@ -16,13 +16,15 @@ export const DiscountManagement = () => {
     defaultDiscount: config.defaultDiscount,
     maxDiscount: config.maxDiscount,
     enabled: config.enableDiscounts,
+    manualDiscountEnabled: config.manualDiscountEnabled,
   };
 
   const handleSaveDiscountConfig = (newConfig: DiscountConfig) => {
     updateConfig({
       defaultDiscount: newConfig.defaultDiscount,
       maxDiscount: newConfig.maxDiscount,
-      enableDiscounts: newConfig.enabled
+      enableDiscounts: newConfig.enabled,
+      manualDiscountEnabled: newConfig.manualDiscountEnabled
     });
 
     toast({

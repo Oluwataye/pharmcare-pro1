@@ -15,6 +15,8 @@ import SaleTotals from "../sales/SaleTotals";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 
+import { useSystemConfig } from "@/hooks/useSystemConfig";
+
 interface NewSaleFormProps {
   onComplete: () => void;
   onCancel: () => void;
@@ -46,6 +48,7 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
   const [isWholesale, setIsWholesale] = useState(false);
   const { toast } = useToast();
   const { user } = useAuth();
+  const { config: systemConfig } = useSystemConfig();
 
   const { handlePrint, openPrintWindow } = useSalesPrinting(items, discount, isWholesale ? 'wholesale' : 'retail');
 
@@ -345,6 +348,7 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
                   discountAmount={discountAmount}
                   onDiscountChange={setDiscount}
                   isWholesale={isWholesale}
+                  manualDiscountEnabled={systemConfig.manualDiscountEnabled}
                 />
               </div>
             </div>

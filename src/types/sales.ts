@@ -47,7 +47,8 @@ export interface DiscountConfig {
   enabled: boolean;
   bulkDiscountEnabled?: boolean;
   loyaltyDiscountEnabled?: boolean;
-  wholesaleDiscountEnabled?: boolean; // Added wholesale discount option
+  wholesaleDiscountEnabled?: boolean;
+  manualDiscountEnabled?: boolean;
 }
 
 export interface AuditLogEntry {

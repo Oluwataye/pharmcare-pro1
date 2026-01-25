@@ -37,6 +37,8 @@ const NewSale = () => {
   const [lastCompletedItems, setLastCompletedItems] = useState<any[]>([]);
   const [isCompleting, setIsCompleting] = useState(false);
 
+  const { config: systemConfig } = useSystemConfig();
+
   const {
     items,
     discount,
@@ -427,7 +429,7 @@ const NewSale = () => {
                   onDiscountChange={setOverallDiscount}
                   onManualDiscountChange={setManualDiscount}
                   isWholesale={saleType === 'wholesale'}
-                  manualDiscountEnabled={true}
+                  manualDiscountEnabled={systemConfig.manualDiscountEnabled}
                 />
 
                 <div className="mt-4 flex justify-between items-center">

@@ -7,6 +7,7 @@ export interface SystemConfig {
     taxRate: number;
     lowStockThreshold: number;
     enableDiscounts: boolean;
+    manualDiscountEnabled: boolean;
     defaultDiscount: number;
     maxDiscount: number;
 }
@@ -17,6 +18,7 @@ const DEFAULT_CONFIG: SystemConfig = {
     taxRate: 0,
     lowStockThreshold: 10,
     enableDiscounts: true,
+    manualDiscountEnabled: true,
     defaultDiscount: 0,
     maxDiscount: 20,
 };

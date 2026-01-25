@@ -38,14 +38,14 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
       });
       return;
     }
-    
+
     // Include advanced settings in the save
     const updatedConfig = {
       ...config,
       bulkDiscountEnabled: advancedSettings.bulkDiscountEnabled,
       loyaltyDiscountEnabled: advancedSettings.loyaltyDiscountEnabled,
     };
-    
+
     onSave(updatedConfig);
     toast({
       title: "Success",
@@ -58,13 +58,13 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
       ...advancedSettings,
       loyaltyDiscountEnabled: checked,
     });
-    
+
     // Only show toast if the discount system is enabled
     if (config.enabled) {
       toast({
         title: checked ? "Loyalty Discount Enabled" : "Loyalty Discount Disabled",
-        description: checked 
-          ? "Loyalty customers will now receive special discounts" 
+        description: checked
+          ? "Loyalty customers will now receive special discounts"
           : "Loyalty discount feature has been disabled",
       });
     }
@@ -82,7 +82,7 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
             <TabsTrigger value="general">General Settings</TabsTrigger>
             <TabsTrigger value="advanced">Advanced</TabsTrigger>
           </TabsList>
-          
+
           <TabsContent value="general" className="space-y-4">
             <div className="flex items-center justify-between space-x-2">
               <Label htmlFor="discount-enabled">Enable Discounts</Label>
@@ -90,6 +90,15 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
                 id="discount-enabled"
                 checked={config.enabled}
                 onCheckedChange={(checked) => setConfig({ ...config, enabled: checked })}
+              />
+            </div>
+            <div className="flex items-center justify-between space-x-2">
+              <Label htmlFor="manual-discount-enabled">Allow Manual Discounts</Label>
+              <Switch
+                id="manual-discount-enabled"
+                checked={config.manualDiscountEnabled ?? true}
+                onCheckedChange={(checked) => setConfig({ ...config, manualDiscountEnabled: checked })}
+                disabled={!config.enabled}
               />
             </div>
             <div className="space-y-2">
@@ -127,7 +136,7 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
               />
             </div>
           </TabsContent>
-          
+
           <TabsContent value="advanced" className="space-y-4">
             <div className="space-y-2">
               <Label>Special Discount Rules</Label>
@@ -137,7 +146,7 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
                   <Switch
                     id="bulk-discount-enabled"
                     checked={advancedSettings.bulkDiscountEnabled}
-                    onCheckedChange={(checked) => 
+                    onCheckedChange={(checked) =>
                       setAdvancedSettings({
                         ...advancedSettings,
                         bulkDiscountEnabled: checked
@@ -156,7 +165,7 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
                   />
                 </div>
               </div>
-              
+
               {advancedSettings.loyaltyDiscountEnabled && config.enabled && (
                 <div className="mt-4 border rounded-md p-4 space-y-2 bg-muted/50">
                   <h3 className="font-medium">Loyalty Discount Settings</h3>
