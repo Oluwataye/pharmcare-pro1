@@ -19,6 +19,7 @@ import { useOffline } from "@/contexts/OfflineContext";
 import { customerInfoSchema, validateAndSanitize } from "@/lib/validation";
 import { logSecurityEvent } from "@/components/security/SecurityProvider";
 import { ReceiptPreview } from "@/components/receipts/ReceiptPreview";
+import { useSystemConfig } from "@/hooks/useSystemConfig";
 
 const NewSale = () => {
   const navigate = useNavigate();
