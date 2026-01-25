@@ -5,7 +5,7 @@ import { AlertTriangle, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface LowStockItem {
-  id: number;
+  id: number | string;
   product: string;
   category: string;
   quantity: number;
@@ -14,7 +14,7 @@ interface LowStockItem {
 
 interface EnhancedLowStockCardProps {
   items: LowStockItem[];
-  onItemClick: (route: string, id: number) => void;
+  onItemClick: (route: string, id: number | string) => void;
   onViewAllClick: (route: string) => void;
 }
 
@@ -69,7 +69,7 @@ export const EnhancedLowStockCard = ({
                         <p className="text-xs text-muted-foreground">{item.category}</p>
                       </div>
                       <div className="text-right">
-                        <Badge 
+                        <Badge
                           className={cn(
                             "text-xs font-bold border",
                             urgencyColors[urgency]
@@ -85,7 +85,7 @@ export const EnhancedLowStockCard = ({
                     </div>
                     <div className="mt-2">
                       <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                        <div 
+                        <div
                           className={cn(
                             "h-full rounded-full transition-all",
                             urgency === 'critical' && "bg-red-500",

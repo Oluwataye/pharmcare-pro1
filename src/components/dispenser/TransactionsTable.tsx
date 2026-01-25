@@ -9,7 +9,7 @@ import {
 } from "@/components/ui/table";
 
 interface Transaction {
-  id: number;
+  id: number | string;
   customer: string;
   items: number;
   amount: number;
@@ -20,12 +20,12 @@ interface Transaction {
 
 interface TransactionsTableProps {
   filteredTransactions: Transaction[];
-  handleItemClick: (route: string, id: number) => void;
+  handleItemClick: (route: string, id: number | string) => void;
 }
 
-export const TransactionsTable = ({ 
-  filteredTransactions, 
-  handleItemClick 
+export const TransactionsTable = ({
+  filteredTransactions,
+  handleItemClick
 }: TransactionsTableProps) => {
   return (
     <div className="overflow-x-auto">
@@ -58,8 +58,8 @@ export const TransactionsTable = ({
                   </TableRow>
                 ) : (
                   filteredTransactions.map((transaction) => (
-                    <TableRow 
-                      key={transaction.id} 
+                    <TableRow
+                      key={transaction.id}
                       className="hover:bg-muted/50 cursor-pointer"
                       onClick={() => handleItemClick('/sales', transaction.id)}
                     >
