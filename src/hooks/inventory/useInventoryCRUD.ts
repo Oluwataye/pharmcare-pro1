@@ -128,7 +128,9 @@ export const useInventoryCRUD = () => {
           prevQuantity: 0,
           newQuantity: data.quantity,
           type: 'INITIAL',
-          reason: 'Initial stock entry'
+          reason: itemToProcess.restockInvoiceNumber
+            ? `Initial stock entry - Invoice: ${itemToProcess.restockInvoiceNumber}`
+            : 'Initial stock entry'
         });
 
         console.log("[useInventoryCRUD] Pulse: Step 6 - Stock movement logged ✓");
@@ -250,7 +252,11 @@ export const useInventoryCRUD = () => {
             prevQuantity: oldItem.quantity,
             newQuantity: updatedItem.quantity,
             type: diff > 0 ? 'ADDITION' : 'ADJUSTMENT',
-            reason: diff > 0 ? 'Stock addition' : 'Manual adjustment'
+            reason: diff > 0
+              ? (updatedItem.restockInvoiceNumber
+                ? `Stock addition - Invoice: ${updatedItem.restockInvoiceNumber}`
+                : 'Stock addition')
+              : 'Manual adjustment'
           });
         }
       } else {
