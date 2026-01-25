@@ -56,7 +56,7 @@ export const MetricCard = ({
         <Card
             className={cn(
                 "border-l-4 transition-all duration-200 hover:shadow-md", // Key visual upgrade
-                colorMap[colorScheme],
+                colorMap[colorScheme] || colorMap.primary,
                 onClick && "cursor-pointer hover:bg-slate-50",
                 className
             )}
@@ -66,8 +66,8 @@ export const MetricCard = ({
                 <CardTitle className="text-sm font-medium text-muted-foreground uppercase tracking-wider">
                     {title}
                 </CardTitle>
-                <div className={cn("p-2 rounded-full", iconBgMap[colorScheme])}>
-                    <Icon className={cn("h-4 w-4", colorMap[colorScheme].split(" ")[1])} />
+                <div className={cn("p-2 rounded-full", iconBgMap[colorScheme] || iconBgMap.primary)}>
+                    <Icon className={cn("h-4 w-4", (colorMap[colorScheme] || colorMap.primary).split(" ")[1])} />
                 </div>
             </CardHeader>
             <CardContent>

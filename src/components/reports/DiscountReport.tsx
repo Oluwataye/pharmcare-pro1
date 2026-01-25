@@ -51,7 +51,7 @@ const DiscountReport = () => {
           id,
           total,
           discount,
-          manualDiscount:manual_discount,
+          manual_discount,
           date,
           sales_items (
             quantity,
@@ -92,7 +92,7 @@ const DiscountReport = () => {
             }
 
             // 1. Manual Discount (Fixed Amount)
-            const manualDisc = Number(sale.manualDiscount) || 0;
+            const manualDisc = Number(sale.manual_discount) || 0;
 
             // 2. Percentage Discount (Overall)
             // Percentage is applied to Subtotal... but we only have Total. 
