@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import {
   Card,
@@ -29,6 +29,11 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
   });
   const { toast } = useToast();
 
+  // Sync with prop changes
+  useEffect(() => {
+    setConfig(initialConfig);
+  }, [initialConfig]);
+
   const handleSave = () => {
     if (config.maxDiscount < config.defaultDiscount) {
       toast({
@@ -53,9 +58,47 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
     });
   };
 
+  const handleToggleEnableDiscounts = (checked: boolean) => {
+    const updated = { ...config, enabled: checked };
+    setConfig(updated);
+    // Auto-save toggle changes
+    onSave({
+      ...updated,
+      bulkDiscountEnabled: advancedSettings.bulkDiscountEnabled,
+      loyaltyDiscountEnabled: advancedSettings.loyaltyDiscountEnabled,
+    });
+  };
+
+  const handleToggleManualDiscount = (checked: boolean) => {
+    const updated = { ...config, manualDiscountEnabled: checked };
+    setConfig(updated);
+    // Auto-save toggle changes
+    onSave({
+      ...updated,
+      bulkDiscountEnabled: advancedSettings.bulkDiscountEnabled,
+      loyaltyDiscountEnabled: advancedSettings.loyaltyDiscountEnabled,
+    });
+  };
+
+  const handleToggleBulkDiscount = (checked: boolean) => {
+    setAdvancedSettings({ ...advancedSettings, bulkDiscountEnabled: checked });
+    // Auto-save toggle changes
+    onSave({
+      ...config,
+      bulkDiscountEnabled: checked,
+      loyaltyDiscountEnabled: advancedSettings.loyaltyDiscountEnabled,
+    });
+  };
+
   const handleLoyaltyDiscountToggle = (checked: boolean) => {
     setAdvancedSettings({
       ...advancedSettings,
+      loyaltyDiscountEnabled: checked,
+    });
+
+    onSave({
+      ...config,
+      bulkDiscountEnabled: advancedSettings.bulkDiscountEnabled,
       loyaltyDiscountEnabled: checked,
     });
 
@@ -89,7 +132,7 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
               <Switch
                 id="discount-enabled"
                 checked={config.enabled}
-                onCheckedChange={(checked) => setConfig({ ...config, enabled: checked })}
+                onCheckedChange={handleToggleEnableDiscounts}
               />
             </div>
             <div className="flex items-center justify-between space-x-2">
@@ -97,7 +140,7 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
               <Switch
                 id="manual-discount-enabled"
                 checked={config.manualDiscountEnabled ?? true}
-                onCheckedChange={(checked) => setConfig({ ...config, manualDiscountEnabled: checked })}
+                onCheckedChange={handleToggleManualDiscount}
                 disabled={!config.enabled}
               />
             </div>
@@ -146,12 +189,7 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
                   <Switch
                     id="bulk-discount-enabled"
                     checked={advancedSettings.bulkDiscountEnabled}
-                    onCheckedChange={(checked) =>
-                      setAdvancedSettings({
-                        ...advancedSettings,
-                        bulkDiscountEnabled: checked
-                      })
-                    }
+                    onCheckedChange={handleToggleBulkDiscount}
                     disabled={!config.enabled}
                   />
                 </div>
@@ -187,7 +225,7 @@ export const DiscountSettings = ({ initialConfig, onSave }: DiscountSettingsProp
         </Tabs>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleSave} disabled={!config.enabled}>Save Settings</Button>
+        <Button onClick={handleSave}>Save Settings</Button>
       </CardFooter>
     </Card>
   );

@@ -30,15 +30,27 @@ export const useSystemConfig = () => {
     const [isLoaded, setIsLoaded] = useState(false);
 
     useEffect(() => {
-        const stored = localStorage.getItem(STORAGE_KEY);
-        if (stored) {
-            try {
-                setConfig({ ...DEFAULT_CONFIG, ...JSON.parse(stored) });
-            } catch (e) {
-                console.error('Failed to parse system config', e);
+        const loadConfig = () => {
+            const stored = localStorage.getItem(STORAGE_KEY);
+            if (stored) {
+                try {
+                    setConfig({ ...DEFAULT_CONFIG, ...JSON.parse(stored) });
+                } catch (e) {
+                    console.error('Failed to parse system config', e);
+                }
             }
-        }
-        setIsLoaded(true);
+            setIsLoaded(true);
+        };
+
+        loadConfig();
+
+        // Listen for changes from other instances or tabs
+        const handleStorageChange = () => {
+            loadConfig();
+        };
+
+        window.addEventListener('storage', handleStorageChange);
+        return () => window.removeEventListener('storage', handleStorageChange);
     }, []);
 
     const updateConfig = (updates: Partial<SystemConfig>) => {

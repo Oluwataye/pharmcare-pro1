@@ -371,9 +371,13 @@ const Settings = () => {
                 <Switch
                   id="print-logo"
                   checked={printSettings.showLogo}
-                  onCheckedChange={(checked) =>
-                    setPrintSettings({ ...printSettings, showLogo: checked })
-                  }
+                  onCheckedChange={async (checked) => {
+                    setPrintSettings({ ...printSettings, showLogo: checked });
+                    if (user) {
+                      await supabase.from('store_settings').update({ print_show_logo: checked, updated_by: user.id }).eq('id', storeSettings.id);
+                      invalidateStoreSettingsCache();
+                    }
+                  }}
                 />
                 <Label htmlFor="print-logo">Show Logo on Receipt</Label>
               </div>
@@ -381,9 +385,13 @@ const Settings = () => {
                 <Switch
                   id="print-address"
                   checked={printSettings.showAddress}
-                  onCheckedChange={(checked) =>
-                    setPrintSettings({ ...printSettings, showAddress: checked })
-                  }
+                  onCheckedChange={async (checked) => {
+                    setPrintSettings({ ...printSettings, showAddress: checked });
+                    if (user) {
+                      await supabase.from('store_settings').update({ print_show_address: checked, updated_by: user.id }).eq('id', storeSettings.id);
+                      invalidateStoreSettingsCache();
+                    }
+                  }}
                 />
                 <Label htmlFor="print-address">Show Store Address</Label>
               </div>
@@ -391,9 +399,13 @@ const Settings = () => {
                 <Switch
                   id="print-email"
                   checked={printSettings.showEmail}
-                  onCheckedChange={(checked) =>
-                    setPrintSettings({ ...printSettings, showEmail: checked })
-                  }
+                  onCheckedChange={async (checked) => {
+                    setPrintSettings({ ...printSettings, showEmail: checked });
+                    if (user) {
+                      await supabase.from('store_settings').update({ print_show_email: checked, updated_by: user.id }).eq('id', storeSettings.id);
+                      invalidateStoreSettingsCache();
+                    }
+                  }}
                 />
                 <Label htmlFor="print-email">Show Store Email</Label>
               </div>
@@ -401,9 +413,13 @@ const Settings = () => {
                 <Switch
                   id="print-phone"
                   checked={printSettings.showPhone}
-                  onCheckedChange={(checked) =>
-                    setPrintSettings({ ...printSettings, showPhone: checked })
-                  }
+                  onCheckedChange={async (checked) => {
+                    setPrintSettings({ ...printSettings, showPhone: checked });
+                    if (user) {
+                      await supabase.from('store_settings').update({ print_show_phone: checked, updated_by: user.id }).eq('id', storeSettings.id);
+                      invalidateStoreSettingsCache();
+                    }
+                  }}
                 />
                 <Label htmlFor="print-phone">Show Store Phone Number</Label>
               </div>
@@ -411,9 +427,13 @@ const Settings = () => {
                 <Switch
                   id="print-footer"
                   checked={printSettings.showFooter}
-                  onCheckedChange={(checked) =>
-                    setPrintSettings({ ...printSettings, showFooter: checked })
-                  }
+                  onCheckedChange={async (checked) => {
+                    setPrintSettings({ ...printSettings, showFooter: checked });
+                    if (user) {
+                      await supabase.from('store_settings').update({ print_show_footer: checked, updated_by: user.id }).eq('id', storeSettings.id);
+                      invalidateStoreSettingsCache();
+                    }
+                  }}
                 />
                 <Label htmlFor="print-footer">Show Receipt Footer</Label>
               </div>
