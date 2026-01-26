@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { SaleItem } from '@/types/sales';
 import { secureStorage } from '@/lib/secureStorage';
+import { toCents, fromCents, calculateDiscountAmount as getDiscountAmount } from '@/lib/currency';
 
 const DISCOUNT_STORAGE_KEY = 'CURRENT_SALE_DISCOUNT';
 const MANUAL_DISCOUNT_STORAGE_KEY = 'CURRENT_SALE_MANUAL_DISCOUNT';
@@ -47,22 +48,30 @@ export const useSaleDiscount = (items: SaleItem[]) => {
   };
 
   const calculateSubtotal = () => {
-    return items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+    const subtotalCents = items.reduce((sum, item) => sum + (toCents(item.price) * item.quantity), 0);
+    return fromCents(subtotalCents);
   };
 
   const calculateDiscountAmount = () => {
     const subtotal = calculateSubtotal();
-    const percentDiscount = (subtotal * discount / 100);
-    const itemDiscounts = items.reduce((sum, item) =>
-      sum + (item.price * item.quantity * ((item.discount || 0) / 100)), 0);
 
-    return percentDiscount + itemDiscounts + manualDiscount;
+    // Overall percent discount
+    const percentDiscountAmount = getDiscountAmount(subtotal, discount);
+
+    // Sum of individual item discounts
+    const itemDiscountsCents = items.reduce((sum, item) => {
+      const itemSubtotal = toCents(item.price) * item.quantity;
+      const disc = Math.round(itemSubtotal * ((item.discount || 0) / 100));
+      return sum + disc;
+    }, 0);
+
+    return percentDiscountAmount + fromCents(itemDiscountsCents) + manualDiscount;
   };
 
   const calculateTotal = () => {
-    const subtotal = calculateSubtotal();
-    const discountAmount = calculateDiscountAmount();
-    return Math.max(0, subtotal - discountAmount);
+    const subtotalCents = toCents(calculateSubtotal());
+    const discountCents = toCents(calculateDiscountAmount());
+    return fromCents(Math.max(0, subtotalCents - discountCents));
   };
 
   return {
@@ -79,4 +88,3 @@ export const useSaleDiscount = (items: SaleItem[]) => {
     }
   };
 };
-

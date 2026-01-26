@@ -55,7 +55,9 @@ export const useInventoryCRUD = () => {
     // Auto-generate SKU if missing
     let itemToProcess = { ...newItem };
     if (!itemToProcess.sku || itemToProcess.sku.trim() === '') {
-      const generatedSku = `SKU-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+      const timestamp = Date.now().toString(36).toUpperCase();
+      const randomPart = Math.random().toString(36).substr(2, 4).toUpperCase();
+      const generatedSku = `SKU-${timestamp}-${randomPart}`;
       console.log("[useInventoryCRUD] Pulse: Auto-generating SKU:", generatedSku);
       itemToProcess.sku = generatedSku;
     }

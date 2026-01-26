@@ -26,9 +26,9 @@ const defaultOfflineContext: OfflineContextType = {
   syncPending: false,
   pendingCount: 0,
   isSyncing: false,
-  syncData: async () => {},
-  addPendingOperation: () => {},
-  clearPendingOperations: () => {},
+  syncData: async () => { },
+  addPendingOperation: () => { },
+  clearPendingOperations: () => { },
 };
 
 const OfflineContext = createContext<OfflineContextType>(defaultOfflineContext);
@@ -91,7 +91,7 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
       const now = new Date();
       setLastOnlineTime(now);
       localStorage.setItem('LAST_ONLINE_TIME', now.toISOString());
-      
+
       if (pendingOperations.length > 0) {
         toast({
           title: "Connection Restored",
@@ -125,47 +125,93 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
   const syncData = useCallback(async () => {
     if (!isOnline) {
       toast({
-        title: "Cannot Sync",
+        title: "Sync Delayed",
         description: "You are currently offline. Data will sync automatically when you're back online.",
       });
       return;
     }
 
-    if (pendingOperations.length === 0) {
-      toast({
-        title: "Already Synced",
-        description: "All changes are up to date.",
-      });
-      return;
-    }
+    if (pendingOperations.length === 0) return;
 
     try {
       setIsSyncing(true);
-      toast({
-        title: "Syncing Data",
-        description: `Synchronizing ${pendingOperations.length} offline change(s)...`,
-      });
-      
-      // Process each pending operation
-      // In a real app, this would make API calls
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      clearPendingOperations();
-      
-      toast({
-        title: "Sync Complete",
-        description: "Your data has been successfully synchronized.",
-      });
+
+      const operationsToProcess = [...pendingOperations];
+      const successfulIds: string[] = [];
+      const failedIds: string[] = [];
+
+      for (const op of operationsToProcess) {
+        try {
+          console.log(`[OfflineSync] Processing ${op.resource} ${op.type} (ID: ${op.id})`);
+
+          if (op.resource === 'sales' && op.type === 'create') {
+            const { data, error } = await supabase.functions.invoke('complete-sale', {
+              body: op.data
+            });
+            if (error) throw error;
+          } else if (op.resource === 'inventory') {
+            const inventoryData = op.data as any;
+            if (op.type === 'create') {
+              // Note: we remove the temp ID before inserting
+              const { id, ...dataToInsert } = inventoryData;
+              const { error } = await supabase.from('inventory').insert(dataToInsert);
+              if (error) throw error;
+            } else if (op.type === 'update' && op.id) {
+              const { error } = await supabase.from('inventory').update(inventoryData).eq('id', op.id);
+              if (error) throw error;
+            } else if (op.type === 'delete' && op.id) {
+              const { error } = await supabase.from('inventory').delete().eq('id', op.id);
+              if (error) throw error;
+            }
+          } else {
+            // Generic fallback for other tables
+            if (op.type === 'create') {
+              const { error } = await supabase.from(op.resource as any).insert(op.data);
+              if (error) throw error;
+            } else if (op.type === 'update' && op.id) {
+              const { error } = await supabase.from(op.resource as any).update(op.data).eq('id', op.id);
+              if (error) throw error;
+            } else if (op.type === 'delete' && op.id) {
+              const { error } = await supabase.from(op.resource as any).delete().eq('id', op.id);
+              if (error) throw error;
+            }
+          }
+
+          successfulIds.push(op.id);
+        } catch (opError) {
+          console.error(`[OfflineSync] Failed to process ${op.resource} ${op.id}:`, opError);
+          failedIds.push(op.id);
+          // Stop processing if we hit a critical network error? 
+          // For now we continue with others unless it's a global network failure
+        }
+      }
+
+      // Update the queue: keep only those that failed or were added during this process
+      setPendingOperations(prev => prev.filter(op => !successfulIds.includes(op.id)));
+
+      if (failedIds.length === 0) {
+        toast({
+          title: "Sync Complete",
+          description: `Successfully synchronized ${successfulIds.length} change(s).`,
+        });
+      } else {
+        toast({
+          title: "Sync Partially Complete",
+          description: `Synced ${successfulIds.length} items, but ${failedIds.length} failed. Will retry later.`,
+          variant: "destructive"
+        });
+      }
     } catch (error) {
+      console.error('[OfflineSync] Critical sync failure:', error);
       toast({
         title: "Sync Error",
-        description: error instanceof Error ? error.message : "Failed to sync data",
+        description: "An unexpected error occurred during synchronization.",
         variant: "destructive",
       });
     } finally {
       setIsSyncing(false);
     }
-  }, [isOnline, pendingOperations, clearPendingOperations, toast]);
+  }, [isOnline, pendingOperations, toast]);
 
   // Auto-sync when coming back online
   useEffect(() => {
@@ -176,11 +222,11 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
   }, [isOnline, pendingOperations.length, isSyncing, syncData]);
 
   return (
-    <OfflineContext.Provider 
-      value={{ 
-        isOnline, 
-        lastOnlineTime, 
-        syncPending, 
+    <OfflineContext.Provider
+      value={{
+        isOnline,
+        lastOnlineTime,
+        syncPending,
         pendingCount: pendingOperations.length,
         isSyncing,
         syncData,
