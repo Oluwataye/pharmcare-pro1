@@ -13,7 +13,25 @@
   <meta name="theme-color" content="#2563eb" />
   <meta name="color-scheme" content="light dark" />
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.gpteng.co data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline';" />
+    content="default-src 'self' * 'unsafe-inline' 'unsafe-eval' data: blob:;" />
+  <script>
+    // EMERGENCY RESET: Force unregister stale Service Workers to fix "stuck" versions
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        for (let registration of registrations) {
+          registration.unregister();
+          console.log('Stale ServiceWorker unregistered');
+        }
+      });
+    }
+    // Clear all caches to force fresh fetch
+    if ('caches' in window) {
+      caches.keys().then(function (names) {
+        for (let name of names) caches.delete(name);
+        console.log('Application caches cleared');
+      });
+    }
+  </script>
 
   <!-- Open Graph / Social Media -->
   <meta property="og:title" content="PharmaCare Pro - Pharmacy Management System" />
@@ -48,8 +66,7 @@
 
 <body>
   <div id="root"></div>
-  <script src="https://cdn.gpteng.co/gptengineer.js" type="module"></script>
-  <script type="module" src="/src/main.tsx"></script>
+  <script type="module" src="/src/main.tsx?v=20260126-v4"></script>
 </body>
 
 </html>
