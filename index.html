@@ -13,36 +13,7 @@
   <meta name="theme-color" content="#2563eb" />
   <meta name="color-scheme" content="light dark" />
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self' * 'unsafe-inline' 'unsafe-eval' data: blob:;" />
-  <style>
-    #emergency-barrier {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      padding: 10px;
-      background: #ef4444;
-      color: white;
-      text-align: center;
-      z-index: 9999;
-      font-weight: bold;
-    }
-  </style>
-  <script>
-    console.log("NUCLEAR RESET INITIATED");
-    alert("PHARMACARE PRO: New version detected. Clearing cache...");
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.getRegistrations().then(function (registrations) {
-        for (let registration of registrations) { registration.unregister(); }
-      });
-    }
-    if ('caches' in window) {
-      caches.keys().then(function (names) {
-        for (let name of names) caches.delete(name);
-      });
-    }
-    localStorage.clear();
-  </script>
+    content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.gpteng.co data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; img-src 'self' data: blob: https:; style-src 'self' 'unsafe-inline';" />
 
   <!-- Open Graph / Social Media -->
   <meta property="og:title" content="PharmaCare Pro - Pharmacy Management System" />
@@ -76,9 +47,8 @@
 </head>
 
 <body>
-  <div id="emergency-barrier">PHARMACARE PRO: LATEST VERSION V5 LOADED</div>
   <div id="root"></div>
-  <script type="module" src="/src/main.tsx?v=20260126-v5"></script>
+  <script type="module" src="/src/main.tsx"></script>
 </body>
 
 </html>
