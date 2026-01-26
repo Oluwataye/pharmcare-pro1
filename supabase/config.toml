@@ -1,4 +1,4 @@
-project_id = "luhbkhosuawobupmzzrv"
+project_id = "ucbmifoxfozwtrelceuv"
 
 [functions.bulk-upload-inventory]
 verify_jwt = true
