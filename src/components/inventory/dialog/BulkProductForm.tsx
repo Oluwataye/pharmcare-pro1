@@ -71,6 +71,7 @@ export const BulkProductForm = ({
                                 size="icon"
                                 onClick={() => toggleExpand(index)}
                                 className="h-8 w-8"
+                                title={expandedIndexes.includes(index) ? "Collapse" : "Expand"}
                             >
                                 {expandedIndexes.includes(index) ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
                             </Button>
@@ -81,6 +82,7 @@ export const BulkProductForm = ({
                                     size="icon"
                                     className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                                     onClick={() => onRemoveItem(index)}
+                                    title="Remove from Restock"
                                 >
                                     <Trash2 className="h-4 w-4" />
                                 </Button>

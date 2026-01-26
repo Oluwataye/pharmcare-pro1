@@ -27,22 +27,23 @@ const DashboardLayout = () => {
     <div className="flex h-screen flex-col md:flex-row">
       {/* Mobile sidebar toggle */}
       <div className="md:hidden flex items-center border-b p-4">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => setSidebarOpen(!sidebarOpen)} 
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setSidebarOpen(!sidebarOpen)}
           className="mr-2"
+          title="Toggle Mobile Menu"
         >
           <Menu className="h-5 w-5" />
         </Button>
         <h1 className="text-xl font-bold text-primary">PharmaCare Pro</h1>
       </div>
-      
+
       {/* Sidebar - hidden on mobile by default unless toggled */}
       <div className={`${sidebarOpen ? 'block' : 'hidden'} md:block md:flex-shrink-0`}>
         <Sidebar onClose={() => setSidebarOpen(false)} />
       </div>
-      
+
       {/* Main content */}
       <main className="flex-1 overflow-auto bg-gray-50 p-4 md:p-8">
         <Outlet />

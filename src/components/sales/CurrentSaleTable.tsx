@@ -20,10 +20,10 @@ interface CurrentSaleTableProps {
   isWholesale?: boolean;
 }
 
-const CurrentSaleTable = ({ 
-  items, 
-  onUpdateQuantity, 
-  onRemoveItem, 
+const CurrentSaleTable = ({
+  items,
+  onUpdateQuantity,
+  onRemoveItem,
   onTogglePriceType,
   isWholesale = false
 }: CurrentSaleTableProps) => {
@@ -46,7 +46,7 @@ const CurrentSaleTable = ({
                 {item.name}
                 {item.isWholesale && (
                   <Badge variant="outline" className="ml-2 bg-blue-50">
-                    <Package className="h-3 w-3 mr-1" /> 
+                    <Package className="h-3 w-3 mr-1" />
                     Wholesale
                   </Badge>
                 )}
@@ -59,6 +59,7 @@ const CurrentSaleTable = ({
                   size="icon"
                   className="h-6 w-6"
                   onClick={() => onUpdateQuantity(item.id, item.quantity - 1)}
+                  title="Decrease Quantity"
                 >
                   -
                 </Button>
@@ -68,6 +69,7 @@ const CurrentSaleTable = ({
                   size="icon"
                   className="h-6 w-6"
                   onClick={() => onUpdateQuantity(item.id, item.quantity + 1)}
+                  title="Increase Quantity"
                 >
                   +
                 </Button>
@@ -93,6 +95,7 @@ const CurrentSaleTable = ({
                   size="icon"
                   onClick={() => onRemoveItem(item.id)}
                   className="h-6 w-6 text-destructive hover:text-destructive"
+                  title="Remove from Cart"
                 >
                   <X className="h-4 w-4" />
                 </Button>

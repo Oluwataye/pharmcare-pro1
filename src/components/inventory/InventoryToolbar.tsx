@@ -111,6 +111,7 @@ export const InventoryToolbar = ({
           size="icon"
           onClick={onRefresh}
           className="shrink-0"
+          title="Refresh Inventory"
         >
           <RefreshCw className="h-4 w-4" />
         </Button>
@@ -119,6 +120,7 @@ export const InventoryToolbar = ({
           size="icon"
           onClick={onPrint}
           className="shrink-0"
+          title="Print Inventory List"
         >
           <Printer className="h-4 w-4" />
         </Button>

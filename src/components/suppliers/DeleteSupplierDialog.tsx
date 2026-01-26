@@ -33,7 +33,7 @@ export const DeleteSupplierDialog = ({ supplier, onSupplierDeleted }: DeleteSupp
     return (
         <AlertDialog>
             <AlertDialogTrigger asChild>
-                <Button variant="ghost" size="icon" className="hover:bg-destructive/10 group">
+                <Button variant="ghost" size="icon" className="hover:bg-destructive/10 group" title="Delete Supplier">
                     <Trash2 className="h-4 w-4 text-muted-foreground group-hover:text-destructive" />
                 </Button>
             </AlertDialogTrigger>

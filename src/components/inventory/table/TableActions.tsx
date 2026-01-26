@@ -28,6 +28,7 @@ export const TableActions = ({ itemId, onEdit, onDelete, onAdjust }: TableAction
         variant="ghost"
         size="icon"
         onClick={() => onEdit(itemId)}
+        title="Edit Product"
       >
         <Pencil className="h-4 w-4" />
       </Button>
@@ -36,6 +37,7 @@ export const TableActions = ({ itemId, onEdit, onDelete, onAdjust }: TableAction
         size="icon"
         onClick={() => onDelete(itemId)}
         className="text-destructive hover:text-destructive"
+        title="Delete Product"
       >
         <Trash className="h-4 w-4" />
       </Button>

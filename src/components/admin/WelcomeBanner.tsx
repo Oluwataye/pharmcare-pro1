@@ -30,10 +30,11 @@ export const WelcomeBanner = ({ lowStockCount, onQuickAction }: WelcomeBannerPro
           size="icon"
           className="absolute top-2 right-2 h-6 w-6"
           onClick={() => setIsDismissed(true)}
+          title="Dismiss Greeting"
         >
           <X className="h-4 w-4" />
         </Button>
-        
+
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <h2 className="text-2xl font-bold text-foreground mb-1">
@@ -42,7 +43,7 @@ export const WelcomeBanner = ({ lowStockCount, onQuickAction }: WelcomeBannerPro
             <p className="text-muted-foreground mb-4">
               Here's what's happening today
             </p>
-            
+
             {lowStockCount > 0 && (
               <div className="flex items-center gap-2 text-sm">
                 <div className="flex items-center gap-2 px-3 py-1.5 bg-warning/10 text-warning rounded-md border border-warning/20">
