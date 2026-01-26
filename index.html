@@ -14,23 +14,34 @@
   <meta name="color-scheme" content="light dark" />
   <meta http-equiv="Content-Security-Policy"
     content="default-src 'self' * 'unsafe-inline' 'unsafe-eval' data: blob:;" />
+  <style>
+    #emergency-barrier {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      padding: 10px;
+      background: #ef4444;
+      color: white;
+      text-align: center;
+      z-index: 9999;
+      font-weight: bold;
+    }
+  </style>
   <script>
-    // EMERGENCY RESET: Force unregister stale Service Workers to fix "stuck" versions
+    console.log("NUCLEAR RESET INITIATED");
+    alert("PHARMACARE PRO: New version detected. Clearing cache...");
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(function (registrations) {
-        for (let registration of registrations) {
-          registration.unregister();
-          console.log('Stale ServiceWorker unregistered');
-        }
+        for (let registration of registrations) { registration.unregister(); }
       });
     }
-    // Clear all caches to force fresh fetch
     if ('caches' in window) {
       caches.keys().then(function (names) {
         for (let name of names) caches.delete(name);
-        console.log('Application caches cleared');
       });
     }
+    localStorage.clear();
   </script>
 
   <!-- Open Graph / Social Media -->
@@ -65,8 +76,9 @@
 </head>
 
 <body>
+  <div id="emergency-barrier">PHARMACARE PRO: LATEST VERSION V5 LOADED</div>
   <div id="root"></div>
-  <script type="module" src="/src/main.tsx?v=20260126-v4"></script>
+  <script type="module" src="/src/main.tsx?v=20260126-v5"></script>
 </body>
 
 </html>

@@ -46,7 +46,7 @@ interface AppProps {
 }
 
 const App = ({ queryClient, persister }: AppProps) => {
-  console.log("!!! ATTENTION: PharmaCare Pro Loading - VERSION [2026-01-26-FORCE-RELOAD-V4] !!!");
+  console.log("!!! ATTENTION: PharmaCare Pro Loading - VERSION [2026-01-26-PROD-V5-FINAL] !!!");
   return (
     <PersistQueryClientProvider
       client={queryClient}
