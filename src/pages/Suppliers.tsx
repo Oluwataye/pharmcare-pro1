@@ -13,9 +13,9 @@ import {
 import { Search, Truck, Phone, Mail, MapPin } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useSuppliers } from "@/hooks/useSuppliers";
-import { AddSupplierDialog } from "@/components/suppliers/AddSupplierDialog";
-import { EditSupplierDialog } from "@/components/suppliers/EditSupplierDialog";
-import { DeleteSupplierDialog } from "@/components/suppliers/DeleteSupplierDialog";
+import { AddSupplierDialog } from "../components/suppliers/AddSupplierDialog";
+import { EditSupplierDialog } from "../components/suppliers/EditSupplierDialog";
+import { DeleteSupplierDialog } from "../components/suppliers/DeleteSupplierDialog";
 import { EnhancedCard } from "@/components/ui/EnhancedCard";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";

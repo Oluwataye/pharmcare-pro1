@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PharmaCare Pro - Diagnostics</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+            line-height: 1.5;
+            color: #333;
+        }
+
+        .success {
+            color: green;
+            font-weight: bold;
+        }
+
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #2563eb;
+            color: white;
+            border: none;
+            rounded: 4px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>System Diagnostic & Reset</h1>
+    <p>This tool will help clear any "stuck" versions of the application in your browser.</p>
+
+    <div id="status">
+        <p>Waiting for action...</p>
+    </div>
+
+    <button onclick="performReset()">Perform Full Reset</button>
+
+    <script>
+        async function performReset() {
+            const statusDiv = document.getElementById('status');
+            statusDiv.innerHTML = '<p>Starting reset...</p>';
+
+            try {
+                // 1. Unregister Service Workers
+                if ('serviceWorker' in navigator) {
+                    const registrations = await navigator.serviceWorker.getRegistrations();
+                    for (let registration of registrations) {
+                        await registration.unregister();
+                        statusDiv.innerHTML += '<p class="success">✓ ServiceWorker unregistered</p>';
+                    }
+                }
+
+                // 2. Clear Caches
+                if ('caches' in window) {
+                    const names = await caches.keys();
+                    for (let name of names) {
+                        await caches.delete(name);
+                        statusDiv.innerHTML += '<p class="success">✓ Cache "' + name + '" cleared</p>';
+                    }
+                }
+
+                // 3. Clear Storage
+                localStorage.clear();
+                sessionStorage.clear();
+                statusDiv.innerHTML += '<p class="success">✓ Local & Session storage cleared</p>';
+
+                statusDiv.innerHTML += '<h3>Reset Complete!</h3>';
+                statusDiv.innerHTML += '<p>Please click the link below to return to the app. <b>It will take a moment to load the fresh version.</b></p>';
+                statusDiv.innerHTML += '<a href="/">Return to PharmaCare Pro</a>';
+
+            } catch (err) {
+                statusDiv.innerHTML += '<p class="error">Error during reset: ' + err.message + '</p>';
+            }
+        }
+    </script>
+</body>
+
+</html>
