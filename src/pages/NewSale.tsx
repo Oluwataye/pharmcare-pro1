@@ -164,25 +164,9 @@ const NewSale = () => {
       const transactionId = `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
       // 2. Capture the window synchronously
+      // 2. Capture the window synchronously for printing
       const printWindow = openPrintWindow();
       const currentItems = [...items];
-
-      // 3. EXECUTE PRINT *IMMEDIATELY* (Optimistic UI)
-      // We pass the items directly so it doesn't need to fetch anything.
-      // We pass the transactionId we just generated so the receipt looks valid.
-      handlePrint({
-        dispenserName: user ? user.username || user.name : undefined,
-        dispenserEmail: user ? user.email : undefined,
-        dispenserId: user ? user.id : undefined,
-        customerName: customerName || undefined,
-        customerPhone: customerPhone || undefined,
-        businessName: saleType === 'wholesale' ? businessName : undefined,
-        businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
-        existingWindow: printWindow,
-        directPrint: true,
-        items: currentItems,
-        saleId: transactionId // Use the ID we generated
-      });
 
       logSecurityEvent('SALE_COMPLETION_ATTEMPT', {
         userId: user.id,
@@ -192,15 +176,15 @@ const NewSale = () => {
         transactionId
       });
 
-      // 4. SAVE THE SALE IN BACKGROUND (with the same ID)
+      // 3. SAVE THE SALE (Printing will happen automatically inside completeSale on success)
       const result = await completeSale({
         customerName,
         customerPhone,
         businessName: saleType === 'wholesale' ? businessName : undefined,
         businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
         saleType,
-        transactionId, // Pass the ID we already printed with
-        // Note: We don't pass existingWindow here because we already used it for printing!
+        transactionId,
+        existingWindow: printWindow, // Pass window to be used AFTER success
       });
 
       if (result && typeof result === 'string') {

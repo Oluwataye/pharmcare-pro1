@@ -103,27 +103,20 @@ export const useRefund = () => {
 
         setIsLoading(true);
         try {
-            const updateData: any = {
-                status: approval.action === 'approve' ? 'approved' : 'rejected',
-                approved_by: user.id,
-                approved_by_name: user.username || user.name || user.email,
-                approved_at: new Date().toISOString(),
-            };
+            const { data, error: rpcError } = await supabase
+                .rpc('process_refund_transaction', {
+                    p_refund_id: approval.refund_id,
+                    p_action: approval.action,
+                    p_rejection_reason: approval.rejection_reason || null,
+                    p_admin_id: user.id,
+                    p_admin_name: user.username || user.name || user.email
+                });
 
-            if (approval.action === 'reject' && approval.rejection_reason) {
-                updateData.rejection_reason = approval.rejection_reason;
-            }
-
-            const { error } = await supabase
-                .from('refunds')
-                .update(updateData)
-                .eq('id', approval.refund_id);
-
-            if (error) throw error;
+            if (rpcError) throw rpcError;
 
             toast({
                 title: approval.action === 'approve' ? 'Refund Approved' : 'Refund Rejected',
-                description: `The refund has been ${approval.action}d successfully`,
+                description: `The refund has been ${approval.action}d and stock updated successfully`,
             });
 
             // Refresh refunds list

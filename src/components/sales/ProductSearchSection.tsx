@@ -29,7 +29,9 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
         const { data, error } = await supabase
           .from('inventory')
           .select('*')
-          .gt('quantity', 0); // Only show items in stock
+          .gt('quantity', 0)
+          .gt('expiry_date', new Date().toISOString())
+          .limit(1000); // Performance guardrail for large inventories
 
         if (error) throw error;
 
