@@ -7,7 +7,11 @@ ALTER TABLE public.inventory
 ADD CONSTRAINT inventory_quantity_check 
 CHECK (quantity >= 0);
 
--- 2. Create the Atomic Sale Transaction RPC
+-- 2. Ensure sales table has manual_discount column
+ALTER TABLE public.sales 
+ADD COLUMN IF NOT EXISTS manual_discount DECIMAL DEFAULT 0;
+
+-- 3. Create the Atomic Sale Transaction RPC
 CREATE OR REPLACE FUNCTION public.process_sale_transaction(
   p_transaction_id TEXT,
   p_total DECIMAL,
