@@ -30,16 +30,16 @@ const Settings = () => {
   const { user } = useAuth();
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
-  const [storeSettings, setStoreSettings] = useState({
+  const { config: systemConfig, updateConfig: updateSystemConfig } = useSystemConfig();
+  const { settings: currentSettings, isLoading: isFetchingSettings } = useStoreSettings();
+
+  const [formSettings, setFormSettings] = useState({
     id: '',
     name: "PharmaCare Pro",
     address: "123 Main Street, Lagos",
     phone: "080-1234-5678",
     email: "contact@pharmacarepro.com",
     logoUrl: '',
-  });
-
-  const [printSettings, setPrintSettings] = useState({
     showLogo: true,
     showAddress: true,
     showEmail: true,
@@ -47,22 +47,16 @@ const Settings = () => {
     showFooter: true,
   });
 
-  const { config: systemConfig, updateConfig: updateSystemConfig } = useSystemConfig();
-  const { settings: currentSettings, isLoading: isFetchingSettings } = useStoreSettings();
-
   // Load settings from database on component mount
   useEffect(() => {
     if (currentSettings) {
-      setStoreSettings({
+      setFormSettings({
         id: currentSettings.id,
         name: currentSettings.name,
         address: currentSettings.address || '',
         phone: currentSettings.phone || '',
         email: currentSettings.email || '',
         logoUrl: currentSettings.logo_url || '',
-      });
-
-      setPrintSettings({
         showLogo: currentSettings.print_show_logo ?? true,
         showAddress: currentSettings.print_show_address ?? true,
         showEmail: currentSettings.print_show_email ?? true,
@@ -100,8 +94,8 @@ const Settings = () => {
     setIsUploadingLogo(true);
     try {
       // Delete old logo if exists
-      if (storeSettings.logoUrl) {
-        const oldPath = storeSettings.logoUrl.split('/').pop();
+      if (formSettings.logoUrl) {
+        const oldPath = formSettings.logoUrl.split('/').pop();
         if (oldPath) {
           await supabase.storage.from('store-logos').remove([oldPath]);
         }
@@ -110,7 +104,7 @@ const Settings = () => {
       // Upload new logo
       const fileExt = file.name.split('.').pop();
       const fileName = `logo-${Date.now()}.${fileExt}`;
-      const { error: uploadError, data } = await supabase.storage
+      const { error: uploadError } = await supabase.storage
         .from('store-logos')
         .upload(fileName, file, {
           cacheControl: '3600',
@@ -124,18 +118,19 @@ const Settings = () => {
         .from('store-logos')
         .getPublicUrl(fileName);
 
-      // Update database
+      // Update database using upsert for reliability
       const { error: updateError } = await supabase
         .from('store_settings')
-        .update({
+        .upsert({
+          id: formSettings.id || undefined, // undefined will trigger auto-gen or match default
           logo_url: publicUrl,
           updated_by: user.id,
-        })
-        .eq('id', storeSettings.id);
+        });
 
       if (updateError) throw updateError;
 
-      setStoreSettings({ ...storeSettings, logoUrl: publicUrl });
+      setFormSettings(prev => ({ ...prev, logoUrl: publicUrl }));
+      localStorage.setItem('store_settings_updated', Date.now().toString());
 
       toast({
         title: 'Logo Uploaded',
@@ -157,69 +152,47 @@ const Settings = () => {
     }
   };
 
-  const handleStoreSettingsSave = async () => {
+  const handleSaveSettings = async () => {
     if (!user) return;
-
-    setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('store_settings')
-        .update({
-          name: storeSettings.name,
-          address: storeSettings.address,
-          phone: storeSettings.phone,
-          email: storeSettings.email,
-          updated_by: user.id,
-        })
-        .eq('id', storeSettings.id);
-
-      if (error) throw error;
-
-      // Invalidate cache to force refresh in all components
-      invalidateStoreSettingsCache();
-
+    if (isFetchingSettings) {
       toast({
-        title: "Settings Saved",
-        description: "Store settings have been updated successfully.",
+        title: "Please wait",
+        description: "Settings are still loading.",
+        variant: "destructive"
       });
-    } catch (error: any) {
-      toast({
-        title: 'Error',
-        description: error.message || 'Failed to save settings',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
+      return;
     }
-  };
-
-  const handlePrintSettingsSave = async () => {
-    if (!user) return;
 
     setIsLoading(true);
     try {
       const { error } = await supabase
         .from('store_settings')
-        .update({
-          print_show_logo: printSettings.showLogo,
-          print_show_address: printSettings.showAddress,
-          print_show_email: printSettings.showEmail,
-          print_show_phone: printSettings.showPhone,
-          print_show_footer: printSettings.showFooter,
+        .upsert({
+          id: formSettings.id || undefined,
+          name: formSettings.name,
+          address: formSettings.address,
+          phone: formSettings.phone,
+          email: formSettings.email,
+          print_show_logo: formSettings.showLogo,
+          print_show_address: formSettings.showAddress,
+          print_show_email: formSettings.showEmail,
+          print_show_phone: formSettings.showPhone,
+          print_show_footer: formSettings.showFooter,
           updated_by: user.id,
-        })
-        .eq('id', storeSettings.id);
+        });
 
       if (error) throw error;
 
-      // Invalidate cache to force refresh in all components
+      // Notify other tabs and components
+      localStorage.setItem('store_settings_updated', Date.now().toString());
       invalidateStoreSettingsCache();
 
       toast({
         title: "Settings Saved",
-        description: "Print settings have been updated successfully.",
+        description: "All settings have been updated successfully.",
       });
     } catch (error: any) {
+      console.error('Save error:', error);
       toast({
         title: 'Error',
         description: error.message || 'Failed to save settings',
@@ -270,10 +243,10 @@ const Settings = () => {
               <div className="space-y-2">
                 <Label htmlFor="store-logo">Store Logo</Label>
                 <div className="flex items-center gap-4">
-                  {storeSettings.logoUrl && (
+                  {formSettings.logoUrl && (
                     <div className="relative w-20 h-20 rounded-md overflow-hidden border-2 border-border">
                       <img
-                        src={storeSettings.logoUrl}
+                        src={formSettings.logoUrl}
                         alt="Store Logo"
                         className="w-full h-full object-contain bg-muted"
                       />
@@ -285,7 +258,7 @@ const Settings = () => {
                       type="file"
                       accept="image/jpeg,image/jpg,image/png,image/webp"
                       onChange={handleLogoUpload}
-                      disabled={isUploadingLogo}
+                      disabled={isUploadingLogo || isFetchingSettings}
                       className="cursor-pointer"
                     />
                     <p className="text-xs text-muted-foreground mt-1">
@@ -301,9 +274,10 @@ const Settings = () => {
                 <Label htmlFor="store-name">Store Name</Label>
                 <Input
                   id="store-name"
-                  value={storeSettings.name}
+                  value={formSettings.name}
+                  disabled={isFetchingSettings}
                   onChange={(e) =>
-                    setStoreSettings({ ...storeSettings, name: e.target.value })
+                    setFormSettings(prev => ({ ...prev, name: e.target.value }))
                   }
                 />
               </div>
@@ -311,12 +285,13 @@ const Settings = () => {
                 <Label htmlFor="store-address">Address</Label>
                 <Input
                   id="store-address"
-                  value={storeSettings.address}
+                  value={formSettings.address}
+                  disabled={isFetchingSettings}
                   onChange={(e) =>
-                    setStoreSettings({
-                      ...storeSettings,
+                    setFormSettings(prev => ({
+                      ...prev,
                       address: e.target.value,
-                    })
+                    }))
                   }
                 />
               </div>
@@ -325,12 +300,13 @@ const Settings = () => {
                   <Label htmlFor="store-phone">Phone Number</Label>
                   <Input
                     id="store-phone"
-                    value={storeSettings.phone}
+                    value={formSettings.phone}
+                    disabled={isFetchingSettings}
                     onChange={(e) =>
-                      setStoreSettings({
-                        ...storeSettings,
+                      setFormSettings(prev => ({
+                        ...prev,
                         phone: e.target.value,
-                      })
+                      }))
                     }
                   />
                 </div>
@@ -339,19 +315,20 @@ const Settings = () => {
                   <Input
                     id="store-email"
                     type="email"
-                    value={storeSettings.email}
+                    value={formSettings.email}
+                    disabled={isFetchingSettings}
                     onChange={(e) =>
-                      setStoreSettings({
-                        ...storeSettings,
+                      setFormSettings(prev => ({
+                        ...prev,
                         email: e.target.value,
-                      })
+                      }))
                     }
                   />
                 </div>
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handleStoreSettingsSave} disabled={isLoading}>
+              <Button onClick={handleSaveSettings} disabled={isLoading || isFetchingSettings}>
                 {isLoading ? 'Saving...' : 'Save Changes'}
               </Button>
             </CardFooter>
@@ -370,46 +347,51 @@ const Settings = () => {
               <div className="flex items-center space-x-2">
                 <Switch
                   id="print-logo"
-                  checked={printSettings.showLogo}
-                  onCheckedChange={(checked) => setPrintSettings({ ...printSettings, showLogo: checked })}
+                  checked={formSettings.showLogo}
+                  disabled={isFetchingSettings}
+                  onCheckedChange={(checked) => setFormSettings(prev => ({ ...prev, showLogo: checked }))}
                 />
                 <Label htmlFor="print-logo">Show Logo on Receipt</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
                   id="print-address"
-                  checked={printSettings.showAddress}
-                  onCheckedChange={(checked) => setPrintSettings({ ...printSettings, showAddress: checked })}
+                  checked={formSettings.showAddress}
+                  disabled={isFetchingSettings}
+                  onCheckedChange={(checked) => setFormSettings(prev => ({ ...prev, showAddress: checked }))}
                 />
                 <Label htmlFor="print-address">Show Store Address</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
                   id="print-email"
-                  checked={printSettings.showEmail}
-                  onCheckedChange={(checked) => setPrintSettings({ ...printSettings, showEmail: checked })}
+                  checked={formSettings.showEmail}
+                  disabled={isFetchingSettings}
+                  onCheckedChange={(checked) => setFormSettings(prev => ({ ...prev, showEmail: checked }))}
                 />
                 <Label htmlFor="print-email">Show Store Email</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
                   id="print-phone"
-                  checked={printSettings.showPhone}
-                  onCheckedChange={(checked) => setPrintSettings({ ...printSettings, showPhone: checked })}
+                  checked={formSettings.showPhone}
+                  disabled={isFetchingSettings}
+                  onCheckedChange={(checked) => setFormSettings(prev => ({ ...prev, showPhone: checked }))}
                 />
                 <Label htmlFor="print-phone">Show Store Phone Number</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Switch
                   id="print-footer"
-                  checked={printSettings.showFooter}
-                  onCheckedChange={(checked) => setPrintSettings({ ...printSettings, showFooter: checked })}
+                  checked={formSettings.showFooter}
+                  disabled={isFetchingSettings}
+                  onCheckedChange={(checked) => setFormSettings(prev => ({ ...prev, showFooter: checked }))}
                 />
                 <Label htmlFor="print-footer">Show Receipt Footer</Label>
               </div>
             </CardContent>
             <CardFooter>
-              <Button onClick={handlePrintSettingsSave} disabled={isLoading}>
+              <Button onClick={handleSaveSettings} disabled={isLoading || isFetchingSettings}>
                 {isLoading ? 'Saving...' : 'Save Changes'}
               </Button>
             </CardFooter>

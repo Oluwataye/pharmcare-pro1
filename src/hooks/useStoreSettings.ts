@@ -120,8 +120,17 @@ export const useStoreSettings = () => {
     };
     listeners.add(listener);
 
+    // Listen for storage changes from other tabs
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'store_settings_updated') {
+        fetchSettings(true);
+      }
+    };
+    window.addEventListener('storage', handleStorageChange);
+
     return () => {
       listeners.delete(listener);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, [fetchSettings]);
 
