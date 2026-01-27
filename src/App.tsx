@@ -60,10 +60,10 @@ const App = ({ queryClient, persister }: AppProps) => {
         },
       }}
     >
-      <OfflineProvider>
-        <AuthProvider>
-          <InventoryProvider>
-            <ErrorBoundary>
+      <ErrorBoundary>
+        <OfflineProvider>
+          <AuthProvider>
+            <InventoryProvider>
               <TooltipProvider>
                 <Toaster />
                 <Sonner />
@@ -189,10 +189,10 @@ const App = ({ queryClient, persister }: AppProps) => {
                   </Routes>
                 </BrowserRouter>
               </TooltipProvider>
-            </ErrorBoundary>
-          </InventoryProvider>
-        </AuthProvider>
-      </OfflineProvider>
+            </InventoryProvider>
+          </AuthProvider>
+        </OfflineProvider>
+      </ErrorBoundary>
     </PersistQueryClientProvider >
   );
 };
