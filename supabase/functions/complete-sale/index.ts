@@ -30,6 +30,7 @@ interface CompleteSaleRequest {
   transactionId: string
   cashierName?: string
   cashierEmail?: string
+  manualDiscount?: number
 }
 
 // Input validation and sanitization utilities
@@ -111,149 +112,51 @@ serve(async (req) => {
       itemCount: saleData.items.length
     })
 
-    // 2. Fetch ALL Inventory Items in ONE Query (Vectorized Read)
-    const itemIds = saleData.items.map(item => item.id);
-    const { data: inventoryItems, error: inventoryFetchError } = await supabase
-      .from('inventory')
-      .select('id, name, quantity, cost_price')
-      .in('id', itemIds);
+    // 2. Process Sale via Atomic RPC
+    console.log('Calling process_sale_transaction RPC for:', saleData.transaction_id)
 
-    if (inventoryFetchError) throw new Error('Failed to fetch inventory data');
-
-    // Create a map for O(1) lookup
-    const inventoryMap = new Map(inventoryItems?.map(i => [i.id, i]));
-
-    // 3. Validate Stock & Calculate Totals (In Memory)
-    let totalCost = 0;
-    const itemsToInsert = [];
-    const inventoryUpdates = [];
-
-    for (const item of saleData.items) {
-      const inventoryItem = inventoryMap.get(item.id);
-
-      if (!inventoryItem) {
-        throw new Error(`Product ${item.name} (ID: ${item.id}) not found in inventory`);
-      }
-
-      if (inventoryItem.quantity < item.quantity) {
-        throw new Error(`Insufficient stock for ${item.name}. Available: ${inventoryItem.quantity}, Requested: ${item.quantity}`);
-      }
-
-      const costPrice = inventoryItem.cost_price || 0;
-      totalCost += costPrice * item.quantity;
-
-      // Prepare Sale Item Payload (with cost captured!)
-      itemsToInsert.push({
-        sale_id: null, // Will be set after sale creation
-        product_id: item.id,
-        product_name: sanitizeString(item.name, 500) || item.name,
-        quantity: item.quantity,
-        unit_price: item.unitPrice,
-        price: item.price,
-        cost_price: costPrice, // CAPTURE THE COST
-        discount: item.discount || 0,
-        is_wholesale: item.isWholesale || false,
-        total: item.total
-      });
-
-      // Prepare Inventory Update
-      inventoryUpdates.push({
-        id: item.id,
-        quantity_to_deduct: item.quantity,
-        new_quantity: inventoryItem.quantity - item.quantity,
-        previous_quantity: inventoryItem.quantity
-      });
-    }
-
-    // Prepare Stock Movements
-    const movementsToInsert = inventoryUpdates.map(update => ({
-      product_id: update.id,
-      quantity_change: -update.quantity_to_deduct,
-      previous_quantity: update.previous_quantity,
-      new_quantity: update.new_quantity,
-      type: 'SALE',
-      reason: `Sale ${saleData.transactionId}`,
-      reference_id: null, // Will be set after sale creation
-      created_by: user.id
+    // Transform items to match SQL expected recordset structure
+    const mappedItems = saleData.items.map(item => ({
+      product_id: item.id,
+      product_name: sanitizeString(item.name, 500) || item.name,
+      quantity: item.quantity,
+      unit_price: item.unitPrice,
+      price: item.price,
+      discount: item.discount || 0,
+      is_wholesale: item.isWholesale || false,
+      total: item.total
     }));
 
-    // 4. Create Sale Record (Master)
-    // Calculate profit safely
-    const grossProfit = saleData.total - totalCost;
-
-    const { data: sale, error: saleError } = await supabase
-      .from('sales')
-      .insert({
-        transaction_id: saleData.transactionId,
-        total: saleData.total,
-        discount: saleData.discount || 0,
-        // We could store profit in the sale record if the column existed, 
-        // but typically it's calculated. However, to match offline, 
-        // we heavily rely on sales_items having cost_price. 
-        // If we added a profit column to sales, we'd set it here.
-        customer_name: sanitizeString(saleData.customerName, 200),
-        customer_phone: sanitizeString(saleData.customerPhone, 20),
-        business_name: sanitizeString(saleData.businessName, 200),
-        business_address: sanitizeString(saleData.businessAddress, 500),
-        sale_type: saleData.saleType,
-        status: 'completed',
-        cashier_id: user.id,
-        cashier_name: sanitizeString(saleData.cashierName, 200),
-        cashier_email: sanitizeString(saleData.cashierEmail, 255)
+    const { data: result, error: rpcError } = await supabase
+      .rpc('process_sale_transaction', {
+        p_transaction_id: saleData.transaction_id,
+        p_total: saleData.total,
+        p_discount: saleData.discount || 0,
+        p_manual_discount: saleData.manualDiscount || 0,
+        p_customer_name: sanitizeString(saleData.customerName, 200),
+        p_customer_phone: sanitizeString(saleData.customerPhone, 20),
+        p_business_name: sanitizeString(saleData.businessName, 200),
+        p_business_address: sanitizeString(saleData.businessAddress, 500),
+        p_sale_type: saleData.saleType,
+        p_cashier_id: user.id,
+        p_cashier_name: sanitizeString(saleData.cashierName, 200),
+        p_cashier_email: sanitizeString(saleData.cashierEmail, 255),
+        p_items: mappedItems
       })
-      .select()
-      .single()
 
-    if (saleError) throw new Error('Failed to create sale record: ' + saleError.message);
-
-    // 5. Bulk Insert Sale Items (Vectorized Write)
-    // Assign the new sale_id to all items
-    itemsToInsert.forEach(item => item.sale_id = sale.id);
-
-    const { error: itemsError } = await supabase
-      .from('sales_items')
-      .insert(itemsToInsert);
-
-    if (itemsError) {
-      // Critical error: Sale created but items failed. 
-      // In a real transactional DB we'd rollback. 
-      // Here we throw, and frontend gets error. 
-      console.error('Critical: Failed to insert items for sale ' + sale.id, itemsError);
-      throw new Error('Failed to save sale items');
+    if (rpcError) {
+      console.error('RPC Error:', rpcError)
+      throw new Error(rpcError.message || 'Atomic sale transaction failed')
     }
 
-    // 6. Update Inventory (Parallel Execution)
-    // Since we don't have a bulk-update RPC handy, we parallelize the updates.
-    // This is still N queries but they run concurrently via Promise.all
-    await Promise.all(inventoryUpdates.map(update =>
-      supabase
-        .from('inventory')
-        .update({
-          quantity: update.new_quantity,
-          last_updated_at: new Date().toISOString()
-        })
-        .eq('id', update.id)
-    ));
-
-    // 7. Log Stock Movements
-    movementsToInsert.forEach(m => m.reference_id = sale.id);
-    const { error: movementsError } = await supabase
-      .from('stock_movements')
-      .insert(movementsToInsert);
-
-    if (movementsError) {
-      console.error('Failed to log stock movements for sale ' + sale.id, movementsError);
-      // We don't throw here as the sale is already completed and stock deducted
-    }
-
-    console.log('Sale completed successfully:', sale.id);
+    console.log('Sale completed successfully via RPC:', result.sale_id);
 
     return new Response(
       JSON.stringify({
         success: true,
-        saleId: sale.id,
-        transactionId: sale.transaction_id,
-        profit: grossProfit
+        saleId: result.sale_id,
+        transactionId: result.transaction_id,
+        profit: result.profit
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 200 }
     )
