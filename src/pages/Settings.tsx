@@ -164,24 +164,46 @@ const Settings = () => {
     }
 
     setIsLoading(true);
-    try {
-      const { error } = await supabase
-        .from('store_settings')
-        .upsert({
-          id: formSettings.id || undefined,
-          name: formSettings.name,
-          address: formSettings.address,
-          phone: formSettings.phone,
-          email: formSettings.email,
-          print_show_logo: formSettings.showLogo,
-          print_show_address: formSettings.showAddress,
-          print_show_email: formSettings.showEmail,
-          print_show_phone: formSettings.showPhone,
-          print_show_footer: formSettings.showFooter,
-          updated_by: user.id,
-        });
+    console.log('Attempting to save settings:', formSettings);
 
-      if (error) throw error;
+    try {
+      // Use explicit update if we have a valid ID, fallback to upsert
+      const payload = {
+        name: formSettings.name,
+        address: formSettings.address,
+        phone: formSettings.phone,
+        email: formSettings.email,
+        print_show_logo: formSettings.showLogo,
+        print_show_address: formSettings.showAddress,
+        print_show_email: formSettings.showEmail,
+        print_show_phone: formSettings.showPhone,
+        print_show_footer: formSettings.showFooter,
+        updated_by: user.id,
+      };
+
+      let saveResult;
+      if (formSettings.id && formSettings.id !== 'default') {
+        console.log('Using update for ID:', formSettings.id);
+        saveResult = await supabase
+          .from('store_settings')
+          .update(payload)
+          .eq('id', formSettings.id);
+      } else {
+        console.log('Using upsert (no valid ID found)');
+        saveResult = await supabase
+          .from('store_settings')
+          .upsert({
+            ...payload,
+            id: (formSettings.id && formSettings.id !== 'default') ? formSettings.id : undefined
+          });
+      }
+
+      const { error } = saveResult;
+
+      if (error) {
+        console.error('Supabase save error:', error);
+        throw error;
+      }
 
       // Notify other tabs and components
       localStorage.setItem('store_settings_updated', Date.now().toString());
@@ -192,10 +214,20 @@ const Settings = () => {
         description: "All settings have been updated successfully.",
       });
     } catch (error: any) {
-      console.error('Save error:', error);
+      console.error('Save error details:', {
+        message: error.message,
+        details: error.details,
+        hint: error.hint,
+        code: error.code
+      });
+
+      const isForbidden = error.status === 403 || error.code === '42501';
+
       toast({
-        title: 'Error',
-        description: error.message || 'Failed to save settings',
+        title: isForbidden ? 'Permission Denied' : 'Error',
+        description: isForbidden
+          ? 'You do not have permission to update store settings. Please contact your administrator.'
+          : (error.message || 'Failed to save settings'),
         variant: 'destructive',
       });
     } finally {

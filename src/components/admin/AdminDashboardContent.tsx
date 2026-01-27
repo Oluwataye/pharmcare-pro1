@@ -49,34 +49,32 @@ const AdminDashboardContent = () => {
             id: tx.transaction_id || tx.id, // Use transaction_id if available, else UUID
             product: tx.customer_name || 'Walk-in Customer',
             customer: `Items: ${(tx.items && Array.isArray(tx.items)) ? tx.items.length : 'N/A'}`,
-            amount: Number(tx.total || tx.total_amount || 0),
+            amount: Number(tx.total || 0),
             date: new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
           }));
           setRecentTransactions(formattedTx);
         }
 
         // Fetch Today's Sales Sum
-        // Note: Supabase doesn't have a simple sum() without RPC or fetching all relevant rows. 
-        // For scalability, RPC is better, but for now we fetch rows (assuming volume isn't massive yet).
         const { data: todayData, error: todayError } = await supabase
           .from('sales')
-          .select('total, total_amount')
+          .select('total')
           .gte('created_at', today.toISOString());
 
         if (todayError) throw todayError;
 
-        const todayTotal = todayData?.reduce((sum, sale) => sum + Number(sale.total || sale.total_amount || 0), 0) || 0;
+        const todayTotal = todayData?.reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0;
         setTodaySales(todayTotal);
 
         // Fetch Month's Revenue
         const { data: monthData, error: monthError } = await supabase
           .from('sales')
-          .select('total, total_amount')
+          .select('total')
           .gte('created_at', firstDayOfMonth.toISOString());
 
         if (monthError) throw monthError;
 
-        const monthTotal = monthData?.reduce((sum, sale) => sum + Number(sale.total || sale.total_amount || 0), 0) || 0;
+        const monthTotal = monthData?.reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0;
         setRevenueMTD(monthTotal);
 
       } catch (error) {

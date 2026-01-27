@@ -31,7 +31,7 @@ export const invalidateStoreSettingsCache = () => {
 };
 
 const DEFAULT_SETTINGS: StoreSettings = {
-  id: 'default',
+  id: '',
   name: 'PharmaCare Pro',
   address: 'Address Not Set',
   phone: 'Phone Not Set',
@@ -86,21 +86,14 @@ export const useStoreSettings = () => {
       return DEFAULT_SETTINGS;
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Failed to fetch store settings');
+      console.error('Error fetching store settings:', {
+        error,
+        original: err
+      });
       setError(error);
-      console.error('Error fetching store settings:', error);
 
       // If error (e.g. network), also use defaults
       setSettings(DEFAULT_SETTINGS);
-
-      // Don't show toast on mount, only on explicit refresh
-      if (forceRefresh) {
-        toast({
-          title: 'Error',
-          description: 'Failed to load store settings',
-          variant: 'destructive',
-        });
-      }
-
       return null;
     } finally {
       setIsLoading(false);
