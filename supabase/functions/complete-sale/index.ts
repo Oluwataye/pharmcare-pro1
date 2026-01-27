@@ -28,8 +28,8 @@ interface CompleteSaleRequest {
   businessAddress?: string
   saleType: 'retail' | 'wholesale'
   transactionId: string
-  cashierName?: string
-  cashierEmail?: string
+  dispenserName?: string
+  dispenserEmail?: string
   manualDiscount?: number
 }
 
@@ -113,7 +113,7 @@ serve(async (req) => {
     })
 
     // 2. Process Sale via Atomic RPC
-    console.log('Calling process_sale_transaction RPC for:', saleData.transaction_id)
+    console.log('Calling process_sale_transaction RPC for:', saleData.transactionId)
 
     // Transform items to match SQL expected recordset structure
     const mappedItems = saleData.items.map(item => ({
@@ -129,7 +129,7 @@ serve(async (req) => {
 
     const { data: result, error: rpcError } = await supabase
       .rpc('process_sale_transaction', {
-        p_transaction_id: saleData.transaction_id,
+        p_transaction_id: saleData.transactionId,
         p_total: saleData.total,
         p_discount: saleData.discount || 0,
         p_manual_discount: saleData.manualDiscount || 0,
@@ -139,8 +139,8 @@ serve(async (req) => {
         p_business_address: sanitizeString(saleData.businessAddress, 500),
         p_sale_type: saleData.saleType,
         p_cashier_id: user.id,
-        p_cashier_name: sanitizeString(saleData.cashierName, 200),
-        p_cashier_email: sanitizeString(saleData.cashierEmail, 255),
+        p_cashier_name: sanitizeString(saleData.dispenserName, 200),
+        p_cashier_email: sanitizeString(saleData.dispenserEmail, 255),
         p_items: mappedItems
       })
 
