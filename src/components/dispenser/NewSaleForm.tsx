@@ -17,52 +17,43 @@ import { cn } from "@/lib/utils";
 
 import { useSystemConfig } from "@/hooks/useSystemConfig";
 
+import { useInventory } from "@/hooks/useInventory";
+import { InventoryItem } from "@/types/inventory";
+
 interface NewSaleFormProps {
   onComplete: () => void;
   onCancel: () => void;
 }
 
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  wholesalePrice: number;
-  stock: number;
-}
-
-const productDatabase: Product[] = [
-  { id: '1', name: 'Paracetamol', price: 500, wholesalePrice: 450, stock: 100 },
-  { id: '2', name: 'Amoxicillin', price: 1500, wholesalePrice: 1350, stock: 50 },
-  { id: '3', name: 'Vitamin C', price: 800, wholesalePrice: 720, stock: 75 },
-  { id: '4', name: 'Ibuprofen', price: 600, wholesalePrice: 540, stock: 60 },
-  { id: '5', name: 'Aspirin', price: 450, wholesalePrice: 400, stock: 80 },
-];
-
 export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
   const [items, setItems] = useState<SaleItem[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedProduct, setSelectedProduct] = useState<InventoryItem | null>(null);
   const [quantity, setQuantity] = useState(1);
   const [showSearch, setShowSearch] = useState(false);
   const [discount, setDiscount] = useState(0);
   const [isWholesale, setIsWholesale] = useState(false);
+  const [manualDiscount, setManualDiscount] = useState(0);
   const { toast } = useToast();
   const { user } = useAuth();
   const { config: systemConfig } = useSystemConfig();
+  const { inventory } = useInventory();
 
-  const { handlePrint, openPrintWindow } = useSalesPrinting(items, discount, isWholesale ? 'wholesale' : 'retail');
+  const { handlePrint, openPrintWindow } = useSalesPrinting(items, discount, isWholesale ? 'wholesale' : 'retail', manualDiscount);
 
   // Calculate total and discount amounts
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
-  const discountAmount = subtotal * (discount / 100);
+  const discountAmount = (subtotal * (discount / 100)) + manualDiscount;
   const total = subtotal - discountAmount;
 
   const { completeSale } = useSalesCompletion(
     items,
     () => total,
     () => setItems([]),
-    () => setDiscount(0),
-    () => setIsWholesale(false)
+    () => { setDiscount(0); setManualDiscount(0); },
+    () => setIsWholesale(false),
+    discount,
+    manualDiscount
   );
 
   const form = useForm({
@@ -72,7 +63,7 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
     },
   });
 
-  const filteredProducts = productDatabase.filter(
+  const filteredProducts = inventory.filter(
     product => product.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -95,12 +86,33 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
       return;
     }
 
-    const price = isWholesale ? selectedProduct.wholesalePrice : selectedProduct.price;
+    // Real Stock Validation
+    if (quantity > selectedProduct.quantity) {
+      toast({
+        title: "Insufficient Stock",
+        description: `Only ${selectedProduct.quantity} units available in stock.`,
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const price = isWholesale ? (selectedProduct.price * 0.9) : selectedProduct.price; // TODO: Implement proper wholesale price field if available
     const existingItemIndex = items.findIndex(item => item.id === selectedProduct.id && item.isWholesale === isWholesale);
 
     if (existingItemIndex >= 0) {
       const newItems = [...items];
-      newItems[existingItemIndex].quantity += quantity;
+      const newTotalQty = newItems[existingItemIndex].quantity + quantity;
+
+      if (newTotalQty > selectedProduct.quantity) {
+        toast({
+          title: "Insufficient Stock",
+          description: `Cannot add more. Total in cart (${newTotalQty}) exceeds available stock (${selectedProduct.quantity}).`,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      newItems[existingItemIndex].quantity = newTotalQty;
       newItems[existingItemIndex].total = newItems[existingItemIndex].quantity * newItems[existingItemIndex].price;
       setItems(newItems);
     } else {
@@ -133,16 +145,18 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
     if (itemIndex === -1) return;
 
     const item = items[itemIndex];
-    const product = productDatabase.find(p => p.id === id);
+    const product = inventory.find(p => p.id === id);
     if (!product) return;
 
-    const newPrice = item.isWholesale ? product.price : product.wholesalePrice;
+    const newIsWholesale = !item.isWholesale;
+    const newPrice = newIsWholesale ? (product.price * 0.9) : product.price; // Consistent wholesale calculation
     const newItems = [...items];
     newItems[itemIndex] = {
       ...item,
-      isWholesale: !item.isWholesale,
+      isWholesale: newIsWholesale,
       price: newPrice,
-      total: newPrice * item.quantity
+      total: newPrice * item.quantity,
+      unitPrice: newPrice
     };
 
     setItems(newItems);
@@ -151,6 +165,16 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
   const handleUpdateQuantity = (id: string, newQuantity: number) => {
     if (newQuantity <= 0) {
       setItems(items.filter(item => item.id !== id));
+      return;
+    }
+
+    const product = inventory.find(p => p.id === id);
+    if (product && newQuantity > product.quantity) {
+      toast({
+        title: "Insufficient Stock",
+        description: `Only ${product.quantity} units available.`,
+        variant: "destructive",
+      });
       return;
     }
 
@@ -344,9 +368,11 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
                 <SaleTotals
                   subtotal={subtotal}
                   discount={discount}
+                  manualDiscount={manualDiscount}
                   total={total}
                   discountAmount={discountAmount}
                   onDiscountChange={setDiscount}
+                  onManualDiscountChange={setManualDiscount}
                   isWholesale={isWholesale}
                   manualDiscountEnabled={systemConfig.manualDiscountEnabled}
                 />

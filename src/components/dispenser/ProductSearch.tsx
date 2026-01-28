@@ -2,19 +2,13 @@
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 
-interface Product {
-  id: string;
-  name: string;
-  price: number;
-  wholesalePrice: number;
-  stock: number;
-}
+import { InventoryItem } from "@/types/inventory";
 
 interface ProductSearchProps {
   searchQuery: string;
   onSearchChange: (value: string) => void;
-  filteredProducts: Product[];
-  onProductSelect: (product: Product) => void;
+  filteredProducts: InventoryItem[];
+  onProductSelect: (product: InventoryItem) => void;
 }
 
 export function ProductSearch({
@@ -26,9 +20,9 @@ export function ProductSearch({
   return (
     <div className="relative">
       <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-      <Input 
-        placeholder="Search products..." 
-        className="pl-8 w-full md:w-[250px]" 
+      <Input
+        placeholder="Search products..."
+        className="pl-8 w-full md:w-[250px]"
         value={searchQuery}
         onChange={(e) => onSearchChange(e.target.value)}
         autoFocus
@@ -39,12 +33,15 @@ export function ProductSearch({
             <div className="px-4 py-2 text-sm text-muted-foreground">No products found</div>
           ) : (
             filteredProducts.map(product => (
-              <div 
+              <div
                 key={product.id}
-                className="px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer"
+                className="px-4 py-2 text-sm hover:bg-gray-100 cursor-pointer flex justify-between items-center"
                 onClick={() => onProductSelect(product)}
               >
-                {product.name} - ₦{product.price}
+                <span>{product.name} - ₦{product.price}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full ${product.quantity <= (product.reorderLevel || 10) ? 'bg-red-100 text-red-600 font-bold' : 'bg-green-100 text-green-600'}`}>
+                  Stock: {product.quantity}
+                </span>
               </div>
             ))
           )}
