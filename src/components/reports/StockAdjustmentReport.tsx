@@ -23,10 +23,10 @@ import {
     Calendar as CalendarIcon,
     TrendingDown,
     TrendingUp,
-    DollarSign,
     User,
     Info
 } from "lucide-react";
+import { NairaSign } from "@/components/icons/NairaSign";
 import { toast } from "sonner";
 import { formatCurrency } from "@/lib/currency";
 
@@ -231,7 +231,7 @@ const StockAdjustmentReport = () => {
                             </h3>
                         </div>
                         <div className="bg-indigo-100 p-2 rounded-full">
-                            <DollarSign className="h-5 w-5 text-indigo-600" />
+                            <NairaSign className="h-5 w-5 text-indigo-600" />
                         </div>
                     </div>
                     <p className="text-xs text-muted-foreground mt-2">Profit/Loss potential</p>

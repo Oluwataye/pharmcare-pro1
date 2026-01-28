@@ -6,9 +6,10 @@ import {
     BarChart, Bar, Legend, Cell, PieChart, Pie
 } from 'recharts';
 import {
-    TrendingUp, TrendingDown, DollarSign, Package, Activity,
+    TrendingUp, TrendingDown, Package, Activity,
     Calendar, RefreshCcw, ArrowUpRight, ArrowDownRight
 } from "lucide-react";
+import { NairaSign } from "@/components/icons/NairaSign";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
@@ -176,7 +177,7 @@ const Analytics = () => {
                 <MetricCard
                     title="Revenue"
                     value={`₦${data.summary.totalRevenue.toLocaleString()}`}
-                    icon={<DollarSign className="h-5 w-5 text-blue-600" />}
+                    icon={<NairaSign className="h-5 w-5 text-blue-600" />}
                     subValue="Total sales in period"
                     colorScheme="primary"
                 />

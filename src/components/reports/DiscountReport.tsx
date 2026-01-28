@@ -10,7 +10,7 @@ import {
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell, PieChart, Pie } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "@/components/dashboard/MetricCard";
-import { TrendingUp, TrendingDown, Percent, DollarSign, Tag } from "lucide-react";
+import { TrendingUp, TrendingDown, Percent, Tag } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
 import { format, subMonths, parseISO, startOfMonth, endOfMonth, isSameMonth } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
