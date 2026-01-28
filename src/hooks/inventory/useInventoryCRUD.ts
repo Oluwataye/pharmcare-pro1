@@ -22,11 +22,14 @@ export const useInventoryCRUD = () => {
     type: 'SALE' | 'ADJUSTMENT' | 'ADDITION' | 'RETURN' | 'INITIAL';
     reason?: string;
     referenceId?: string;
+    costPrice?: number;
+    unitPrice?: number;
   }) => {
     if (!isOnline || !user) return;
 
     try {
       const { error } = await supabase
+        // @ts-ignore - Table types not generated yet
         .from('stock_movements')
         .insert({
           product_id: params.productId,
@@ -36,7 +39,9 @@ export const useInventoryCRUD = () => {
           type: params.type,
           reason: params.reason,
           reference_id: params.referenceId,
-          created_by: user.id
+          created_by: user.id,
+          cost_price_at_time: params.costPrice,
+          unit_price_at_time: params.unitPrice
         });
 
       if (error) {
@@ -82,80 +87,65 @@ export const useInventoryCRUD = () => {
         console.log("[useInventoryCRUD] Pulse: Step 2 - Online mode, proceeding with Supabase insert ✓");
         console.log("[useInventoryCRUD] Pulse: Step 3 - Preparing insert data...");
 
-        const insertData = {
+        // @ts-ignore - RPC types not generated yet
+        const { data, error } = await supabase
+          .rpc('add_new_inventory_item', {
+            p_name: itemToProcess.name,
+            p_sku: itemToProcess.sku,
+            p_category: itemToProcess.category,
+            p_quantity: itemToProcess.quantity,
+            p_unit: itemToProcess.unit,
+            p_price: itemToProcess.price,
+            p_cost_price: itemToProcess.costPrice,
+            p_reorder_level: itemToProcess.reorderLevel,
+            p_expiry_date: itemToProcess.expiryDate,
+            p_manufacturer: itemToProcess.manufacturer,
+            p_batch_number: itemToProcess.batchNumber, // NOW MANDATORY
+            p_supplier_id: itemToProcess.supplierId === "none" ? null : itemToProcess.supplierId,
+            p_restock_invoice_number: itemToProcess.restockInvoiceNumber,
+            p_user_id: user.id
+          });
+
+        console.log("[useInventoryCRUD] Pulse: Step 4 - RPC call completed");
+        console.log("[useInventoryCRUD] Pulse: Has error:", !!error);
+
+        if (error) {
+          console.error('[useInventoryCRUD] Pulse: ❌ RPC error!', error);
+          throw error;
+        }
+
+        const newId = (data as any).id;
+        console.log("[useInventoryCRUD] Pulse: Step 5 - ✅ RPC successful! ID:", newId);
+
+        // No manual logStockMovement needed, RPC handles it
+
+        console.log("[useInventoryCRUD] Pulse: Step 7 - Formatting for local state...");
+
+        // Construct complete item for local state
+        const item: InventoryItem = {
+          id: newId,
           name: itemToProcess.name,
           sku: itemToProcess.sku,
           category: itemToProcess.category,
           quantity: itemToProcess.quantity,
           unit: itemToProcess.unit,
           price: itemToProcess.price,
-          cost_price: itemToProcess.costPrice,
-          reorder_level: itemToProcess.reorderLevel,
-          expiry_date: itemToProcess.expiryDate || null,
-          manufacturer: itemToProcess.manufacturer || null,
-          batch_number: itemToProcess.batchNumber || null,
-          supplier_id: itemToProcess.supplierId === "none" ? null : itemToProcess.supplierId,
-          restock_invoice_number: itemToProcess.restockInvoiceNumber || null,
-          last_updated_by: user.id,
-        };
-
-        console.log("[useInventoryCRUD] Pulse: Step 3 - Insert data prepared ✓");
-        console.log("[useInventoryCRUD] Pulse: Step 4 - Calling Supabase insert...");
-
-        const { data, error } = await supabase
-          .from('inventory')
-          .insert(insertData)
-          .select()
-          .single();
-
-        console.log("[useInventoryCRUD] Pulse: Step 4 - Supabase call completed");
-        console.log("[useInventoryCRUD] Pulse: Step 4 - Has error:", !!error);
-        console.log("[useInventoryCRUD] Pulse: Step 4 - Has data:", !!data);
-
-        if (error) {
-          console.error('[useInventoryCRUD] Pulse: ❌ Supabase insert error!', error);
-          console.error('[useInventoryCRUD] Pulse: Error code:', error.code);
-          console.error('[useInventoryCRUD] Pulse: Error message:', error.message);
-          console.error('[useInventoryCRUD] Pulse: Error details:', JSON.stringify(error, null, 2));
-          throw error;
-        }
-
-        console.log("[useInventoryCRUD] Pulse: Step 5 - ✅ Supabase insert successful! ID:", data.id);
-
-        // Log the initial stock movement
-        console.log("[useInventoryCRUD] Pulse: Step 6 - Logging initial stock movement...");
-        await logStockMovement({
-          productId: data.id,
-          quantityChange: data.quantity,
-          prevQuantity: 0,
-          newQuantity: data.quantity,
-          type: 'INITIAL',
-          reason: itemToProcess.restockInvoiceNumber
-            ? `Initial stock entry - Invoice: ${itemToProcess.restockInvoiceNumber}`
-            : 'Initial stock entry'
-        });
-
-        console.log("[useInventoryCRUD] Pulse: Step 6 - Stock movement logged ✓");
-        console.log("[useInventoryCRUD] Pulse: Step 7 - Converting database format to app format...");
-
-        // Convert database format to app format
-        const item: InventoryItem = {
-          id: data.id,
-          name: data.name,
-          sku: data.sku,
-          category: data.category,
-          quantity: data.quantity,
-          unit: data.unit,
-          price: Number(data.price),
-          costPrice: data.cost_price ? Number(data.cost_price) : undefined,
-          reorderLevel: data.reorder_level,
-          expiryDate: data.expiry_date || undefined,
-          manufacturer: data.manufacturer || undefined,
-          batchNumber: data.batch_number || undefined,
-          supplierId: data.supplier_id || undefined,
-          restockInvoiceNumber: data.restock_invoice_number || undefined,
+          costPrice: itemToProcess.costPrice,
+          reorderLevel: itemToProcess.reorderLevel,
+          expiryDate: itemToProcess.expiryDate,
+          manufacturer: itemToProcess.manufacturer,
+          batchNumber: itemToProcess.batchNumber,
+          supplierId: itemToProcess.supplierId === "none" ? undefined : itemToProcess.supplierId,
+          restockInvoiceNumber: itemToProcess.restockInvoiceNumber,
           lastUpdatedBy: user.username || user.name,
-          lastUpdatedAt: data.last_updated_at,
+          lastUpdatedAt: new Date().toISOString(),
+          batches: [{
+            id: (data as any).batch_id,
+            batchNumber: itemToProcess.batchNumber!,
+            expiryDate: itemToProcess.expiryDate!,
+            quantity: itemToProcess.quantity,
+            costPrice: itemToProcess.costPrice
+          }]
         };
 
         console.log("[useInventoryCRUD] Pulse: Step 7 - Format conversion complete ✓");
@@ -258,7 +248,9 @@ export const useInventoryCRUD = () => {
               ? (updatedItem.restockInvoiceNumber
                 ? `Stock addition - Invoice: ${updatedItem.restockInvoiceNumber}`
                 : 'Stock addition')
-              : 'Manual adjustment'
+              : 'Manual adjustment',
+            costPrice: updatedItem.costPrice,
+            unitPrice: updatedItem.price
           });
         }
       } else {
@@ -385,7 +377,9 @@ export const useInventoryCRUD = () => {
           prevQuantity: item.quantity,
           newQuantity: newQuantity,
           type: 'ADJUSTMENT',
-          reason: reason
+          reason: reason,
+          costPrice: item.costPrice,
+          unitPrice: item.price
         });
       } else {
         updateOfflineItem('inventory', id, { ...item, quantity: newQuantity });

@@ -1,7 +1,10 @@
 
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
+import {
+  Button
+} from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -22,7 +25,7 @@ import { ExpiryWarningBanner } from "@/components/inventory/ExpiryWarningBanner"
 import { ExpiryNotificationBanner } from "@/components/notifications/ExpiryNotificationBanner";
 import { StockMovementHistory } from "@/components/inventory/StockMovementHistory";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { History, Package, AlertTriangle } from "lucide-react";
+import { History, Package, AlertTriangle, FileText } from "lucide-react";
 
 const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
@@ -46,6 +49,7 @@ const Inventory = () => {
   } = useInventory();
   const { suppliers, fetchSuppliers } = useSuppliers();
   const location = useLocation();
+  const navigate = useNavigate();
 
   // Get all categories for filtering
   const categories = getCategories();
@@ -175,8 +179,17 @@ const Inventory = () => {
           <EnhancedCard colorScheme="primary">
             <CardHeader>
               <CardTitle>Global Stock Movement History</CardTitle>
-              <CardDescription>
-                Audit log of all additions, adjustments, and sales
+              <CardDescription className="flex items-center justify-between">
+                <span>Audit log of all additions, adjustments, and sales</span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="gap-2"
+                  onClick={() => navigate('/reports', { state: { activeTab: 'adjustments' } })}
+                >
+                  <FileText className="h-4 w-4" />
+                  View Detailed Adjustment Summary
+                </Button>
               </CardDescription>
             </CardHeader>
             <CardContent>

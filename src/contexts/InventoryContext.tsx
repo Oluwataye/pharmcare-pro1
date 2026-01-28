@@ -39,7 +39,7 @@ export const InventoryProvider = ({ children }: { children: ReactNode }) => {
             console.log("Fetching inventory from Supabase...");
             const { data, error: fetchError } = await supabase
                 .from('inventory')
-                .select('*')
+                .select('*, batches:inventory_batches(*)')
                 .order('name', { ascending: true });
 
             if (fetchError) {
@@ -72,6 +72,7 @@ export const InventoryProvider = ({ children }: { children: ReactNode }) => {
                 restockInvoiceNumber: item.restock_invoice_number || undefined,
                 lastUpdatedBy: 'System',
                 lastUpdatedAt: item.last_updated_at,
+                batches: item.batches
             }));
 
             setInventory(inventoryItems);

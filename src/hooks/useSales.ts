@@ -78,6 +78,11 @@ export const useSales = (options?: UseSalesOptions) => {
         directPrint: true,
         existingWindow: windowRef // Pass through the captured window
       });
+    } else {
+      // If sale failed, close the window we opened for printing
+      if (windowRef && !windowRef.closed) {
+        windowRef.close();
+      }
     }
 
     return result;

@@ -210,7 +210,7 @@ const NewSale = () => {
 
       toast({
         title: "Error",
-        description: "Failed to save sale record (but receipt may have printed)",
+        description: "Failed to save sale record. The operation was cancelled.",
         variant: "destructive",
       });
     } finally {

@@ -23,6 +23,7 @@ import { RetentionSettings } from "@/components/settings/RetentionSettings";
 import { EnhancedCard } from "@/components/ui/EnhancedCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useSystemConfig } from "@/hooks/useSystemConfig";
+import { DataManagement } from "@/components/settings/DataManagement";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Settings = () => {
@@ -258,7 +259,8 @@ const Settings = () => {
           {user?.role === "SUPER_ADMIN" && (
             <>
               <TabsTrigger value="discount">Discount</TabsTrigger>
-              <TabsTrigger value="retention">Data</TabsTrigger>
+              <TabsTrigger value="retention">Data Retention</TabsTrigger>
+              <TabsTrigger value="backup">Backup & Restore</TabsTrigger>
             </>
           )}
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
@@ -489,15 +491,17 @@ const Settings = () => {
         </TabsContent>
 
         {user?.role === "SUPER_ADMIN" && (
-          <TabsContent value="discount">
-            <DiscountManagement />
-          </TabsContent>
-        )}
-
-        {user?.role === "SUPER_ADMIN" && (
-          <TabsContent value="retention">
-            <RetentionSettings />
-          </TabsContent>
+          <>
+            <TabsContent value="discount">
+              <DiscountManagement />
+            </TabsContent>
+            <TabsContent value="retention">
+              <RetentionSettings />
+            </TabsContent>
+            <TabsContent value="backup">
+              <DataManagement />
+            </TabsContent>
+          </>
         )}
 
         <TabsContent value="privacy">

@@ -23,6 +23,7 @@ interface AddInventoryFormProps {
     costPrice?: number;
     supplierId?: string;
     restockInvoiceNumber?: string;
+    profitMargin?: number;
   };
   setFormData: (data: any) => void;
   expiryDate: Date | undefined;
@@ -164,6 +165,7 @@ export const AddInventoryForm = ({
             label="Expiry Date"
             date={expiryDate}
             onDateChange={setExpiryDate}
+            required
           />
         </div>
 
@@ -303,6 +305,7 @@ export const AddInventoryForm = ({
             label="Batch Number"
             value={formData.batchNumber}
             onChange={(value) => handleInputChange("batchNumber", value)}
+            required
             placeholder="Manufacturing batch #"
           />
         </div>

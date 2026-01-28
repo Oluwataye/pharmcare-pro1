@@ -31,13 +31,13 @@ export const useSalesPrinting = (
   const { settings: storeSettings, isLoading: isLoadingSettings } = useStoreSettings();
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<PrintReceiptProps | null>(null);
-
-
+  const [isPrinting, setIsPrinting] = useState(false);
 
   const executePrint = useCallback(async (customData?: PrintReceiptProps, windowRef?: Window | null) => {
     const dataToPrint = customData || previewData;
-    if (!dataToPrint) return;
+    if (!dataToPrint || isPrinting) return;
 
+    setIsPrinting(true);
     const startTime = Date.now();
     let printStatus: 'success' | 'failed' | 'cancelled' = 'success';
     let errorType: string | undefined;
@@ -106,10 +106,13 @@ export const useSalesPrinting = (
         description: errorMessage || "Failed to print receipt. Please try again.",
         variant: "destructive",
       });
+    } finally {
+      setIsPrinting(false);
     }
-  }, [previewData, toast]);
+  }, [previewData, toast, isPrinting]);
 
   const handlePrint = useCallback(async (options?: HandlePrintOptions) => {
+    if (isPrinting) return;
     // If we're doing a direct print (e.g. after sale completion), we should ideally
     // have a window reference passed in to avoid gesture blocks.
     const windowRef = options?.existingWindow;
@@ -149,8 +152,6 @@ export const useSalesPrinting = (
         setPreviewData(receiptProps);
         setShowPreview(true);
       }
-
-
     } catch (error) {
       if (windowRef && !windowRef.closed) windowRef.close();
       console.error("Error preparing receipt:", error);
@@ -160,7 +161,7 @@ export const useSalesPrinting = (
         variant: "destructive",
       });
     }
-  }, [items, discount, manualDiscount, saleType, storeSettings, isLoadingSettings, toast, executePrint]);
+  }, [items, discount, manualDiscount, saleType, storeSettings, isLoadingSettings, toast, executePrint, isPrinting]);
 
   return {
     handlePrint,
@@ -169,6 +170,7 @@ export const useSalesPrinting = (
     setShowPreview,
     previewData,
     isLoadingSettings,
+    isPrinting,
     openPrintWindow // Export this so components can open the window synchronously
   };
 };

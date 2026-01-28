@@ -145,7 +145,7 @@ export const InventoryTable = ({
                       <StockStatusCell item={item} />
                     </TableCell>
                     <TableCell>
-                      <ExpiryDateCell expiryDate={item.expiryDate} />
+                      <ExpiryDateCell item={item} />
                     </TableCell>
                     <TableCell className={`text-right ${stockStatus.color}`}>
                       {item.quantity} {item.unit}

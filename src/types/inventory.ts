@@ -1,4 +1,14 @@
 
+export interface InventoryBatch {
+  id: string;
+  inventory_id?: string;
+  batchNumber: string;
+  expiryDate: string;
+  quantity: number;
+  costPrice?: number;
+  created_at?: string;
+}
+
 export interface InventoryItem {
   id: string;
   name: string;
@@ -10,9 +20,10 @@ export interface InventoryItem {
   costPrice?: number;
   profitMargin?: number;
   reorderLevel: number;
-  expiryDate?: string;
+  expiryDate?: string; // Earliest expiry date
   manufacturer?: string;
-  batchNumber?: string;
+  batchNumber?: string; // Earliest batch number
+  batches?: InventoryBatch[]; // Full breakdown
   supplierId?: string;
   restockInvoiceNumber?: string;
   lastUpdatedBy?: string;

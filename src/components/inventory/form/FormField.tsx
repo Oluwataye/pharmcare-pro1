@@ -18,18 +18,24 @@ interface TextFieldProps {
   required?: boolean;
   type?: string;
   min?: string;
+  max?: string;
   step?: string;
+  placeholder?: string;
+  description?: string;
 }
 
-export const TextField = ({ 
-  id, 
-  label, 
-  value, 
-  onChange, 
+export const TextField = ({
+  id,
+  label,
+  value,
+  onChange,
   required = false,
   type = "text",
   min,
-  step
+  max,
+  step,
+  placeholder,
+  description
 }: TextFieldProps) => {
   return (
     <div className="space-y-2">
@@ -41,8 +47,13 @@ export const TextField = ({
         onChange={(e) => onChange(e.target.value)}
         required={required}
         min={min}
+        max={max}
         step={step}
+        placeholder={placeholder}
       />
+      {description && (
+        <p className="text-xs text-muted-foreground">{description}</p>
+      )}
     </div>
   );
 };

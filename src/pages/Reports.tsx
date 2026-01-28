@@ -12,7 +12,8 @@ import {
   History,
   Calendar,
   Shield,
-  Tag
+  Tag,
+  RefreshCcw
 } from "lucide-react";
 import InventoryReport from "@/components/reports/InventoryReport";
 import TransactionsReport from "@/components/reports/TransactionsReport";
@@ -23,6 +24,7 @@ import TransactionAuditLog from "@/components/reports/TransactionAuditLog";
 import ExpiringDrugsReport from "@/components/reports/ExpiringDrugsReport";
 import { AuditLogReport } from "@/components/reports/AuditLogReport";
 import { ExpiryNotificationModal } from "@/components/reports/ExpiryNotificationModal";
+import StockAdjustmentReport from "@/components/reports/StockAdjustmentReport";
 import { Spinner } from "@/components/ui/spinner";
 import { useInventory } from "@/hooks/useInventory";
 import { useAuth } from "@/contexts/AuthContext";
@@ -89,6 +91,11 @@ const Reports = () => {
               <span className="hidden sm:inline">Inventory</span>
               <span className="sm:hidden">Inv</span>
             </TabsTrigger>
+            <TabsTrigger value="adjustments" className="flex items-center gap-2 whitespace-nowrap">
+              <RefreshCcw className="h-4 w-4" />
+              <span className="hidden sm:inline">Stock Adjustments</span>
+              <span className="sm:hidden">Adj</span>
+            </TabsTrigger>
             <TabsTrigger value="transactions" className="flex items-center gap-2 whitespace-nowrap">
               <FileText className="h-4 w-4" />
               <span className="hidden sm:inline">Transactions</span>
@@ -144,6 +151,10 @@ const Reports = () => {
           <>
             <TabsContent value="inventory">
               <InventoryReport />
+            </TabsContent>
+
+            <TabsContent value="adjustments">
+              <StockAdjustmentReport />
             </TabsContent>
 
             <TabsContent value="transactions">

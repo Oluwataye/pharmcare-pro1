@@ -17,6 +17,7 @@ export interface StoreSettings {
 export interface PrintReceiptProps {
   items: SaleItem[];
   discount?: number;
+  manualDiscount?: number;
   date?: Date;
   dispenserName?: string;
   dispenserEmail?: string;
@@ -200,6 +201,7 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
   const {
     items,
     discount = 0,
+    manualDiscount = 0,
     date = new Date(),
     dispenserName,
     customerName,
@@ -217,8 +219,9 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
   const logo = storeSettings.logo_url;
 
   const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const discountAmount = subtotal * (discount / 100);
-  const total = subtotal - discountAmount;
+  const discountPercentageAmount = subtotal * (discount / 100);
+  const totalDiscount = discountPercentageAmount + manualDiscount;
+  const total = subtotal - totalDiscount;
 
   const formattedDate = date.toLocaleDateString();
   const formattedTime = date.toLocaleTimeString();
@@ -358,8 +361,14 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
         </tr>
         <tr>
           <td>Discount (${discount}%):</td>
-          <td class="amount">₦${discountAmount.toLocaleString()}</td>
+          <td class="amount">₦${discountPercentageAmount.toLocaleString()}</td>
         </tr>
+        ${manualDiscount > 0 ? `
+        <tr>
+          <td>Manual Discount:</td>
+          <td class="amount">₦${manualDiscount.toLocaleString()}</td>
+        </tr>
+        ` : ''}
         <tr class="total">
           <td>Total:</td>
           <td class="amount">₦${total.toLocaleString()}</td>
