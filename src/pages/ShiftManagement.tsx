@@ -10,7 +10,7 @@ import { ShiftStatusHeader } from "@/components/shifts/ShiftStatusHeader";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useShift } from "@/hooks/useShift";
 import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
@@ -258,6 +258,9 @@ const ShiftManagement = () => {
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle>Force End Shift: {closingShift?.staff_name}</DialogTitle>
+                        <DialogDescription>
+                            Administrative action to finalize a staff member's duty session.
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                         <div className="bg-amber-50 border border-amber-200 p-3 rounded-md text-amber-800 text-xs flex gap-2">

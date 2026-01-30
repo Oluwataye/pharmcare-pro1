@@ -10,6 +10,7 @@ import {
     DialogHeader,
     DialogTitle,
     DialogFooter,
+    DialogDescription,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -86,6 +87,9 @@ export const ShiftStatusHeader = () => {
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle>Start Duty Shift</DialogTitle>
+                        <DialogDescription>
+                            Enter your opening cash balance to begin your work session.
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                         <div className="space-y-2">
@@ -111,6 +115,9 @@ export const ShiftStatusHeader = () => {
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
                         <DialogTitle>Close Duty Shift</DialogTitle>
+                        <DialogDescription>
+                            Reconcile your cash drawer and end your duty session.
+                        </DialogDescription>
                     </DialogHeader>
                     <div className="py-4 space-y-4">
                         <div className="space-y-2">
