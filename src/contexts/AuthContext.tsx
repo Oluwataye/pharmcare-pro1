@@ -46,7 +46,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('user_id', userId)
         .limit(1);
 
-      const { data: profiles, error: profileError } = await fetchWithTimeout(profileQuery) as any;
+      const { data: profiles, error: profileError } = await fetchWithTimeout(profileQuery as any) as any;
 
       if (profileError) {
         console.error('[AuthProvider] Pulse: Profile query error:', profileError);
@@ -67,7 +67,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('user_id', userId)
         .limit(1);
 
-      const { data: roles, error: rolesError } = await fetchWithTimeout(rolesQuery) as any;
+      const { data: roles, error: rolesError } = await fetchWithTimeout(rolesQuery as any) as any;
 
       if (rolesError) {
         console.error('[AuthProvider] Pulse: Roles query error:', rolesError);
@@ -83,13 +83,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { data: { user } } = await supabase.auth.getUser();
 
-      return {
+      const userDetails = {
         id: userId,
         email: user?.email || '',
         name: profile.name,
         username: profile.username || undefined,
         role: roleData.role as UserRole,
       };
+
+      // Persist profile safely for offline use
+      secureStorage.setItem('user_profile', userDetails);
+
+      return userDetails;
     } catch (error) {
       // Expand error object logging for better diagnostics
       console.error('[AuthProvider] Pulse: Error fetching user profile details:', error);
@@ -110,15 +115,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         if (session?.user) {
           console.log("[AuthProvider] Pulse: Initial session detected, fetching profile...");
-          // Don't await profile fetch to unblock auth state
-          // Set basic auth state immediately
-          setAuthState({
-            user: {
+
+          // Check for cached profile to support offline/refresh stability
+          const cachedProfile = secureStorage.getItem('user_profile');
+          const initialUser = (cachedProfile && cachedProfile.id === session.user.id)
+            ? cachedProfile
+            : {
               id: session.user.id,
               email: session.user.email || '',
               name: session.user.email?.split('@')[0] || 'User',
-              role: 'PHARMACIST' as UserRole // Temporary default role until profile loads
-            },
+              role: 'PHARMACIST' as UserRole // Temporary default role if no cache
+            };
+
+          setAuthState({
+            user: initialUser,
             isAuthenticated: true,
             isLoading: false, // Stop loading immediately so user sees UI
           });
