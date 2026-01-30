@@ -9,6 +9,8 @@ export interface SaleItem {
   discount?: number; // Optional discount per item
   unitPrice?: number; // For tracking original price vs wholesale price
   isWholesale?: boolean; // Flag to indicate if this item is sold at wholesale price
+  unit?: string;
+  baseQuantity?: number;
 }
 
 export interface Sale {
@@ -29,6 +31,8 @@ export interface Sale {
   businessName?: string; // For wholesale customers
   businessAddress?: string; // For wholesale customers
   saleType: 'retail' | 'wholesale'; // Added sale type field
+  shift_name?: string;
+  staff_role?: string;
 }
 
 export interface Product {
@@ -39,6 +43,9 @@ export interface Product {
   minWholesaleQuantity?: number; // Minimum quantity for wholesale
   stock: number;
   discount?: number; // Potential product discount
+  unit?: string;
+  multi_unit_config?: any[];
+  costPrice?: number;
 }
 
 export interface DiscountConfig {

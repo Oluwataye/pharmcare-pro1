@@ -14,6 +14,7 @@ export interface StoreSettings {
   print_show_email: boolean;
   print_show_phone: boolean;
   print_show_footer: boolean;
+  default_profit_margin: number;
 }
 
 // Global cache for store settings
@@ -42,6 +43,7 @@ const DEFAULT_SETTINGS: StoreSettings = {
   print_show_email: true,
   print_show_phone: true,
   print_show_footer: true,
+  default_profit_margin: 30,
 };
 
 export const useStoreSettings = () => {
@@ -74,14 +76,13 @@ export const useStoreSettings = () => {
       if (error) throw error;
 
       if (data && data.length > 0) {
-        cachedSettings = data[0] as StoreSettings;
+        cachedSettings = (data[0] as any) as StoreSettings;
         cacheTimestamp = Date.now();
         setSettings(cachedSettings);
         return cachedSettings;
       }
 
       // If no data (e.g. RLS block), use default settings but don't cache globally
-      // so that if a higher-privileged user logs in, they get the real ones.
       setSettings(DEFAULT_SETTINGS);
       return DEFAULT_SETTINGS;
     } catch (err) {

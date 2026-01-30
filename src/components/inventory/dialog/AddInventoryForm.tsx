@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DialogFooter } from "@/components/ui/dialog";
 import { SelectItem } from "@/components/ui/select";
@@ -7,6 +7,10 @@ import { TextField, SelectField } from "@/components/inventory/form/FormField";
 import { DatePickerField } from "@/components/inventory/form/DatePickerField";
 import { UNIT_OPTIONS } from "@/components/inventory/form/formUtils";
 import { Supplier } from "@/types/supplier";
+import { UnitConfig } from "@/types/inventory";
+import { useStoreSettings } from "@/hooks/useStoreSettings";
+import { Plus, Trash2 } from "lucide-react";
+import { Label } from "@/components/ui/label";
 
 interface AddInventoryFormProps {
   formData: {
@@ -24,6 +28,7 @@ interface AddInventoryFormProps {
     supplierId?: string;
     restockInvoiceNumber?: string;
     profitMargin?: number;
+    multi_unit_config?: UnitConfig[];
   };
   setFormData: (data: any) => void;
   expiryDate: Date | undefined;
@@ -52,6 +57,8 @@ export const AddInventoryForm = ({
   suppliers = [],
   isBulkMode = false
 }: AddInventoryFormProps) => {
+  const { settings: storeSettings } = useStoreSettings();
+
   // Use internal state if props are not provided
   const [internalIsAddingCategory, setInternalIsAddingCategory] = useState(false);
   const [internalCustomCategory, setInternalCustomCategory] = useState("");
@@ -60,6 +67,16 @@ export const AddInventoryForm = ({
   const setIsAdding = propsSetIsAddingCategory !== undefined ? propsSetIsAddingCategory : setInternalIsAddingCategory;
   const customCat = propsCustomCategory !== undefined ? propsCustomCategory : internalCustomCategory;
   const setCustomCat = propsSetCustomCategory !== undefined ? propsSetCustomCategory : setInternalCustomCategory;
+
+  // Apply default profit margin if not set
+  useEffect(() => {
+    if (storeSettings?.default_profit_margin && !formData.profitMargin) {
+      setFormData({
+        ...formData,
+        profitMargin: storeSettings.default_profit_margin
+      });
+    }
+  }, [storeSettings?.default_profit_margin]);
 
   const handleCategoryChange = (value: string) => {
     if (value === "add-new") {
@@ -79,6 +96,29 @@ export const AddInventoryForm = ({
       setFormData({ ...formData, category: customCat });
       setIsAdding(false);
     }
+  };
+
+  const handleAddUnit = () => {
+    const currentConfig = formData.multi_unit_config || [];
+    setFormData({
+      ...formData,
+      multi_unit_config: [
+        ...currentConfig,
+        { unit: "", conversion: 1, price: 0, is_base: false }
+      ]
+    });
+  };
+
+  const handleRemoveUnit = (index: number) => {
+    const currentConfig = [...(formData.multi_unit_config || [])];
+    currentConfig.splice(index, 1);
+    setFormData({ ...formData, multi_unit_config: currentConfig });
+  };
+
+  const handleUnitUpdate = (index: number, field: keyof UnitConfig, value: any) => {
+    const currentConfig = [...(formData.multi_unit_config || [])];
+    currentConfig[index] = { ...currentConfig[index], [field]: value };
+    setFormData({ ...formData, multi_unit_config: currentConfig });
   };
 
   const FormComponent = isBulkMode ? "div" : "form";
@@ -234,8 +274,7 @@ export const AddInventoryForm = ({
               });
             }}
             required
-            min="10"
-            max="50"
+            min="0"
             placeholder="20"
           />
 
@@ -262,6 +301,78 @@ export const AddInventoryForm = ({
             min="0"
             placeholder="Low stock alert level"
           />
+        </div>
+
+        <div className="space-y-4 border-b pb-6">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-primary/80 uppercase tracking-wider">Multi-Unit Settings (Optional)</h3>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleAddUnit}
+              className="gap-1 h-8"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add Unit
+            </Button>
+          </div>
+          <p className="text-xs text-muted-foreground">Define other units for this product (e.g., Card, Pack, Box) and how many base units they contain.</p>
+
+          {(formData.multi_unit_config || []).length > 0 && (
+            <div className="space-y-3">
+              {(formData.multi_unit_config || []).map((unit, idx) => (
+                <div key={idx} className="grid grid-cols-1 sm:grid-cols-4 gap-3 p-3 bg-muted/30 rounded-md border border-dashed items-end">
+                  <div className="sm:col-span-1">
+                    <Label className="text-xs mb-1 block">Unit Name</Label>
+                    <SelectField
+                      id={`unit-${idx}`}
+                      label=""
+                      value={unit.unit}
+                      onValueChange={(val) => handleUnitUpdate(idx, 'unit', val)}
+                    >
+                      {UNIT_OPTIONS.map((opt) => (
+                        <SelectItem key={opt.value} value={opt.value}>
+                          {opt.label}
+                        </SelectItem>
+                      ))}
+                    </SelectField>
+                  </div>
+                  <div className="sm:col-span-1">
+                    <Label className="text-xs mb-1 block">Conversion (Qty in 1)</Label>
+                    <TextField
+                      id={`conv-${idx}`}
+                      label=""
+                      type="number"
+                      value={unit.conversion}
+                      onChange={(val) => handleUnitUpdate(idx, 'conversion', parseInt(val) || 1)}
+                    />
+                  </div>
+                  <div className="sm:col-span-1">
+                    <Label className="text-xs mb-1 block">Unit Price (₦)</Label>
+                    <TextField
+                      id={`uprice-${idx}`}
+                      label=""
+                      type="number"
+                      value={unit.price}
+                      onChange={(val) => handleUnitUpdate(idx, 'price', parseFloat(val) || 0)}
+                    />
+                  </div>
+                  <div className="sm:col-span-1 flex justify-end">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      className="text-destructive h-10 w-10"
+                      onClick={() => handleRemoveUnit(idx)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pb-4">

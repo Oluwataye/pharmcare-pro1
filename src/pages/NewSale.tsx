@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useSales } from "@/hooks/useSales";
@@ -66,7 +66,8 @@ const NewSale = () => {
   } = useSales({
     dispenserName: user ? (user.username || user.name || user.email) : undefined,
     dispenserEmail: user ? user.email : undefined,
-    dispenserId: user ? user.id : undefined
+    dispenserId: user ? user.id : undefined,
+    staffRole: user?.role
   });
 
   const validateCustomerInfo = () => {
@@ -147,24 +148,9 @@ const NewSale = () => {
       return;
     }
 
-    // Validate manual discount range if used
-    if (manualDiscount > 0 && (manualDiscount < 500 || manualDiscount > 1000)) {
-      toast({
-        title: "Invalid Discount",
-        description: `Manual discount of ₦${manualDiscount} is invalid. Must be between ₦500 and ₦1,000.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
     try {
       setIsCompleting(true);
-
-      // 1. Generate Transaction ID client-side immediately
       const transactionId = `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
-
-      // 2. Capture the window synchronously
-      // 2. Capture the window synchronously for printing
       const printWindow = openPrintWindow();
       const currentItems = [...items];
 
@@ -176,7 +162,6 @@ const NewSale = () => {
         transactionId
       });
 
-      // 3. SAVE THE SALE (Printing will happen automatically inside completeSale on success)
       const result = await completeSale({
         customerName,
         customerPhone,
@@ -184,7 +169,7 @@ const NewSale = () => {
         businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
         saleType,
         transactionId,
-        existingWindow: printWindow, // Pass window to be used AFTER success
+        existingWindow: printWindow,
       });
 
       if (result && typeof result === 'string') {
@@ -195,19 +180,14 @@ const NewSale = () => {
           total: calculateTotal(),
           transactionId
         });
-
         setLastCompletedSaleId(result);
         setIsSuccessModalOpen(true);
       }
-      // Note: If save fails, handlePrint already ran, so the user has a receipt.
-      // The offline fallback in useSalesCompletion ensures we almost always get a result anyway.
-
     } catch (error) {
       logSecurityEvent('SALE_COMPLETION_FAILED', {
         userId: user.id,
         error: error instanceof Error ? error.message : 'Unknown error'
       });
-
       toast({
         title: "Error",
         description: "Failed to save sale record. The operation was cancelled.",
@@ -218,20 +198,19 @@ const NewSale = () => {
     }
   };
 
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "F9") {
+        e.preventDefault();
+        handleCompleteSale();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [items, customerName, customerPhone, businessName, businessAddress, saleType]);
+
   const handleManualPrint = () => {
-    // Validate manual discount range if used
-    if (manualDiscount > 0 && (manualDiscount < 500 || manualDiscount > 1000)) {
-      toast({
-        title: "Invalid Discount",
-        description: `Manual discount of ₦${manualDiscount} is invalid. Must be between ₦500 and ₦1,000.`,
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Open window synchronously
     const windowRef = openPrintWindow();
-
     handlePrint({
       dispenserName: user ? user.username || user.name : undefined,
       dispenserEmail: user ? user.email : undefined,
@@ -375,11 +354,9 @@ const NewSale = () => {
               )}
 
               <ProductSearchSection
-                onAddProduct={(product, quantity) => {
-                  console.log('NewSale: onAddProduct called', { product, quantity, saleType });
+                onAddProduct={(product, quantity, selectedUnit) => {
                   try {
-                    const result = addItem(product, quantity, saleType === 'wholesale');
-                    console.log('NewSale: addItem result', result.success ? 'Success' : 'Failed', result);
+                    addItem(product, quantity, saleType === 'wholesale', selectedUnit);
                   } catch (error) {
                     console.error('NewSale: Error in addItem', error);
                   }
@@ -444,7 +421,6 @@ const NewSale = () => {
         />
       )}
 
-      {/* Sale Success Modal */}
       <Dialog open={isSuccessModalOpen} onOpenChange={setIsSuccessModalOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
@@ -463,17 +439,9 @@ const NewSale = () => {
               variant="outline"
               onClick={() => {
                 const windowRef = openPrintWindow();
-                // Note: We're reprinting a completed sale which should have been validated.
-                // But if they somehow bypassed it or for safety:
-                if (manualDiscount > 0 && (manualDiscount < 500 || manualDiscount > 1000)) {
-                  // This is an edge case if they edited discount after sale completion but before modal close?
-                  // Unlikely but safe to check if we use current state. 
-                  // However, for reprint we often want the exact historic record.
-                }
-
                 handlePrint({
                   saleId: lastCompletedSaleId || undefined,
-                  items: lastCompletedItems, // Use the captured items
+                  items: lastCompletedItems,
                   existingWindow: windowRef,
                   directPrint: true
                 });

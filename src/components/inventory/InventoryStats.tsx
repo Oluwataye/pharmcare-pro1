@@ -1,6 +1,7 @@
 import { Package, PackageOpen, TrendingUp } from "lucide-react";
 import { EnhancedStatCard } from "@/components/admin/EnhancedStatCard";
 import { useSystemConfig } from "@/hooks/useSystemConfig";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface InventoryItem {
   id: string;
@@ -32,6 +33,9 @@ export const InventoryStats = ({ inventory }: InventoryStatsProps) => {
   };
 
   const { config } = useSystemConfig();
+  const { user } = useAuth();
+
+  const isPharmacist = user?.role === "PHARMACIST";
 
   return (
     <div className="grid gap-4 md:grid-cols-3">
@@ -57,18 +61,19 @@ export const InventoryStats = ({ inventory }: InventoryStatsProps) => {
         colorScheme="warning"
         comparisonLabel="Requires attention"
       />
-      <EnhancedStatCard
-        title="Total Value"
-        value={`${config.currencySymbol}${totalValue.toLocaleString()}`}
-
-        icon={Package}
-        trend=""
-        trendUp={true}
-        route="/inventory"
-        onClick={handleCardClick}
-        colorScheme="success"
-        comparisonLabel="Estimated inventory value"
-      />
+      {!isPharmacist && (
+        <EnhancedStatCard
+          title="Total Value"
+          value={`${config.currencySymbol}${totalValue.toLocaleString()}`}
+          icon={Package}
+          trend=""
+          trendUp={true}
+          route="/inventory"
+          onClick={handleCardClick}
+          colorScheme="success"
+          comparisonLabel="Estimated inventory value"
+        />
+      )}
     </div>
   );
 };

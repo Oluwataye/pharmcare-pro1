@@ -46,6 +46,7 @@ const Settings = () => {
     showEmail: true,
     showPhone: true,
     showFooter: true,
+    defaultProfitMargin: 30,
   });
 
   // Load settings from database on component mount
@@ -63,6 +64,7 @@ const Settings = () => {
         showEmail: currentSettings.print_show_email ?? true,
         showPhone: currentSettings.print_show_phone ?? true,
         showFooter: currentSettings.print_show_footer ?? true,
+        defaultProfitMargin: currentSettings.default_profit_margin ?? 30,
       });
     }
   }, [currentSettings]);
@@ -179,6 +181,7 @@ const Settings = () => {
         print_show_email: formSettings.showEmail,
         print_show_phone: formSettings.showPhone,
         print_show_footer: formSettings.showFooter,
+        default_profit_margin: formSettings.defaultProfitMargin,
         updated_by: user.id,
       };
 
@@ -485,6 +488,20 @@ const Settings = () => {
                     step="0.1"
                   />
                 </div>
+              </div>
+              <div className="space-y-2">
+                <Label>Default Profit Margin (%)</Label>
+                <div className="flex gap-4 items-center">
+                  <Input
+                    type="number"
+                    value={formSettings.defaultProfitMargin}
+                    onChange={(e) => setFormSettings(prev => ({ ...prev, defaultProfitMargin: parseFloat(e.target.value) || 0 }))}
+                    className="w-[180px]"
+                  />
+                  <span className="text-sm text-muted-foreground mr-4">%</span>
+                  <Button onClick={handleSaveSettings} disabled={isLoading} size="sm">Update Global Margin</Button>
+                </div>
+                <p className="text-xs text-muted-foreground">This margin will be applied by default to all new stock entries.</p>
               </div>
             </CardContent>
           </Card>

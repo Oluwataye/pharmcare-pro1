@@ -1,3 +1,9 @@
+export interface UnitConfig {
+  unit: string;
+  conversion: number; // How many base units in this unit (e.g. Card has 10 Tablets)
+  price: number;
+  is_base: boolean;
+}
 
 export interface InventoryBatch {
   id: string;
@@ -28,4 +34,5 @@ export interface InventoryItem {
   restockInvoiceNumber?: string;
   lastUpdatedBy?: string;
   lastUpdatedAt?: string;
+  multi_unit_config?: UnitConfig[];
 }

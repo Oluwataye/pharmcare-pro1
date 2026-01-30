@@ -3,6 +3,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Sale } from "@/types/sales";
 import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { getCurrentShift } from "@/utils/shiftUtils";
 import SalesHeader from "@/components/sales/SalesHeader";
 import SalesFilters from "@/components/sales/SalesFilters";
 import SalesStatsCards from "@/components/sales/SalesStatsCards";
@@ -23,6 +25,7 @@ import { CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 const Sales = () => {
   const { toast } = useToast();
   const { canReadWholesale } = usePermissions();
+  const { user } = useAuth();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
@@ -38,8 +41,8 @@ const Sales = () => {
   const fetchSales = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data: salesData, error: salesError } = await supabase
-        .from('sales')
+      const { data: salesData, error: salesError } = await (supabase
+        .from('sales' as any) as any)
         .select(`
             id,
             total,
@@ -54,7 +57,9 @@ const Sales = () => {
             customer_phone,
             business_name,
             business_address,
-            transaction_id
+            transaction_id,
+            shift_name,
+            staff_role
           `)
         .order('created_at', { ascending: false });
 
@@ -62,9 +67,9 @@ const Sales = () => {
 
       // Fetch sales items for each sale
       const salesWithItems: Sale[] = await Promise.all(
-        (salesData || []).map(async (sale) => {
-          const { data: itemsData } = await supabase
-            .from('sales_items')
+        (salesData || []).map(async (sale: any) => {
+          const { data: itemsData } = await (supabase
+            .from('sales_items' as any) as any)
             .select('id, product_name, quantity, unit_price, price, discount, total, is_wholesale, cost_price')
             .eq('sale_id', sale.id);
 
@@ -101,7 +106,9 @@ const Sales = () => {
             businessAddress: sale.business_address || undefined,
             saleType: sale.sale_type as 'retail' | 'wholesale',
             transactionId: sale.transaction_id,
-          };
+            shift_name: sale.shift_name,
+            staff_role: sale.staff_role
+          } as Sale;
         })
       );
 
@@ -154,6 +161,13 @@ const Sales = () => {
     const matchesDateTo = !dateTo || saleDate <= dateTo;
     const matchesStatus = filterStatus === "all" || sale.status === filterStatus;
     const matchesSaleType = saleTypeFilter === "all" || sale.saleType === saleTypeFilter;
+
+    // RBAC: Dispensers only see their current shift
+    if (user?.role === "DISPENSER") {
+      const currentShift = getCurrentShift();
+      const matchesShift = sale.shift_name === currentShift;
+      return matchesSearch && matchesDateFrom && matchesDateTo && matchesStatus && matchesSaleType && matchesShift;
+    }
 
     return matchesSearch && matchesDateFrom && matchesDateTo && matchesStatus && matchesSaleType;
   });

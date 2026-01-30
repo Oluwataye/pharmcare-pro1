@@ -9,6 +9,7 @@ interface UseSalesOptions {
   dispenserName?: string;
   dispenserEmail?: string;
   dispenserId?: string;
+  staffRole?: string;
 }
 
 export const useSales = (options?: UseSalesOptions) => {
@@ -54,7 +55,7 @@ export const useSales = (options?: UseSalesOptions) => {
   } = useSalesCompletion(items, calculateTotal, clearItems, clearDiscount, resetSaleType, discount, manualDiscount);
 
   // Wrap the completeSale function to include cashier info from options and reliable printing
-  const completeSale = async (completeSaleOptions?: Omit<Parameters<typeof completeTransaction>[0], 'dispenserName' | 'dispenserEmail' | 'dispenserId'> & { existingWindow?: Window | null }) => {
+  const completeSale = async (completeSaleOptions?: Omit<Parameters<typeof completeTransaction>[0], 'dispenserName' | 'dispenserEmail' | 'dispenserId' | 'staffRole'> & { existingWindow?: Window | null }) => {
     // Capture items before they are cleared by completeTransaction
     const currentItems = [...items];
     const windowRef = completeSaleOptions?.existingWindow;
@@ -64,6 +65,7 @@ export const useSales = (options?: UseSalesOptions) => {
       dispenserName: options?.dispenserName,
       dispenserEmail: options?.dispenserEmail,
       dispenserId: options?.dispenserId,
+      staffRole: options?.staffRole,
     } as Parameters<typeof completeTransaction>[0]);
 
     // If sale completed successfully and we have a sale ID, trigger print with the ID
@@ -102,8 +104,8 @@ export const useSales = (options?: UseSalesOptions) => {
     discount,
     manualDiscount,
     saleType,
-    addItem: (product: any, quantity: number, isWholesale: boolean = false) => {
-      const { success, usedWholesalePrice } = addItem(product, quantity, isWholesale);
+    addItem: (product: any, quantity: number, isWholesale: boolean = false, customUnit?: string) => {
+      const { success, usedWholesalePrice } = addItem(product, quantity, isWholesale, customUnit);
       if (usedWholesalePrice && saleType !== 'wholesale') {
         setSaleTypeMode('wholesale');
       }

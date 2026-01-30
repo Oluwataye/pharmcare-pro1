@@ -6,6 +6,7 @@ import { SaleItem } from '@/types/sales';
 import { customerInfoSchema, validateAndSanitize } from '@/lib/validation';
 import { secureStorage } from '@/lib/secureStorage';
 import { supabase } from '@/integrations/supabase/client';
+import { getCurrentShift } from '@/utils/shiftUtils';
 
 interface CompleteSaleOptions {
   customerName?: string;
@@ -16,6 +17,7 @@ interface CompleteSaleOptions {
   dispenserName?: string;
   dispenserEmail?: string;
   dispenserId?: string;
+  staffRole?: string;
   transactionId?: string; // Allow passing a pre-generated ID
 }
 
@@ -79,7 +81,9 @@ export const useSalesCompletion = (
         dispenserEmail: options?.dispenserEmail,
         dispenserId: options?.dispenserId,
         transactionId,
-        saleType: currentSaleType
+        saleType: currentSaleType,
+        shift_name: getCurrentShift(),
+        staff_role: options?.staffRole
       };
 
       // If offline, save this sale for later sync

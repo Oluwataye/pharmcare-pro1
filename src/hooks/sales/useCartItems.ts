@@ -19,8 +19,8 @@ export const useCartItems = () => {
     secureStorage.setItem(CART_STORAGE_KEY, items);
   }, [items]);
 
-  const addItem = (product: Product, quantity: number = 1, isWholesale: boolean = false) => {
-    console.log('useCartItems: addItem called', { product, quantity, isWholesale });
+  const addItem = (product: Product, quantity: number = 1, isWholesale: boolean = false, customUnit?: string) => {
+    console.log('useCartItems: addItem called', { product, quantity, isWholesale, customUnit });
 
     if (quantity <= 0) {
       console.log('useCartItems: Invalid quantity', quantity);
@@ -40,9 +40,22 @@ export const useCartItems = () => {
       useWholesalePrice = true;
     }
 
-    const price = useWholesalePrice ? product.wholesalePrice! : product.price;
+    // Handle Multi-Unit logic
+    let price = useWholesalePrice ? product.wholesalePrice! : product.price;
+    let unitLabel = product.unit || "unit";
+    let baseQtyChange = quantity;
+
+    if (customUnit && customUnit !== product.unit) {
+      const unitCfg = (product as any).multi_unit_config?.find((u: any) => u.unit === customUnit);
+      if (unitCfg) {
+        price = unitCfg.price;
+        unitLabel = customUnit;
+        baseQtyChange = quantity * unitCfg.conversion;
+      }
+    }
+
     const existingItem = items.find(item =>
-      item.id === product.id && item.isWholesale === useWholesalePrice
+      item.id === product.id && item.isWholesale === useWholesalePrice && item.name.includes(`(${unitLabel})`)
     );
 
     const itemDiscount = product.discount || 0;
@@ -61,15 +74,17 @@ export const useCartItems = () => {
     } else {
       newItems = [...items, {
         id: product.id,
-        name: product.name,
+        name: `${product.name} (${unitLabel})`,
         quantity,
         price,
         unitPrice: product.price,
         isWholesale: useWholesalePrice,
         discount: itemDiscount,
-        costPrice: product.costPrice, // Store cost price for later profit calculation
-        total: price * quantity * (1 - itemDiscount / 100)
-      }];
+        costPrice: product.costPrice,
+        total: price * quantity * (1 - itemDiscount / 100),
+        unit: unitLabel,
+        baseQuantity: baseQtyChange
+      } as any];
     }
 
     setItems(newItems);

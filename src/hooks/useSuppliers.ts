@@ -12,10 +12,8 @@ export const useSuppliers = () => {
     const fetchSuppliers = useCallback(async () => {
         setIsLoading(true);
         try {
-            // Note: We're selecting from 'suppliers' table. 
-            // If the table doesn't exist, this will error gracefully.
-            const { data, error } = await supabase
-                .from('suppliers')
+            const { data, error } = await (supabase
+                .from('suppliers' as any) as any)
                 .select('*')
                 .order('name', { ascending: true });
 
@@ -43,7 +41,7 @@ export const useSuppliers = () => {
 
     const addSupplier = async (supplier: NewSupplier) => {
         try {
-            const { data, error } = await supabase.from('suppliers').insert(supplier).select();
+            const { data, error } = await (supabase.from('suppliers' as any) as any).insert(supplier).select();
             if (error) throw error;
 
             toast({
@@ -51,7 +49,7 @@ export const useSuppliers = () => {
                 description: 'Supplier added successfully',
             });
             fetchSuppliers();
-            return true;
+            return data ? data[0] : true;
         } catch (error) {
             console.error('Error adding supplier:', error);
             toast({
@@ -65,7 +63,7 @@ export const useSuppliers = () => {
 
     const updateSupplier = async (id: string, updates: Partial<Supplier>) => {
         try {
-            const { error } = await supabase.from('suppliers').update(updates).eq('id', id);
+            const { error } = await (supabase.from('suppliers' as any) as any).update(updates).eq('id', id);
             if (error) throw error;
 
             toast({
@@ -87,7 +85,7 @@ export const useSuppliers = () => {
 
     const deleteSupplier = async (id: string) => {
         try {
-            const { error } = await supabase.from('suppliers').delete().eq('id', id);
+            const { error } = await (supabase.from('suppliers' as any) as any).delete().eq('id', id);
             if (error) throw error;
 
             toast({

@@ -32,8 +32,11 @@ export const AddInventoryDialog = ({
   const [items, setItems] = useState<any[]>([{ ...initialInventoryFormState, id: Date.now() }]);
   const [localCategories, setLocalCategories] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isAddingSupplier, setIsAddingSupplier] = useState(false);
+  const [newSupplierName, setNewSupplierName] = useState("");
+  const [isCreatingSupplier, setIsCreatingSupplier] = useState(false);
   const { toast } = useToast();
-  const { suppliers, fetchSuppliers } = useSuppliers();
+  const { suppliers, fetchSuppliers, addSupplier } = useSuppliers();
 
   useEffect(() => {
     if (open) {
@@ -43,6 +46,8 @@ export const AddInventoryDialog = ({
       setSupplierId("none");
       setInvoiceNumber("");
       setLocalCategories(categories);
+      setIsAddingSupplier(false);
+      setNewSupplierName("");
     }
   }, [open, fetchSuppliers, categories]);
 
@@ -75,6 +80,34 @@ export const AddInventoryDialog = ({
 
   const handleRemoveItem = (index: number) => {
     setItems(items.filter((_, i) => i !== index));
+  };
+
+  const handleCreateSupplier = async () => {
+    if (!newSupplierName.trim()) return;
+
+    setIsCreatingSupplier(true);
+    try {
+      const result = await addSupplier({ name: newSupplierName.trim() });
+      if (result && typeof result === 'object') {
+        setSupplierId((result as any).id);
+        setIsAddingSupplier(false);
+        setNewSupplierName("");
+        await fetchSuppliers(); // Refresh list
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsCreatingSupplier(false);
+    }
+  };
+
+  const handleSupplierChange = (value: string) => {
+    if (value === "add-new") {
+      setIsAddingSupplier(true);
+    } else {
+      setSupplierId(value);
+      setIsAddingSupplier(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -154,20 +187,58 @@ export const AddInventoryDialog = ({
         <div className="flex-1 overflow-y-auto p-6">
           <div className="space-y-6">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
-              <SelectField
-                id="supplier_id"
-                label="Supplier *"
-                value={supplierId}
-                onValueChange={setSupplierId}
-                required
-              >
-                <SelectItem value="none">Select Supplier</SelectItem>
-                {suppliers.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name}
+              {isAddingSupplier ? (
+                <div className="space-y-2">
+                  <div className="flex gap-2">
+                    <TextField
+                      id="new_supplier_name"
+                      label="New Supplier Name *"
+                      value={newSupplierName}
+                      onChange={setNewSupplierName}
+                      required
+                      placeholder="Type supplier name"
+                    />
+                    <div className="flex items-end gap-1 mb-0.5">
+                      <Button
+                        type="button"
+                        variant="secondary"
+                        onClick={handleCreateSupplier}
+                        disabled={isCreatingSupplier || !newSupplierName.trim()}
+                        className="shrink-0"
+                      >
+                        {isCreatingSupplier ? "..." : "Add"}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setIsAddingSupplier(false)}
+                        className="shrink-0 text-muted-foreground"
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <SelectField
+                  id="supplier_id"
+                  label="Supplier *"
+                  value={supplierId}
+                  onValueChange={handleSupplierChange}
+                  required
+                >
+                  <SelectItem value="none">Select Supplier</SelectItem>
+                  {suppliers.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {s.name}
+                    </SelectItem>
+                  ))}
+                  <SelectItem value="add-new" className="text-primary font-medium">
+                    + Add New Supplier
                   </SelectItem>
-                ))}
-              </SelectField>
+                </SelectField>
+              )}
 
               <TextField
                 id="invoice_number"
