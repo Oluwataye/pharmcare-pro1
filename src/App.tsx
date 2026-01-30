@@ -83,42 +83,15 @@ const App = ({ queryClient, persister }: AppProps) => {
                           </ProtectedRoute>
                         }
                       >
-                        <Route path="/" element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
-                        <Route
-                          path="/inventory"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "inventory" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><Inventory /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        {/* All roles can access sales now */}
-                        <Route
-                          path="/sales"
-                          element={
-                            <ProtectedRoute>
-                              <Suspense fallback={<PageLoader />}><Sales /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/sales/new"
-                          element={
-                            <ProtectedRoute>
-                              <Suspense fallback={<PageLoader />}><NewSale /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/receipts"
-                          element={
-                            <ProtectedRoute>
-                              <Suspense fallback={<PageLoader />}><Receipts /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
+                        <Route index element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
+                        <Route path="/analytics" element={<Suspense fallback={<PageLoader />}><Analytics /></Suspense>} />
+                        <Route path="/inventory" element={<Suspense fallback={<PageLoader />}><Inventory /></Suspense>} />
+                        <Route path="/sales" element={<Suspense fallback={<PageLoader />}><Sales /></Suspense>} />
+                        <Route path="/sales/new" element={<Suspense fallback={<PageLoader />}><NewSale /></Suspense>} />
+                        <Route path="/receipts" element={<Suspense fallback={<PageLoader />}><Receipts /></Suspense>} />
+                        <Route path="/users" element={<Suspense fallback={<PageLoader />}><Users /></Suspense>} />
+                        <Route path="/settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
+                        <Route path="/reports" element={<Suspense fallback={<PageLoader />}><Reports /></Suspense>} />
                         <Route
                           path="/print-history"
                           element={
@@ -126,44 +99,6 @@ const App = ({ queryClient, persister }: AppProps) => {
                               requiredPermission={{ action: "read", resource: "reports" }}
                             >
                               <Suspense fallback={<PageLoader />}><PrintHistory /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/users"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "users" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><Users /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/settings"
-                          element={
-                            <ProtectedRoute>
-                              <Suspense fallback={<PageLoader />}><Settings /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/reports"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "reports" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><Reports /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/analytics"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "reports" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><Analytics /></Suspense>
                             </ProtectedRoute>
                           }
                         />
@@ -200,11 +135,12 @@ const App = ({ queryClient, persister }: AppProps) => {
                     </Routes>
                   </BrowserRouter>
                 </TooltipProvider>
+              </ShiftProvider>
             </InventoryProvider>
           </AuthProvider>
         </OfflineProvider>
       </ErrorBoundary>
-    </PersistQueryClientProvider >
+    </PersistQueryClientProvider>
   );
 };
 
