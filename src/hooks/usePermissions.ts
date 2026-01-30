@@ -1,11 +1,12 @@
 
 import { useAuth } from "@/contexts/AuthContext";
 import { Permission, ROLE_PERMISSIONS } from "@/lib/types";
+import { useCallback } from "react";
 
 export function usePermissions() {
   const { user } = useAuth();
 
-  const hasPermission = (permission: Permission): boolean => {
+  const hasPermission = useCallback((permission: Permission): boolean => {
     if (!user) return false;
 
     // Special case: all users can access and manage sales (both retail and wholesale)
@@ -19,71 +20,66 @@ export function usePermissions() {
     }
 
     const rolePermissions = ROLE_PERMISSIONS[user.role];
+    if (!rolePermissions) return false;
+
     return rolePermissions.some(
       (p) => p.action === permission.action && p.resource === permission.resource
     );
-  };
+  }, [user]);
 
-  const canAccessInventory = (): boolean => {
-    // Explicitly prevent DISPENSER from accessing inventory
+  const canAccessInventory = useCallback((): boolean => {
     if (user?.role === 'DISPENSER') return false;
     return hasPermission({ action: 'read', resource: 'inventory' });
-  };
+  }, [user, hasPermission]);
 
-  const canManageInventory = (): boolean => {
-    // Explicitly prevent DISPENSER from managing inventory
+  const canManageInventory = useCallback((): boolean => {
     if (user?.role === 'DISPENSER') return false;
     return hasPermission({ action: 'create', resource: 'inventory' });
-  };
+  }, [user, hasPermission]);
 
-  const canAccessSales = (): boolean => {
-    // All users can access sales
+  const canAccessSales = useCallback((): boolean => {
     return true;
-  };
+  }, []);
 
-  const canManageSales = (): boolean => {
-    // All users can manage sales
+  const canManageSales = useCallback((): boolean => {
     return true;
-  };
+  }, []);
 
-  const canAccessUsers = (): boolean => {
+  const canAccessUsers = useCallback((): boolean => {
     return hasPermission({ action: 'read', resource: 'users' });
-  };
+  }, [hasPermission]);
 
-  const canManageUsers = (): boolean => {
+  const canManageUsers = useCallback((): boolean => {
     return hasPermission({ action: 'create', resource: 'users' });
-  };
+  }, [hasPermission]);
 
-  const canEditUsers = (): boolean => {
+  const canEditUsers = useCallback((): boolean => {
     return hasPermission({ action: 'update', resource: 'users' });
-  };
+  }, [hasPermission]);
 
-  const canDeleteUsers = (): boolean => {
+  const canDeleteUsers = useCallback((): boolean => {
     return hasPermission({ action: 'delete', resource: 'users' });
-  };
+  }, [hasPermission]);
 
-  const canResetPassword = (): boolean => {
+  const canResetPassword = useCallback((): boolean => {
     return hasPermission({ action: 'update', resource: 'users' });
-  };
+  }, [hasPermission]);
 
-  const canAccessReports = (): boolean => {
+  const canAccessReports = useCallback((): boolean => {
     return hasPermission({ action: 'read', resource: 'reports' });
-  };
+  }, [hasPermission]);
 
-  const canCreateWholesale = (): boolean => {
-    // All users can create wholesale transactions
+  const canCreateWholesale = useCallback((): boolean => {
     return true;
-  };
+  }, []);
 
-  const canReadWholesale = (): boolean => {
-    // All users can read wholesale transactions
+  const canReadWholesale = useCallback((): boolean => {
     return true;
-  };
+  }, []);
 
-  const canManageWholesale = (): boolean => {
-    // All users can manage wholesale transactions
+  const canManageWholesale = useCallback((): boolean => {
     return true;
-  };
+  }, []);
 
   return {
     hasPermission,

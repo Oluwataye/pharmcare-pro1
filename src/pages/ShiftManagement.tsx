@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -19,6 +20,7 @@ const ShiftManagement = () => {
     const [isLoading, setIsLoading] = useState(true);
     const { canAccessReports } = usePermissions();
     const { activeStaffShifts, adminEndShift, adminPauseShift, adminResumeShift, refreshShifts } = useShift();
+    const { user } = useAuth();
     const { toast } = useToast();
 
     const [closingShift, setClosingShift] = useState<any>(null);
@@ -55,8 +57,11 @@ const ShiftManagement = () => {
     };
 
     useEffect(() => {
-        fetchShiftHistory();
-    }, [canAccessReports]);
+        if (user) {
+            console.log('[ShiftManagement] useEffect triggered by user change.');
+            fetchShiftHistory();
+        }
+    }, [user?.id, canAccessReports]);
 
     if (!canAccessReports()) {
         return (
