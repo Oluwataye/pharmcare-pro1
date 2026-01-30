@@ -7,6 +7,7 @@ import { customerInfoSchema, validateAndSanitize } from '@/lib/validation';
 import { secureStorage } from '@/lib/secureStorage';
 import { supabase } from '@/integrations/supabase/client';
 import { getCurrentShift } from '@/utils/shiftUtils';
+import { useShift } from '../useShift';
 
 interface CompleteSaleOptions {
   customerName?: string;
@@ -19,6 +20,7 @@ interface CompleteSaleOptions {
   dispenserId?: string;
   staffRole?: string;
   transactionId?: string; // Allow passing a pre-generated ID
+  shift_id?: string;
 }
 
 export const useSalesCompletion = (
@@ -33,6 +35,7 @@ export const useSalesCompletion = (
   const { toast } = useToast();
   const { isOnline } = useOffline();
   const { createOfflineItem } = useOfflineData();
+  const { activeShift } = useShift();
 
   const completeSale = async (options?: CompleteSaleOptions) => {
     if (items.length === 0) {
@@ -82,7 +85,8 @@ export const useSalesCompletion = (
         dispenserId: options?.dispenserId,
         transactionId,
         saleType: currentSaleType,
-        shift_name: getCurrentShift(),
+        shift_name: activeShift?.shift_type || getCurrentShift(),
+        shift_id: options?.shift_id || activeShift?.id,
         staff_role: options?.staffRole
       };
 

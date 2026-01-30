@@ -6,10 +6,13 @@ import Sidebar from "./Sidebar";
 import { Button } from "@/components/ui/button";
 import { Menu } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
+import { ShiftStatusHeader } from "../shifts/ShiftStatusHeader";
+import { useLocation } from "react-router-dom";
 
 const DashboardLayout = () => {
   const { isAuthenticated, isLoading } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
 
   if (isLoading) {
     return (
@@ -45,8 +48,18 @@ const DashboardLayout = () => {
       </div>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto bg-gray-50 p-4 md:p-8">
-        <Outlet />
+      <main className="flex-1 overflow-auto bg-gray-50 flex flex-col">
+        {/* Top Header for Desktop */}
+        <header className="h-16 border-b bg-white/50 backdrop-blur-md px-8 hidden md:flex items-center justify-between sticky top-0 z-10">
+          <h2 className="font-semibold text-lg text-primary capitalize">
+            {location.pathname.split('/').pop() || 'Dashboard'}
+          </h2>
+          <ShiftStatusHeader />
+        </header>
+
+        <div className="p-4 md:p-8 flex-1">
+          <Outlet />
+        </div>
       </main>
     </div>
   );

@@ -20,6 +20,7 @@ import {
   Printer,
   Shield,
   Truck,
+  Clock,
 } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
 
@@ -102,6 +103,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       label: "Suppliers",
       path: "/suppliers",
       condition: canAccessInventory()
+    },
+    {
+      icon: Clock,
+      label: "Staff Shifts",
+      path: "/shifts",
+      condition: true
     },
     {
       icon: Settings,
