@@ -25,19 +25,30 @@ const ShiftManagement = () => {
     const [cash, setCash] = useState("");
 
     const fetchShiftHistory = async () => {
-        if (!canAccessReports()) return;
+        console.log('[ShiftManagement] Attempting to fetch shift history...');
+        if (!canAccessReports()) {
+            console.log('[ShiftManagement] Access denied by permissions hook.');
+            setIsLoading(false);
+            return;
+        }
         setIsLoading(true);
         try {
+            console.log('[ShiftManagement] Querying staff_shifts table...');
             const { data, error } = await supabase
                 .from('staff_shifts' as any)
                 .select('*')
                 .order('start_time', { ascending: false })
                 .limit(100);
 
-            if (error) throw error;
+            if (error) {
+                console.error('[ShiftManagement] Supabase error:', error);
+                throw error;
+            }
+            console.log('[ShiftManagement] Fetched shifts:', data?.length || 0);
             setShifts(data || []);
         } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            console.error('[ShiftManagement] Fetch failed:', error);
+            toast({ title: "Error", description: error.message || "Failed to load audit history", variant: "destructive" });
         } finally {
             setIsLoading(false);
         }

@@ -1,5 +1,5 @@
 
-export type UserRole = 'SUPER_ADMIN' | 'PHARMACIST' | 'DISPENSER';
+export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'PHARMACIST' | 'DISPENSER';
 
 export interface User {
   id: string;
@@ -41,14 +41,27 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { action: 'update', resource: 'wholesale' },
     { action: 'delete', resource: 'wholesale' },
   ],
+  ADMIN: [
+    { action: 'create', resource: 'inventory' },
+    { action: 'read', resource: 'inventory' },
+    { action: 'update', resource: 'inventory' },
+    { action: 'create', resource: 'sales' },
+    { action: 'read', resource: 'sales' },
+    { action: 'update', resource: 'sales' },
+    { action: 'read', resource: 'reports' },
+    { action: 'update', resource: 'settings' },
+    { action: 'create', resource: 'wholesale' },
+    { action: 'read', resource: 'wholesale' },
+    { action: 'update', resource: 'wholesale' },
+  ],
   PHARMACIST: [
     { action: 'create', resource: 'inventory' },
     { action: 'read', resource: 'inventory' },
     { action: 'update', resource: 'inventory' },
     { action: 'delete', resource: 'inventory' },
     { action: 'read', resource: 'sales' },
-    { action: 'create', resource: 'sales' }, // Added create sales permission
-    { action: 'update', resource: 'sales' }, // Added update sales permission
+    { action: 'create', resource: 'sales' },
+    { action: 'update', resource: 'sales' },
     { action: 'create', resource: 'wholesale' },
     { action: 'read', resource: 'wholesale' },
     { action: 'update', resource: 'wholesale' },
