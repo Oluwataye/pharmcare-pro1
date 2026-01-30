@@ -2,14 +2,24 @@
 export const UNIT_OPTIONS = [
   { value: "tablets", label: "Tablets" },
   { value: "capsules", label: "Capsules" },
-  { value: "bottles", label: "Bottles" },
-  { value: "vials", label: "Vials" },
+  { value: "card", label: "Card" },
+  { value: "sachet", label: "Sachet" },
+  { value: "pcs", label: "Pcs" },
+  { value: "pack", label: "Pack" },
+  { value: "box", label: "Box" },
   { value: "boxes", label: "Boxes" },
-  { value: "units", label: "Units" },
+  { value: "carton", label: "Carton" },
+  { value: "kg", label: "kg" },
+  { value: "g", label: "g" },
+  { value: "l", label: "L" },
   { value: "ml", label: "ml" },
-  { value: "l", label: "l" },
   { value: "mg", label: "mg" },
-  { value: "g", label: "g" }
+  { value: "bottle", label: "Bottle" },
+  { value: "bottles", label: "Bottles" },
+  { value: "bag", label: "Bag" },
+  { value: "roll", label: "Roll" },
+  { value: "vials", label: "Vials" },
+  { value: "units", label: "Units" }
 ];
 
 export const initialInventoryFormState = {
