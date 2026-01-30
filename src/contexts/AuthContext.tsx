@@ -26,8 +26,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const { toast } = useToast();
 
   // Fetch user profile and role from database
-  const fetchUserProfile = async (userId: string): Promise<AppUser | null> => {
+  const fetchUserProfile = async (userId: string, email: string = ''): Promise<AppUser | null> => {
     console.log(`[AuthProvider] Pulse: Fetching profile for user ${userId}...`);
+
+    if (!window.navigator.onLine) {
+      console.log('[AuthProvider] Pulse: System is offline, skipping network profile fetch.');
+      // Return the cached profile if available immediately instead of null
+      return secureStorage.getItem('user_profile');
+    }
 
     // Add timeout wrapper to prevent hanging on slow networks
     const fetchWithTimeout = async (promise: Promise<any>, timeoutMs: number = 10000) => {
@@ -83,9 +89,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const { data: { user } } = await supabase.auth.getUser();
 
-      const userDetails = {
+      const userDetails: AppUser = {
         id: userId,
-        email: user?.email || '',
+        email: email, // Use the passed email instead of getUser()
         name: profile.name,
         username: profile.username || undefined,
         role: roleData.role as UserRole,
@@ -133,19 +139,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             isLoading: false, // Stop loading immediately so user sees UI
           });
 
-          // Fetch profile in background
-          fetchUserProfile(session.user.id).then(userProfile => {
-            if (userProfile) {
-              console.log("[AuthProvider] Pulse: Profile loaded in background");
-              setAuthState(prev => ({
-                ...prev,
-                user: userProfile,
-                isAuthenticated: true
-              }));
-            } else {
-              console.warn("[AuthProvider] Pulse: Background profile fetch failed, using fallback");
-            }
-          });
+          // Fetch profile in background if online
+          if (window.navigator.onLine) {
+            fetchUserProfile(session.user.id, session.user.email || '').then(userProfile => {
+              if (userProfile) {
+                console.log("[AuthProvider] Pulse: Profile loaded in background");
+                setAuthState(prev => ({
+                  ...prev,
+                  user: userProfile,
+                  isAuthenticated: true
+                }));
+              } else {
+                console.warn("[AuthProvider] Pulse: Background profile fetch failed, using fallback");
+              }
+            });
+          }
         } else {
           console.log("[AuthProvider] Pulse: No session found, setting unauthenticated state");
           setAuthState({
@@ -176,21 +184,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           // Only fetch if session is new or user ID differs
           // This avoids flickering during token refreshes
           // Use the same resilient fetch logic as initAuth
-          console.log(`[AuthProvider] Pulse: Fetching profile for event ${event}...`);
-          fetchUserProfile(session.user.id).then(userProfile => {
-            if (userProfile) {
-              setAuthState({
-                user: userProfile,
-                isAuthenticated: true,
-                isLoading: false,
-              });
-            } else {
-              // If profile fails strictly here, we might want to keep the old user state if valid
-              // But for safety, we allow it to fail but LOG it, rather than logging out.
-              console.error("[AuthProvider] Profile reload failed during auth change");
-              // Don't force logout here
-            }
-          });
+          if (window.navigator.onLine) {
+            console.log(`[AuthProvider] Pulse: Fetching profile for event ${event}...`);
+            fetchUserProfile(session.user.id, session.user.email || '').then(userProfile => {
+              if (userProfile) {
+                setAuthState({
+                  user: userProfile,
+                  isAuthenticated: true,
+                  isLoading: false,
+                });
+              } else {
+                console.error("[AuthProvider] Profile reload failed during auth change");
+              }
+            });
+          }
         } else if (event === 'SIGNED_OUT') {
           console.log("[AuthProvider] Pulse: User signed out");
           setAuthState({

@@ -6,7 +6,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Users, ArrowUpRight, ArrowDownRight, History, Shield, Power, AlertCircle, Play, Pause } from "lucide-react";
+import { Clock, Users, ArrowUpRight, ArrowDownRight, History, Shield, Power, AlertCircle, Play, Pause, WifiOff } from "lucide-react";
 import { ShiftStatusHeader } from "@/components/shifts/ShiftStatusHeader";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useShift } from "@/hooks/useShift";
@@ -25,6 +25,7 @@ const ShiftManagement = () => {
 
     const [closingShift, setClosingShift] = useState<any>(null);
     const [cash, setCash] = useState("");
+    const isOffline = !window.navigator.onLine;
 
     const fetchShiftHistory = async () => {
         console.log('[ShiftManagement] Attempting to fetch shift history...');
@@ -33,6 +34,13 @@ const ShiftManagement = () => {
             setIsLoading(false);
             return;
         }
+
+        if (isOffline) {
+            console.log('[ShiftManagement] System is offline, skipping history fetch.');
+            setIsLoading(false);
+            return;
+        }
+
         setIsLoading(true);
         try {
             console.log('[ShiftManagement] Querying staff_shifts table...');
@@ -50,7 +58,10 @@ const ShiftManagement = () => {
             setShifts(data || []);
         } catch (error: any) {
             console.error('[ShiftManagement] Fetch failed:', error);
-            toast({ title: "Error", description: error.message || "Failed to load audit history", variant: "destructive" });
+            // Only show toast if NOT a network error while offline
+            if (window.navigator.onLine) {
+                toast({ title: "Error", description: error.message || "Failed to load audit history", variant: "destructive" });
+            }
         } finally {
             setIsLoading(false);
         }
@@ -76,200 +87,235 @@ const ShiftManagement = () => {
         );
     }
 
-    const handleAdminEnd = async () => {
+    const handleForceEnd = async () => {
         if (!closingShift) return;
-        await adminEndShift(closingShift.id, parseFloat(cash) || 0, closingShift.staff_id, closingShift.start_time);
-        setClosingShift(null);
-        setCash("");
-        fetchShiftHistory();
-    };
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'active':
-                return <Badge className="bg-green-100 text-green-700 hover:bg-green-100 border-green-200">Live</Badge>;
-            case 'paused':
-                return <Badge className="bg-amber-100 text-amber-700 hover:bg-amber-100 border-amber-200">Paused</Badge>;
-            default:
-                return <Badge variant="secondary">Closed</Badge>;
+        try {
+            await adminEndShift(
+                closingShift.id,
+                Number(cash),
+                closingShift.staff_id,
+                closingShift.start_time,
+                "Administrative force closure"
+            );
+            setClosingShift(null);
+            setCash("");
+            fetchShiftHistory();
+        } catch (error) {
+            // Error handled by ShiftContext toast
         }
     };
 
+    const activeCount = activeStaffShifts.length;
+    const pausedCount = activeStaffShifts.filter(s => s.status === 'paused').length;
+
     return (
-        <div className="p-6 space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Shift & Audit Management</h1>
-                    <p className="text-sm text-muted-foreground">Monitor performance, reconcile cash, and audit duty logs.</p>
-                </div>
-                <ShiftStatusHeader />
-            </div>
+        <div className="space-y-6 animate-in fade-in duration-500">
+            <ShiftStatusHeader />
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium">Currently on Duty</CardTitle>
-                        <Users className="w-4 h-4 text-muted-foreground" />
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="bg-gradient-to-br from-blue-500/10 to-transparent border-blue-500/20 shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Total Active</CardTitle>
+                        <Users className="h-4 w-4 text-blue-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-primary">{activeStaffShifts.filter(s => s.status === 'active').length}</div>
-                        <p className="text-xs text-muted-foreground mt-1">Staff members actively working</p>
+                        <div className="text-2xl font-bold">{activeCount}</div>
+                        <p className="text-xs text-muted-foreground mt-1">Staff currently on duty</p>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium">Staff Paused</CardTitle>
-                        <Clock className="w-4 h-4 text-amber-500" />
+
+                <Card className="bg-gradient-to-br from-amber-500/10 to-transparent border-amber-500/20 shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">Paused Sessions</CardTitle>
+                        <Pause className="h-4 w-4 text-amber-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">{activeStaffShifts.filter(s => s.status === 'paused').length}</div>
-                        <p className="text-xs text-muted-foreground mt-1">Staff currently on break</p>
+                        <div className="text-2xl font-bold">{pausedCount}</div>
+                        <p className="text-xs text-muted-foreground mt-1">Staff on break</p>
                     </CardContent>
                 </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-                        <CardTitle className="text-sm font-medium">Last Closing</CardTitle>
-                        <AlertCircle className="w-4 h-4 text-muted-foreground" />
+
+                <Card className="bg-gradient-to-br from-green-500/10 to-transparent border-green-500/20 shadow-sm">
+                    <CardHeader className="flex flex-row items-center justify-between pb-2">
+                        <CardTitle className="text-sm font-medium">System Status</CardTitle>
+                        <Power className="h-4 w-4 text-green-500" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">
-                            ₦{shifts.find(s => s.status === 'closed')?.actual_cash_counted?.toLocaleString() || '0'}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">From most recent closed shift</p>
+                        <div className="text-2xl font-bold text-green-600">Active</div>
+                        <p className="text-xs text-muted-foreground mt-1">Shift monitoring enabled</p>
                     </CardContent>
                 </Card>
             </div>
 
-            {activeStaffShifts.length > 0 && (
-                <Card className="border-primary/20 bg-primary/5">
-                    <CardHeader>
-                        <CardTitle className="text-base flex items-center gap-2">
-                            <Power className="h-4 w-4 text-primary" />
-                            Live Sessions Control
+            <Card className="border-none shadow-md overflow-hidden bg-card">
+                <CardHeader className="bg-muted/30 border-b flex flex-row items-center justify-between">
+                    <div>
+                        <CardTitle className="flex items-center gap-2">
+                            <History className="h-5 w-5 text-primary" />
+                            Live Shift Monitoring
                         </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {activeStaffShifts.map(staffShift => (
-                                <div key={staffShift.id} className="bg-white p-4 rounded-lg border shadow-sm flex flex-col justify-between space-y-3">
-                                    <div className="flex justify-between items-start">
-                                        <div>
-                                            <p className="font-semibold">{staffShift.staff_name}</p>
-                                            <p className="text-[10px] text-muted-foreground uppercase">{staffShift.shift_type} Shift</p>
-                                        </div>
-                                        {getStatusBadge(staffShift.status)}
-                                    </div>
-                                    <div className="flex items-center justify-between gap-2 border-t pt-3">
-                                        <div className="text-xs text-muted-foreground">
-                                            Since {new Date(staffShift.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                        </div>
-                                        <div className="flex gap-1">
-                                            {staffShift.status === 'active' ? (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7 text-amber-600 hover:bg-amber-50"
-                                                    onClick={() => adminPauseShift(staffShift.id)}
-                                                    title="Pause Shift"
-                                                >
-                                                    <Pause className="h-3 w-3" />
-                                                </Button>
-                                            ) : (
-                                                <Button
-                                                    variant="ghost"
-                                                    size="icon"
-                                                    className="h-7 w-7 text-green-600 hover:bg-green-50"
-                                                    onClick={() => adminResumeShift(staffShift.id)}
-                                                    title="Resume Shift"
-                                                >
-                                                    <Play className="h-3 w-3" />
-                                                </Button>
-                                            )}
-                                            <Button
-                                                variant="outline"
-                                                size="sm"
-                                                className="h-7 text-[10px] border-red-200 text-red-600 hover:bg-red-50 px-2"
-                                                onClick={() => setClosingShift(staffShift)}
-                                            >
-                                                Force End
-                                            </Button>
-                                        </div>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </CardContent>
-                </Card>
-            )}
-
-            <Card>
-                <CardHeader className="flex flex-row items-center justify-between">
-                    <div className="flex items-center gap-2">
-                        <History className="h-5 w-5" />
-                        <CardTitle>Shift Audit Log</CardTitle>
+                        <p className="text-sm text-muted-foreground mt-1">Manage current on-duty staff</p>
                     </div>
-                    <Button variant="outline" size="sm" onClick={() => fetchShiftHistory()}>
-                        Refresh Audit
-                    </Button>
-                </CardHeader>
-                <CardContent>
-                    {isLoading ? (
-                        <div className="py-20 text-center">Loading audit data...</div>
-                    ) : (
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Staff Name</TableHead>
-                                    <TableHead>Type</TableHead>
-                                    <TableHead>Duration</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Opening</TableHead>
-                                    <TableHead className="text-right">Counted</TableHead>
-                                    <TableHead>Diff</TableHead>
-                                    <TableHead>Notes</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {shifts.map((shift) => {
-                                    const expected = (shift.opening_cash || 0) + (shift.expected_sales_total || 0);
-                                    const diff = shift.status === 'closed' ? (shift.actual_cash_counted - expected) : 0;
-
-                                    return (
-                                        <TableRow key={shift.id}>
-                                            <TableCell className="font-medium whitespace-nowrap">{shift.staff_name}</TableCell>
-                                            <TableCell>{shift.shift_type}</TableCell>
-                                            <TableCell className="text-xs whitespace-nowrap">
-                                                {new Date(shift.start_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' })}
-                                                <br />
-                                                {shift.end_time ? new Date(shift.end_time).toLocaleString([], { dateStyle: 'short', timeStyle: 'short' }) : '—'}
-                                            </TableCell>
-                                            <TableCell>{getStatusBadge(shift.status)}</TableCell>
-                                            <TableCell className="text-right text-muted-foreground">₦{shift.opening_cash?.toLocaleString()}</TableCell>
-                                            <TableCell className="text-right font-medium">
-                                                {shift.status === 'closed' ? `₦${shift.actual_cash_counted?.toLocaleString()}` : <span className="italic text-[10px] text-muted-foreground uppercase">Live</span>}
-                                            </TableCell>
-                                            <TableCell>
-                                                {shift.status === 'closed' && (
-                                                    <div className={`flex items-center gap-1 text-xs font-bold ${diff < 0 ? 'text-red-500' : diff > 0 ? 'text-green-600' : 'text-muted-foreground'}`}>
-                                                        {diff > 0 && <ArrowUpRight className="h-3 w-3" />}
-                                                        {diff < 0 && <ArrowDownRight className="h-3 w-3" />}
-                                                        ₦{Math.abs(diff).toLocaleString()}
-                                                    </div>
-                                                )}
-                                            </TableCell>
-                                            <TableCell className="max-w-[150px] truncate text-xs" title={shift.notes}>
-                                                {shift.notes || '—'}
-                                            </TableCell>
-                                        </TableRow>
-                                    );
-                                })}
-                            </TableBody>
-                        </Table>
+                    {isOffline && (
+                        <Badge variant="outline" className="gap-1 text-amber-600 bg-amber-50 border-amber-200">
+                            <WifiOff className="h-3 w-3" /> Offline Mode
+                        </Badge>
                     )}
+                </CardHeader>
+                <CardContent className="p-0">
+                    <Table>
+                        <TableHeader>
+                            <TableRow className="bg-muted/20 hover:bg-muted/20">
+                                <TableHead className="font-semibold">Staff Member</TableHead>
+                                <TableHead className="font-semibold">Shift Info</TableHead>
+                                <TableHead className="font-semibold">Status</TableHead>
+                                <TableHead className="font-semibold">Started At</TableHead>
+                                <TableHead className="text-right font-semibold">Actions</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {activeStaffShifts.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="h-32 text-center text-muted-foreground">
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Users className="h-8 w-8 opacity-20" />
+                                            {isOffline ? "Shift data unavailable while offline" : "No active staff shifts found"}
+                                        </div>
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                activeStaffShifts.map((s) => (
+                                    <TableRow key={s.id} className="hover:bg-muted/10 transition-colors">
+                                        <TableCell>
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                                                    <span className="text-xs font-bold text-primary">
+                                                        {s.staff_name?.charAt(0).toUpperCase()}
+                                                    </span>
+                                                </div>
+                                                <span className="font-medium">{s.staff_name}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <div className="flex items-center gap-1.5">
+                                                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                                                <span className="capitalize">{s.shift_type}</span>
+                                            </div>
+                                        </TableCell>
+                                        <TableCell>
+                                            <Badge
+                                                variant={s.status === 'active' ? 'default' : 'secondary'}
+                                                className={cn(
+                                                    "capitalize font-medium",
+                                                    s.status === 'active' ? 'bg-green-500/10 text-green-700 hover:bg-green-500/20' : ''
+                                                )}
+                                            >
+                                                {s.status}
+                                            </Badge>
+                                        </TableCell>
+                                        <TableCell className="text-muted-foreground">
+                                            {new Date(s.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </TableCell>
+                                        <TableCell className="text-right">
+                                            <div className="flex justify-end gap-2">
+                                                {s.status === 'active' ? (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
+                                                        onClick={() => adminPauseShift(s.id)}
+                                                    >
+                                                        <Pause className="h-4 w-4 mr-1" /> Pause
+                                                    </Button>
+                                                ) : (
+                                                    <Button
+                                                        size="sm"
+                                                        variant="outline"
+                                                        className="h-8 text-green-600 hover:text-green-700 hover:bg-green-50"
+                                                        onClick={() => adminResumeShift(s.id)}
+                                                    >
+                                                        <Play className="h-4 w-4 mr-1" /> Resume
+                                                    </Button>
+                                                )}
+                                                <Button
+                                                    size="sm"
+                                                    variant="destructive"
+                                                    className="h-8 shadow-sm"
+                                                    onClick={() => setClosingShift(s)}
+                                                >
+                                                    <Power className="h-4 w-4 mr-1" /> End
+                                                </Button>
+                                            </div>
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
                 </CardContent>
             </Card>
 
-            {/* Admin Force Close Modal */}
+            <Card className="border-none shadow-md bg-card">
+                <CardHeader>
+                    <CardTitle className="text-lg flex items-center gap-2">
+                        <History className="h-5 w-5 text-muted-foreground" />
+                        Audit History
+                    </CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Staff</TableHead>
+                                <TableHead>Type</TableHead>
+                                <TableHead>Period</TableHead>
+                                <TableHead>Sales</TableHead>
+                                <TableHead>Cash</TableHead>
+                                <TableHead className="text-right">Diff</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {isLoading ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                        Loading audit data...
+                                    </TableCell>
+                                </TableRow>
+                            ) : shifts.length === 0 ? (
+                                <TableRow>
+                                    <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                                        {isOffline ? "History unavailable offline" : "No shift history found"}
+                                    </TableCell>
+                                </TableRow>
+                            ) : (
+                                shifts.map((shift) => (
+                                    <TableRow key={shift.id}>
+                                        <TableCell className="font-medium">{shift.staff_name}</TableCell>
+                                        <TableCell className="capitalize">{shift.shift_type}</TableCell>
+                                        <TableCell className="text-xs">
+                                            {new Date(shift.start_time).toLocaleDateString()}<br />
+                                            <span className="text-muted-foreground">
+                                                {new Date(shift.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
+                                                {shift.end_time ? new Date(shift.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}
+                                            </span>
+                                        </TableCell>
+                                        <TableCell>₦{shift.expected_sales_total?.toLocaleString() || 0}</TableCell>
+                                        <TableCell>₦{shift.actual_cash_counted?.toLocaleString() || 0}</TableCell>
+                                        <TableCell className="text-right">
+                                            {shift.actual_cash_counted !== undefined && shift.expected_sales_total !== undefined && (
+                                                <Badge variant={shift.actual_cash_counted >= shift.expected_sales_total ? "default" : "destructive"}>
+                                                    ₦{(shift.actual_cash_counted - shift.expected_sales_total).toLocaleString()}
+                                                </Badge>
+                                            )}
+                                        </TableCell>
+                                    </TableRow>
+                                ))
+                            )}
+                        </TableBody>
+                    </Table>
+                </CardContent>
+            </Card>
+
             <Dialog open={!!closingShift} onOpenChange={() => setClosingShift(null)}>
                 <DialogContent className="sm:max-w-[425px]">
                     <DialogHeader>
@@ -278,24 +324,24 @@ const ShiftManagement = () => {
                             Administrative action to finalize a staff member's duty session.
                         </DialogDescription>
                     </DialogHeader>
-                    <div className="py-4 space-y-4">
-                        <div className="bg-amber-50 border border-amber-200 p-3 rounded-md text-amber-800 text-xs flex gap-2">
-                            <AlertCircle className="h-4 w-4 shrink-0" />
-                            Force closing will finalize the session. Please enter the physical cash amount at their station.
-                        </div>
-                        <div className="space-y-2">
-                            <Label>Actual Cash at Station (₦)</Label>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <Label htmlFor="cash" className="text-right">
+                                Actual Cash
+                            </Label>
                             <Input
+                                id="cash"
                                 type="number"
-                                placeholder="0.00"
                                 value={cash}
                                 onChange={(e) => setCash(e.target.value)}
+                                className="col-span-3"
+                                placeholder="Enter cash counted (₦)"
                             />
                         </div>
                     </div>
                     <DialogFooter>
                         <Button variant="outline" onClick={() => setClosingShift(null)}>Cancel</Button>
-                        <Button variant="destructive" onClick={handleAdminEnd}>Confirm Force Close</Button>
+                        <Button variant="destructive" onClick={handleForceEnd}>Finalize & End Shift</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>

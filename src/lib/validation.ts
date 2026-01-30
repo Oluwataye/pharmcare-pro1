@@ -32,7 +32,7 @@ export const userSchema = z.object({
     .min(3, 'Username must be at least 3 characters')
     .max(50, 'Username is too long')
     .regex(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
-  role: z.enum(['SUPER_ADMIN', 'PHARMACIST', 'DISPENSER'])
+  role: z.enum(['SUPER_ADMIN', 'ADMIN', 'PHARMACIST', 'DISPENSER'])
 });
 
 // Product validation schemas with enhanced security

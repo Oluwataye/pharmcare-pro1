@@ -40,14 +40,22 @@ const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAuth();
     const { toast } = useToast();
-    const [activeShift, setActiveShift] = useState<StaffShift | null>(null);
+    const [activeShift, setActiveShift] = useState<StaffShift | null>(() => {
+        // Hydrate from localStorage for offline stability
+        const cached = localStorage.getItem('active_staff_shift');
+        return cached ? JSON.parse(cached) : null;
+    });
     const [activeStaffShifts, setActiveStaffShifts] = useState<StaffShift[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'PHARMACIST';
+    const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
 
     const fetchActiveShift = useCallback(async () => {
         if (!user) return;
+        if (!window.navigator.onLine) {
+            console.log('[ShiftContext] System is offline, using cached active shift.');
+            return;
+        }
         try {
             const { data, error } = await supabase
                 .from('staff_shifts' as any)
@@ -60,14 +68,23 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 console.error('[ShiftContext] Error fetching active shift:', error);
                 throw error;
             }
-            setActiveShift(data as any);
+
+            if (data) {
+                console.log('[ShiftContext] Active shift found, caching...');
+                setActiveShift(data as any);
+                localStorage.setItem('active_staff_shift', JSON.stringify(data));
+            } else {
+                console.log('[ShiftContext] No active shift found, clearing cache.');
+                setActiveShift(null);
+                localStorage.removeItem('active_staff_shift');
+            }
         } catch (error) {
             console.error('Error fetching active shift:', error);
         }
     }, [user]);
 
     const fetchAllActiveShifts = useCallback(async () => {
-        if (!isAdmin) return;
+        if (!isAdmin || !window.navigator.onLine) return;
         try {
             const { data, error } = await supabase
                 .from('staff_shifts' as any)
@@ -117,6 +134,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
             if (error) throw error;
             setActiveShift(data as any);
+            localStorage.setItem('active_staff_shift', JSON.stringify(data));
             toast({ title: "Shift Started", description: `You are now on duty.` });
             return data;
         } catch (error: any) {
@@ -189,8 +207,10 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const endShift = async (actualCash: number, notes?: string) => {
         if (!activeShift) return;
-        await adminEndShift(activeShift.id, actualCash, activeShift.staff_id, activeShift.start_time, notes);
+        const shiftId = activeShift.id;
+        await adminEndShift(shiftId, actualCash, activeShift.staff_id, activeShift.start_time, notes);
         setActiveShift(null);
+        localStorage.removeItem('active_staff_shift');
     };
 
     const adminEndShift = async (shiftId: string, actualCash: number, staffId: string, startTime: string, notes?: string) => {
