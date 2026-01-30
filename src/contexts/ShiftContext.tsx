@@ -9,6 +9,7 @@ export interface StaffShift {
     id: string;
     staff_id: string;
     staff_name: string;
+    staff_email?: string;
     shift_type: string;
     status: 'active' | 'paused' | 'closed';
     start_time: string;
@@ -30,7 +31,7 @@ interface ShiftContextType {
     endShift: (actualCash: number, notes?: string) => Promise<void>;
     adminPauseShift: (shiftId: string) => Promise<void>;
     adminResumeShift: (shiftId: string) => Promise<void>;
-    adminEndShift: (shiftId: string, actualCash: number, staffId: string, startTime: string) => Promise<void>;
+    adminEndShift: (shiftId: string, actualCash: number, staffId: string, startTime: string, notes?: string) => Promise<void>;
     refreshShifts: () => Promise<void>;
 }
 
@@ -43,7 +44,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const [activeStaffShifts, setActiveStaffShifts] = useState<StaffShift[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
-    const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
+    const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'PHARMACIST';
 
     const fetchActiveShift = useCallback(async () => {
         if (!user) return;
@@ -55,7 +56,10 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 .in('status', ['active', 'paused'])
                 .maybeSingle();
 
-            if (error) throw error;
+            if (error) {
+                console.error('[ShiftContext] Error fetching active shift:', error);
+                throw error;
+            }
             setActiveShift(data as any);
         } catch (error) {
             console.error('Error fetching active shift:', error);
@@ -70,7 +74,10 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 .select('*')
                 .in('status', ['active', 'paused']);
 
-            if (error) throw error;
+            if (error) {
+                console.error('[ShiftContext] Error fetching all shifts:', error);
+                throw error;
+            }
             setActiveStaffShifts(data || []);
         } catch (error) {
             console.error('Error fetching all active shifts:', error);
@@ -79,13 +86,18 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const refreshShifts = useCallback(async () => {
         setIsLoading(true);
-        await Promise.all([fetchActiveShift(), fetchAllActiveShifts()]);
-        setIsLoading(false);
+        try {
+            await Promise.all([fetchActiveShift(), fetchAllActiveShifts()]);
+        } finally {
+            setIsLoading(false);
+        }
     }, [fetchActiveShift, fetchAllActiveShifts]);
 
     useEffect(() => {
-        refreshShifts();
-    }, [refreshShifts]);
+        if (user) {
+            refreshShifts();
+        }
+    }, [user, refreshShifts]);
 
     const startShift = async (openingCash: number) => {
         if (!user) return;
@@ -108,7 +120,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             toast({ title: "Shift Started", description: `You are now on duty.` });
             return data;
         } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            console.error('Error starting shift:', error);
+            toast({ title: "Error", description: error.message || "Could not start shift", variant: "destructive" });
         }
     };
 
@@ -123,7 +136,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             await fetchActiveShift();
             toast({ title: "Shift Paused", description: "Your status is now set to Paused." });
         } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            console.error('Error pausing shift:', error);
+            toast({ title: "Error", description: error.message || "Could not pause shift", variant: "destructive" });
         }
     };
 
@@ -138,7 +152,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             await fetchActiveShift();
             toast({ title: "Shift Resumed", description: "Welcome back!" });
         } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            console.error('Error resuming shift:', error);
+            toast({ title: "Error", description: error.message || "Could not resume shift", variant: "destructive" });
         }
     };
 
@@ -152,7 +167,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             await refreshShifts();
             toast({ title: "Shift Paused", description: "Remote staff shift has been paused." });
         } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            console.error('Error admin pausing shift:', error);
+            toast({ title: "Error", description: error.message || "Could not pause shift", variant: "destructive" });
         }
     };
 
@@ -166,7 +182,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             await refreshShifts();
             toast({ title: "Shift Resumed", description: "Remote staff shift has been resumed." });
         } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            console.error('Error admin resuming shift:', error);
+            toast({ title: "Error", description: error.message || "Could not resume shift", variant: "destructive" });
         }
     };
 
@@ -178,11 +195,15 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const adminEndShift = async (shiftId: string, actualCash: number, staffId: string, startTime: string, notes?: string) => {
         try {
-            const { data: salesData } = await supabase
+            const { data: salesData, error: salesError } = await supabase
                 .from('sales')
                 .select('total')
                 .eq('cashier_id', staffId)
                 .gte('created_at', startTime);
+
+            if (salesError) {
+                console.warn('[ShiftContext] Error calculating sales total:', salesError);
+            }
 
             const salesTotal = (salesData || []).reduce((sum, s) => sum + Number(s.total), 0);
 
@@ -201,7 +222,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             await refreshShifts();
             toast({ title: "Shift Closed", description: "Shift record has been finalized." });
         } catch (error: any) {
-            toast({ title: "Error", description: error.message, variant: "destructive" });
+            console.error('Error closing shift:', error);
+            toast({ title: "Error", description: error.message || "Could not close shift", variant: "destructive" });
         }
     };
 
