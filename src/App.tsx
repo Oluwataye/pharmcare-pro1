@@ -125,7 +125,9 @@ const App = ({ queryClient, persister }: AppProps) => {
                         <Route
                           path="/shifts"
                           element={
-                            <ProtectedRoute>
+                            <ProtectedRoute
+                              requiredPermission={{ action: "read", resource: "shifts" }}
+                            >
                               <Suspense fallback={<PageLoader />}><ShiftManagement /></Suspense>
                             </ProtectedRoute>
                           }

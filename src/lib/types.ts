@@ -17,7 +17,7 @@ export interface AuthState {
 
 export interface Permission {
   action: 'create' | 'read' | 'update' | 'delete';
-  resource: 'inventory' | 'sales' | 'users' | 'settings' | 'reports' | 'wholesale';
+  resource: 'inventory' | 'sales' | 'users' | 'settings' | 'reports' | 'wholesale' | 'shifts';
 }
 
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
@@ -40,6 +40,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { action: 'read', resource: 'wholesale' },
     { action: 'update', resource: 'wholesale' },
     { action: 'delete', resource: 'wholesale' },
+    { action: 'read', resource: 'shifts' },
+    { action: 'update', resource: 'shifts' },
   ],
   ADMIN: [
     { action: 'create', resource: 'inventory' },
@@ -53,6 +55,8 @@ export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
     { action: 'create', resource: 'wholesale' },
     { action: 'read', resource: 'wholesale' },
     { action: 'update', resource: 'wholesale' },
+    { action: 'read', resource: 'shifts' },
+    { action: 'update', resource: 'shifts' },
   ],
   PHARMACIST: [
     { action: 'create', resource: 'inventory' },

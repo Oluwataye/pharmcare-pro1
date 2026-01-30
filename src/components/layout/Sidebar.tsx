@@ -35,6 +35,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     canAccessInventory,
     canAccessUsers,
     canAccessReports,
+    canAccessShifts,
   } = usePermissions();
   const { settings: storeSettings } = useStoreSettings();
   const [storeLogo, setStoreLogo] = useState<string>('');
@@ -100,7 +101,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       icon: Clock,
       label: "Staff Shifts",
       path: "/shifts",
-      condition: canAccessReports()
+      condition: canAccessShifts()
     },
     {
       icon: Truck,
