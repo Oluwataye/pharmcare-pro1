@@ -21,7 +21,6 @@ interface InventoryContextType {
 const InventoryContext = createContext<InventoryContextType | undefined>(undefined);
 
 export const InventoryProvider = ({ children }: { children: ReactNode }) => {
-    console.log("[InventoryProvider] Pulse: Initializing...");
     const [inventory, setInventory] = useState<InventoryItem[]>(() => {
         return loadInventoryFromLocalStorage() || [];
     });
@@ -36,23 +35,13 @@ export const InventoryProvider = ({ children }: { children: ReactNode }) => {
             setIsLoading(true);
             setError(null);
 
-            console.log("Fetching inventory from Supabase...");
             const { data, error: fetchError } = await supabase
                 .from('inventory')
                 .select('*, batches:inventory_batches(*)')
                 .order('name', { ascending: true });
 
             if (fetchError) {
-                console.error('Supabase fetch error:', fetchError);
                 throw new Error(`Failed to fetch inventory: ${fetchError.message}`);
-            }
-
-            // Debug: Log the raw data from Supabase
-            console.log(`Supabase returned ${data?.length || 0} items.`);
-            if (data && data.length > 0) {
-                console.log('Sample data from Supabase:', data[0]);
-            } else if (data && data.length === 0) {
-                console.warn('Supabase returned an empty array for inventory. Check if table is empty or RLS is blocking access.');
             }
 
             const inventoryItems: InventoryItem[] = (data || []).map((item: any) => ({
@@ -64,6 +53,7 @@ export const InventoryProvider = ({ children }: { children: ReactNode }) => {
                 unit: item.unit,
                 price: Number(item.price),
                 costPrice: item.cost_price ? Number(item.cost_price) : undefined,
+                profitMargin: item.profit_margin ? Number(item.profit_margin) : undefined,
                 reorderLevel: item.reorder_level,
                 expiryDate: item.expiry_date || undefined,
                 manufacturer: item.manufacturer || undefined,
@@ -72,7 +62,8 @@ export const InventoryProvider = ({ children }: { children: ReactNode }) => {
                 restockInvoiceNumber: item.restock_invoice_number || undefined,
                 lastUpdatedBy: 'System',
                 lastUpdatedAt: item.last_updated_at,
-                batches: item.batches
+                batches: item.batches,
+                multi_unit_config: item.multi_unit_config || []
             }));
 
             setInventory(inventoryItems);
@@ -118,16 +109,9 @@ export const InventoryProvider = ({ children }: { children: ReactNode }) => {
         }
     }, [isOnline, fetchInventoryFromCloud, toast]);
 
-    // Handle initial fetch and real-time subscription
     useEffect(() => {
-        console.log("[InventoryProvider] Pulse: useEffect triggered", { isOnline, isAuthenticated, authLoading });
-        // Fetch if online and either authenticated or if we're not using RLS for reading (though we are)
-        // Re-fetch when isAuthenticated changes to true
         if (isOnline && isAuthenticated) {
-            console.log("Auth state change detected or mount: Fetching inventory...");
             fetchInventoryFromCloud();
-        } else if (isOnline && !authLoading && !isAuthenticated) {
-            console.log("User not authenticated yet. Waiting for login to fetch inventory.");
         }
 
         const channel = supabase
@@ -139,8 +123,7 @@ export const InventoryProvider = ({ children }: { children: ReactNode }) => {
                     schema: 'public',
                     table: 'inventory'
                 },
-                (payload) => {
-                    console.log("Real-time inventory change received:", payload.eventType);
+                () => {
                     if (isOnline && isAuthenticated) {
                         fetchInventoryFromCloud();
                     }

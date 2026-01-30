@@ -1,3 +1,4 @@
+
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react-swc";
 import path from "path";
@@ -16,10 +17,31 @@ export default defineConfig(({ mode }) => ({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.ico', 'og-image.png', 'placeholder.svg'],
       manifest: {
-        // ... (rest of manifest stays the same)
+        name: 'PharmaCare Pro',
+        short_name: 'PharmaCare',
+        description: 'Advanced Pharmacy Management System',
+        theme_color: '#ffffff',
+        icons: [
+          {
+            src: 'pwa-192x192.png',
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png'
+          },
+          {
+            src: 'pwa-512x512.png',
+            sizes: '512x512',
+            type: 'image/png',
+            purpose: 'any maskable'
+          }
+        ]
       },
       workbox: {
-        globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2}'], // REMOVED .html to prevent entry point sticking
+        globPatterns: ['**/*.{js,css,ico,png,svg,woff,woff2,html}'],
         cleanupOutdatedCaches: true,
         skipWaiting: true,
         clientsClaim: true,
@@ -74,7 +96,7 @@ export default defineConfig(({ mode }) => ({
         ],
       },
       devOptions: {
-        enabled: false, // Disable in development
+        enabled: false,
       },
     }),
   ].filter(Boolean),
@@ -90,11 +112,8 @@ export default defineConfig(({ mode }) => ({
     cssMinify: true,
     rollupOptions: {
       output: {
-        // Code splitting for better caching
         manualChunks: {
-          // Vendor chunk for React ecosystem
           'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          // UI components chunk
           'ui-vendor': [
             '@radix-ui/react-dialog',
             '@radix-ui/react-dropdown-menu',
@@ -104,23 +123,17 @@ export default defineConfig(({ mode }) => ({
             '@radix-ui/react-toast',
             '@radix-ui/react-tooltip',
           ],
-          // Data fetching chunk
           'data-vendor': ['@tanstack/react-query', '@supabase/supabase-js'],
-          // Charts chunk (only loaded when needed)
           'charts-vendor': ['recharts'],
-          // Form handling chunk
           'form-vendor': ['react-hook-form', '@hookform/resolvers', 'zod'],
         },
-        // Use content hash for cache busting
         chunkFileNames: 'assets/[name]-[hash].js',
         entryFileNames: 'assets/[name]-[hash].js',
         assetFileNames: 'assets/[name]-[hash].[ext]',
       },
     },
-    // Reduce chunk size warnings threshold
     chunkSizeWarningLimit: 1000,
   },
-  // Optimize dependencies
   optimizeDeps: {
     include: [
       'react',
