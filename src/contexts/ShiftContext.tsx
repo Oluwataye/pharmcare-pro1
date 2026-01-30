@@ -4,6 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentShift } from '@/utils/shiftUtils';
+import { useOffline } from './OfflineContext';
 
 export interface StaffShift {
     id: string;
@@ -40,6 +41,7 @@ const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
 export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     const { user } = useAuth();
     const { toast } = useToast();
+    const { isOnline, addPendingOperation } = useOffline();
     const [activeShift, setActiveShift] = useState<StaffShift | null>(() => {
         // Hydrate from localStorage for offline stability
         const cached = localStorage.getItem('active_staff_shift');
@@ -118,6 +120,36 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const startShift = async (openingCash: number) => {
         if (!user) return;
+
+        if (!isOnline) {
+            const tempId = crypto.randomUUID();
+            const offlineShift: StaffShift = {
+                id: tempId,
+                staff_id: user.id,
+                staff_name: user.name || user.username || user.email,
+                staff_email: user.email,
+                shift_type: getCurrentShift(),
+                opening_cash: openingCash,
+                status: 'active',
+                start_time: new Date().toISOString()
+            };
+
+            console.log('[ShiftContext] Starting shift offline...');
+            setActiveShift(offlineShift);
+            localStorage.setItem('active_staff_shift', JSON.stringify(offlineShift));
+
+            addPendingOperation({
+                id: crypto.randomUUID(), // Create needs a unique op ID
+                type: 'create',
+                resource: 'staff_shifts',
+                data: offlineShift,
+                timestamp: Date.now()
+            });
+
+            toast({ title: "Shift Started (Offline)", description: "Welcome! Your shift has started locally." });
+            return offlineShift;
+        }
+
         try {
             const { data, error } = await supabase
                 .from('staff_shifts' as any)
@@ -145,6 +177,29 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const pauseShift = async () => {
         if (!activeShift) return;
+
+        const updatedShift = { ...activeShift, status: 'paused' as const };
+
+        if (!isOnline) {
+            console.log('[ShiftContext] Pausing shift offline...');
+            setActiveShift(updatedShift);
+            localStorage.setItem('active_staff_shift', JSON.stringify(updatedShift));
+
+            addPendingOperation({
+                id: updatedShift.id, // Use shift ID for the operation so .eq('id', op.id) works
+                type: 'update',
+                resource: 'staff_shifts',
+                data: { status: 'paused' },
+                timestamp: Date.now()
+            });
+
+            toast({
+                title: "Shift Paused (Offline)",
+                description: "Your status has been updated locally and will sync when online."
+            });
+            return;
+        }
+
         try {
             const { error } = await supabase
                 .from('staff_shifts' as any)
@@ -161,6 +216,29 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
 
     const resumeShift = async () => {
         if (!activeShift) return;
+
+        const updatedShift = { ...activeShift, status: 'active' as const };
+
+        if (!isOnline) {
+            console.log('[ShiftContext] Resuming shift offline...');
+            setActiveShift(updatedShift);
+            localStorage.setItem('active_staff_shift', JSON.stringify(updatedShift));
+
+            addPendingOperation({
+                id: updatedShift.id,
+                type: 'update',
+                resource: 'staff_shifts',
+                data: { status: 'active' },
+                timestamp: Date.now()
+            });
+
+            toast({
+                title: "Shift Resumed (Offline)",
+                description: "Welcome back! Status updated locally."
+            });
+            return;
+        }
+
         try {
             const { error } = await supabase
                 .from('staff_shifts' as any)
@@ -176,6 +254,22 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const adminPauseShift = async (shiftId: string) => {
+        if (!isOnline) {
+            setActiveStaffShifts(prev => prev.map(s =>
+                s.id === shiftId ? { ...s, status: 'paused' as const } : s
+            ));
+
+            addPendingOperation({
+                id: shiftId,
+                type: 'update',
+                resource: 'staff_shifts',
+                data: { status: 'paused' },
+                timestamp: Date.now()
+            });
+
+            toast({ title: "Shift Paused (Offline)", description: "Remote change queued." });
+            return;
+        }
         try {
             const { error } = await supabase
                 .from('staff_shifts' as any)
@@ -191,6 +285,22 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     };
 
     const adminResumeShift = async (shiftId: string) => {
+        if (!isOnline) {
+            setActiveStaffShifts(prev => prev.map(s =>
+                s.id === shiftId ? { ...s, status: 'active' as const } : s
+            ));
+
+            addPendingOperation({
+                id: shiftId,
+                type: 'update',
+                resource: 'staff_shifts',
+                data: { status: 'active' },
+                timestamp: Date.now()
+            });
+
+            toast({ title: "Shift Resumed (Offline)", description: "Remote change queued." });
+            return;
+        }
         try {
             const { error } = await supabase
                 .from('staff_shifts' as any)
@@ -208,12 +318,57 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
     const endShift = async (actualCash: number, notes?: string) => {
         if (!activeShift) return;
         const shiftId = activeShift.id;
+
+        if (!isOnline) {
+            console.log('[ShiftContext] Ending shift offline...');
+
+            addPendingOperation({
+                id: shiftId,
+                type: 'update',
+                resource: 'staff_shifts',
+                data: {
+                    id: shiftId,
+                    status: 'closed',
+                    end_time: new Date().toISOString(),
+                    actual_cash_counted: actualCash,
+                    notes: notes,
+                    expected_sales_total: 0 // Placeholder for offline closure
+                },
+                timestamp: Date.now()
+            });
+
+            setActiveShift(null);
+            localStorage.removeItem('active_staff_shift');
+            toast({ title: "Shift Ended (Offline)", description: "Record queued for sync. Reconciliation pending." });
+            return;
+        }
+
         await adminEndShift(shiftId, actualCash, activeShift.staff_id, activeShift.start_time, notes);
         setActiveShift(null);
         localStorage.removeItem('active_staff_shift');
     };
 
     const adminEndShift = async (shiftId: string, actualCash: number, staffId: string, startTime: string, notes?: string) => {
+        if (!isOnline) {
+            setActiveStaffShifts(prev => prev.filter(s => s.id !== shiftId));
+
+            addPendingOperation({
+                id: shiftId,
+                type: 'update',
+                resource: 'staff_shifts',
+                data: {
+                    id: shiftId,
+                    status: 'closed',
+                    end_time: new Date().toISOString(),
+                    actual_cash_counted: actualCash,
+                    notes: notes
+                },
+                timestamp: Date.now()
+            });
+            toast({ title: "Shift Force Ended (Offline)", description: "Record queued." });
+            return;
+        }
+
         try {
             const { data: salesData, error: salesError } = await supabase
                 .from('sales')
@@ -243,7 +398,9 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             toast({ title: "Shift Closed", description: "Shift record has been finalized." });
         } catch (error: any) {
             console.error('Error closing shift:', error);
-            toast({ title: "Error", description: error.message || "Could not close shift", variant: "destructive" });
+            if (window.navigator.onLine) {
+                toast({ title: "Error", description: error.message || "Could not close shift", variant: "destructive" });
+            }
         }
     };
 
