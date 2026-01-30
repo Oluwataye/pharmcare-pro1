@@ -7,7 +7,8 @@ import { Product } from "@/types/sales";
 import { Search, Plus, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
-import { SelectField, SelectItem } from "@/components/inventory/form/FormField";
+import { SelectField } from "@/components/inventory/form/FormField";
+import { SelectItem } from "@/components/ui/select";
 
 interface ProductSearchSectionProps {
   onAddProduct: (product: Product, quantity: number, selectedUnit?: string) => void;
