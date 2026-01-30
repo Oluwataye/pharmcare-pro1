@@ -2,7 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { useShift } from "@/hooks/useShift";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Lock, LogIn } from "lucide-react";
+import { Clock, Lock, LogIn, Pause, Play } from "lucide-react";
 import { useState } from "react";
 import {
     Dialog,
@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
 export const ShiftStatusHeader = () => {
-    const { activeShift, startShift, endShift, isLoading } = useShift();
+    const { activeShift, startShift, pauseShift, resumeShift, endShift, isLoading } = useShift();
     const [isOpening, setIsOpening] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
     const [cash, setCash] = useState("");
@@ -38,10 +38,12 @@ export const ShiftStatusHeader = () => {
         <div className="flex items-center gap-3 px-4 py-2 bg-muted/50 rounded-lg border">
             {activeShift ? (
                 <>
-                    <div className="flex flex-col">
-                        <span className="text-[10px] text-muted-foreground font-medium uppercase truncate">Active Duty</span>
+                    <div className="flex flex-col min-w-[100px]">
+                        <span className="text-[10px] text-muted-foreground font-medium uppercase truncate">
+                            {activeShift.status === 'paused' ? 'Shift Paused' : 'Active Duty'}
+                        </span>
                         <div className="flex items-center gap-2">
-                            <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                            <Badge variant="outline" className={activeShift.status === 'paused' ? "bg-amber-50 text-amber-700 border-amber-200" : "bg-green-50 text-green-700 border-green-200"}>
                                 {activeShift.shift_type}
                             </Badge>
                             <span className="text-xs font-mono">
@@ -49,10 +51,25 @@ export const ShiftStatusHeader = () => {
                             </span>
                         </div>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={() => setIsClosing(true)} className="h-8 text-destructive hover:text-destructive">
-                        <Lock className="h-4 w-4 mr-1" />
-                        End Shift
-                    </Button>
+
+                    <div className="flex items-center gap-1 border-l pl-3">
+                        {activeShift.status === 'paused' ? (
+                            <Button variant="ghost" size="sm" onClick={resumeShift} className="h-8 text-amber-600 hover:text-amber-700 hover:bg-amber-50">
+                                <Play className="h-4 w-4 mr-1" />
+                                Resume
+                            </Button>
+                        ) : (
+                            <Button variant="ghost" size="sm" onClick={pauseShift} className="h-8 text-muted-foreground hover:text-foreground">
+                                <Pause className="h-4 w-4 mr-1" />
+                                Pause
+                            </Button>
+                        )}
+
+                        <Button variant="ghost" size="sm" onClick={() => setIsClosing(true)} className="h-8 text-destructive hover:text-destructive hover:bg-red-50">
+                            <Lock className="h-4 w-4 mr-1" />
+                            End Shift
+                        </Button>
+                    </div>
                 </>
             ) : (
                 <>

@@ -1,10 +1,10 @@
+
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { useStoreSettings } from "@/hooks/useStoreSettings";
 import { OfflineSyncIndicator } from "./OfflineSyncIndicator";
 import {
@@ -18,7 +18,6 @@ import {
   ChevronLeft,
   Receipt,
   Printer,
-  Shield,
   Truck,
   Clock,
 } from "lucide-react";
@@ -59,7 +58,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       icon: Package,
       label: "Inventory",
       path: "/inventory",
-      // Only show Inventory for users with proper permissions
       condition: canAccessInventory()
     },
     {
@@ -99,16 +97,16 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       condition: canAccessReports()
     },
     {
+      icon: Clock,
+      label: "Staff Shifts",
+      path: "/shifts",
+      condition: canAccessReports()
+    },
+    {
       icon: Truck,
       label: "Suppliers",
       path: "/suppliers",
       condition: canAccessInventory()
-    },
-    {
-      icon: Clock,
-      label: "Staff Shifts",
-      path: "/shifts",
-      condition: true
     },
     {
       icon: Settings,
@@ -132,7 +130,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
 
   return (
     <div className="flex h-full md:h-screen w-full md:w-64 flex-col bg-gradient-to-b from-background to-muted/30 border-r shadow-sm">
-      {/* Header with Logo and Store Name */}
       <div className="flex items-center justify-between p-4 border-b bg-card">
         <div className="flex items-center gap-3 flex-1">
           {storeLogo ? (
@@ -158,7 +155,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         </Button>
       </div>
 
-      {/* User Profile Section */}
       {user && (
         <div className="px-4 py-4 border-b bg-card/50">
           <div className="flex items-center gap-3">
@@ -180,7 +176,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         </div>
       )}
 
-      {/* Navigation Menu */}
       <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
         {menuItems.map((item) => {
           if (!item.condition) return null;
@@ -205,7 +200,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         })}
       </nav>
 
-      {/* Logout Button */}
       <div className="p-3 border-t bg-card/50">
         <Button
           variant="ghost"
@@ -217,7 +211,6 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         </Button>
       </div>
 
-      {/* Sync Indicator & Footer */}
       <div className="p-3 border-t flex items-center justify-between bg-card/30">
         <OfflineSyncIndicator />
         <p className="text-xs text-muted-foreground">© T-Tech</p>
