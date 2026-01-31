@@ -24,6 +24,7 @@ import { EnhancedCard } from "@/components/ui/EnhancedCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useSystemConfig } from "@/hooks/useSystemConfig";
 import { DataManagement } from "@/components/settings/DataManagement";
+import { SecuritySettings } from "@/components/settings/SecuritySettings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Settings = () => {
@@ -267,6 +268,7 @@ const Settings = () => {
             </>
           )}
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
+          <TabsTrigger value="security">Account Security</TabsTrigger>
         </TabsList>
         <TabsContent value="store">
           <Card>
@@ -524,12 +526,15 @@ const Settings = () => {
         <TabsContent value="privacy">
           <GdprSettings />
         </TabsContent>
+        <TabsContent value="security">
+          <SecuritySettings />
+        </TabsContent>
       </Tabs>
 
       <footer className="mt-8 pt-4 border-t text-center text-sm text-muted-foreground">
         2025 © T-Tech Solutions
       </footer>
-    </div>
+    </div >
   );
 };
 

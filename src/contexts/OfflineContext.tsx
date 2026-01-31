@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { supabase } from '@/integrations/supabase/client';
 
 interface OfflineContextType {
   isOnline: boolean;
@@ -144,46 +145,60 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
         try {
           console.log(`[OfflineSync] Processing ${op.resource} ${op.type} (ID: ${op.id})`);
 
-          if (op.resource === 'sales' && op.type === 'create') {
-            const { data, error } = await supabase.functions.invoke('complete-sale', {
-              body: op.data
-            });
-            if (error) throw error;
-          } else if (op.resource === 'inventory') {
-            const inventoryData = op.data as any;
-            if (op.type === 'create') {
-              // Note: we remove the temp ID before inserting
-              const { id, ...dataToInsert } = inventoryData;
-              const { error } = await supabase.from('inventory').insert(dataToInsert);
-              if (error) throw error;
-            } else if (op.type === 'update' && op.id) {
-              const { error } = await supabase.from('inventory').update(inventoryData).eq('id', op.id);
-              if (error) throw error;
-            } else if (op.type === 'delete' && op.id) {
-              const { error } = await supabase.from('inventory').delete().eq('id', op.id);
-              if (error) throw error;
-            }
-          } else {
-            // Generic fallback for other tables
-            if (op.type === 'create') {
-              const { error } = await supabase.from(op.resource as any).insert(op.data);
-              if (error) throw error;
-            } else if (op.type === 'update' && op.id) {
-              const { error } = await supabase.from(op.resource as any).update(op.data).eq('id', op.id);
-              if (error) throw error;
-            } else if (op.type === 'delete' && op.id) {
-              const { error } = await supabase.from(op.resource as any).delete().eq('id', op.id);
-              if (error) throw error;
+          // RETRY LOGIC (3 attempts)
+          let attempts = 0;
+          let success = false;
+          let lastError = null;
+
+          while (attempts < 3 && !success) {
+            try {
+              if (attempts > 0) await new Promise(r => setTimeout(r, 1000 * attempts)); // Backoff
+
+              if (op.resource === 'sales' && op.type === 'create') {
+                const { error } = await supabase.functions.invoke('complete-sale', { body: op.data });
+                if (error) throw error;
+              } else if (op.resource === 'inventory') {
+                const inventoryData = op.data as any;
+                if (op.type === 'create') {
+                  const { id, ...dataToInsert } = inventoryData;
+                  const { error } = await supabase.from('inventory').insert(dataToInsert);
+                  if (error) throw error;
+                } else if (op.type === 'update' && op.id) {
+                  const { error } = await supabase.from('inventory').update(inventoryData).eq('id', op.id);
+                  if (error) throw error;
+                } else if (op.type === 'delete' && op.id) {
+                  const { error } = await supabase.from('inventory').delete().eq('id', op.id);
+                  if (error) throw error;
+                }
+              } else {
+                if (op.type === 'create') {
+                  const { error } = await supabase.from(op.resource as any).insert(op.data);
+                  if (error) throw error;
+                } else if (op.type === 'update' && op.id) {
+                  const { error } = await supabase.from(op.resource as any).update(op.data).eq('id', op.id);
+                  if (error) throw error;
+                } else if (op.type === 'delete' && op.id) {
+                  const { error } = await supabase.from(op.resource as any).delete().eq('id', op.id);
+                  if (error) throw error;
+                }
+              }
+              success = true;
+            } catch (err) {
+              lastError = err;
+              attempts++;
+              console.warn(`[OfflineSync] Attempt ${attempts} failed for ${op.resource} ${op.id}`, err);
             }
           }
 
-          successfulIds.push(op.id);
-        } catch (opError) {
-          console.error(`[OfflineSync] Failed to process ${op.resource} ${op.id}:`, opError);
-          failedIds.push(op.id);
-          // Stop processing if we hit a critical network error? 
-          // For now we continue with others unless it's a global network failure
+          if (success) {
+            successfulIds.push(op.id);
+          } else {
+            throw lastError || new Error('Max retries exceeded');
+          }
         }
+        } catch (opError) {
+        console.error(`[OfflineSync] Failed to process ${op.resource} ${op.id} after retries:`, opError);
+        failedIds.push(op.id);
       }
 
       // Update the queue: keep only those that failed or were added during this process

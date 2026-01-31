@@ -13,6 +13,7 @@ import { NairaSign } from "@/components/icons/NairaSign";
 import { Skeleton } from '@/components/ui/skeleton';
 import { EnhancedCard } from '@/components/ui/EnhancedCard';
 import { EnhancedStatCard } from '@/components/admin/EnhancedStatCard';
+import { RefundReconciliationReport } from '@/components/reports/RefundReconciliationReport';
 
 const RefundApproval = () => {
     const { refunds, isLoading, fetchRefunds } = useRefund();
@@ -223,6 +224,9 @@ const RefundApproval = () => {
                             <TabsTrigger value="rejected">
                                 Rejected ({stats.rejected})
                             </TabsTrigger>
+                            <TabsTrigger value="reconciliation">
+                                Reconciliation
+                            </TabsTrigger>
                         </TabsList>
                         <TabsContent value="pending" className="mt-4">
                             {renderRefundTable(pendingRefunds)}
@@ -232,6 +236,9 @@ const RefundApproval = () => {
                         </TabsContent>
                         <TabsContent value="rejected" className="mt-4">
                             {renderRefundTable(rejectedRefunds)}
+                        </TabsContent>
+                        <TabsContent value="reconciliation" className="mt-4">
+                            <RefundReconciliationReport />
                         </TabsContent>
                     </Tabs>
                 </CardContent>

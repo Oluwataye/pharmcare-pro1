@@ -23,6 +23,16 @@ export interface Refund {
     customer_name?: string;
     items?: any[];
 
+    // Cash Reconciliation
+    cash_returned_amount?: number;
+    cash_returned_by?: string;
+    cash_returned_at?: string;
+    register_balance_before?: number;
+    register_balance_after?: number;
+    variance_amount?: number;
+    requires_additional_review?: boolean;
+    additional_review_reason?: string;
+
     created_at: string;
     updated_at: string;
 }
@@ -42,4 +52,9 @@ export interface RefundApproval {
     refund_id: string;
     action: 'approve' | 'reject';
     rejection_reason?: string;
+
+    // Cash Reconciliation
+    cash_returned_amount?: number;
+    register_balance_before?: number;
+    register_balance_after?: number;
 }

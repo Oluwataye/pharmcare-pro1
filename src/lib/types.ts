@@ -13,6 +13,7 @@ export interface AuthState {
   user: User | null;
   isAuthenticated: boolean;
   isLoading: boolean;
+  mfaRequired?: boolean;
 }
 
 export interface Permission {

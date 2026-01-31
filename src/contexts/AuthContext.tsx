@@ -10,6 +10,8 @@ import { secureStorage } from '@/lib/secureStorage';
 interface AuthContextType extends AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => void;
+  verifyMFA: (code: string) => Promise<void>;
+  lockSession: () => void;
   session: Session | null;
 }
 
@@ -21,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user: null,
     isAuthenticated: false,
     isLoading: true,
+    mfaRequired: false,
   });
   const [session, setSession] = React.useState<Session | null>(null);
   const { toast } = useToast();
@@ -245,6 +248,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           throw new Error('Unable to load user profile');
         }
 
+        // Check MFA Status
+        const { data: mfaData } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+        console.log('[AuthProvider] MFA Status:', mfaData);
+
+        if (mfaData && mfaData.nextLevel === 'aal2' && mfaData.currentLevel !== 'aal2') {
+          console.log('[AuthProvider] MFA Required');
+          setAuthState({
+            user: userProfile,
+            isAuthenticated: false,
+            isLoading: false,
+            mfaRequired: true,
+          });
+
+          toast({
+            title: 'Action Required',
+            description: 'Please verify your identity with 2FA.',
+          });
+          return;
+        }
+
         // Log successful login
         logSuccessfulLogin(data.user.id, email, userProfile.role);
 
@@ -252,6 +275,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           user: userProfile,
           isAuthenticated: true,
           isLoading: false,
+          mfaRequired: false,
         });
 
         toast({
@@ -309,10 +333,65 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const verifyMFA = async (code: string) => {
+    setAuthState(prev => ({ ...prev, isLoading: true }));
+    try {
+      const { data, error } = await supabase.auth.mfa.challengeAndVerify({
+        factorId: (await supabase.auth.mfa.listFactors()).data?.totp[0]?.id || '',
+        code,
+      });
+
+      if (error) throw error;
+
+      if (authState.user) {
+        logSuccessfulLogin(authState.user.id, authState.user.email, authState.user.role);
+      }
+
+      setAuthState(prev => ({
+        ...prev,
+        isAuthenticated: true,
+        isLoading: false,
+        mfaRequired: false,
+      }));
+
+      toast({
+        title: 'Verification Successful',
+        description: 'You have been logged in.',
+      });
+    } catch (error: any) {
+      console.error('MFA Verification Error:', error);
+      setAuthState(prev => ({ ...prev, isLoading: false }));
+      toast({
+        title: 'Verification Failed',
+        description: error.message || 'Invalid code',
+        variant: 'destructive',
+      });
+      throw error;
+    }
+  };
+
+  const lockSession = () => {
+    // Only lock if we have a user
+    if (authState.user) {
+      console.log('[AuthProvider] Locking session due to timeout');
+      setAuthState(prev => ({
+        ...prev,
+        isAuthenticated: false, // This will trigger ProtectedRoute to show MFA/Login
+        mfaRequired: true // Force MFA if enabled, or just re-login check
+      }));
+      toast({
+        title: "Session Locked",
+        description: "Your session has been locked due to inactivity.",
+      });
+    }
+  };
+
   const authValue = React.useMemo(() => ({
     ...authState,
     login,
     logout,
+    verifyMFA,
+    lockSession,
     session,
   }), [authState, session]);
 

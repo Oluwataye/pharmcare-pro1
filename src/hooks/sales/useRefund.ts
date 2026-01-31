@@ -104,12 +104,15 @@ export const useRefund = () => {
         setIsLoading(true);
         try {
             const { data, error: rpcError } = await supabase
-                .rpc('process_refund_transaction', {
+                .rpc('process_refund_with_cash_tracking', {
                     p_refund_id: approval.refund_id,
                     p_action: approval.action,
                     p_rejection_reason: approval.rejection_reason || null,
                     p_admin_id: user.id,
-                    p_admin_name: user.username || user.name || user.email
+                    p_admin_name: user.username || user.name || user.email,
+                    p_cash_returned_amount: approval.cash_returned_amount || 0,
+                    p_register_balance_before: approval.register_balance_before || 0,
+                    p_register_balance_after: approval.register_balance_after || 0,
                 });
 
             if (rpcError) throw rpcError;

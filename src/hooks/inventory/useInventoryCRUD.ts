@@ -381,6 +381,22 @@ export const useInventoryCRUD = () => {
           costPrice: item.costPrice,
           unitPrice: item.price
         });
+
+        // Log to central audit trail
+        await supabase.rpc('log_audit_event', {
+          p_event_type: 'INVENTORY_ADJUSTMENT',
+          p_user_id: user.id,
+          p_user_email: user.email || 'unknown',
+          p_user_role: user.role,
+          p_description: `Stock adjustment for ${item.name}: ${diff > 0 ? '+' : ''}${diff} (Reason: ${reason})`,
+          p_resource_type: 'inventory',
+          p_resource_id: id,
+          p_metadata: {
+            prev_qty: item.quantity,
+            new_qty: newQuantity,
+            reason: reason
+          }
+        });
       } else {
         updateOfflineItem('inventory', id, { ...item, quantity: newQuantity });
       }

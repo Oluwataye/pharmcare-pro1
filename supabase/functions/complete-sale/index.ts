@@ -99,6 +99,26 @@ serve(async (req) => {
       throw new Error('Invalid sale items: must be a non-empty array')
     }
 
+    // RATE LIMITING CHECK
+    // Check for recent sales by this cashier to prevent accidental double-submission or abuse
+    const { data: recentSales, error: limitError } = await supabase
+      .from('sales')
+      .select('created_at')
+      .eq('cashier_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1);
+
+    if (recentSales && recentSales.length > 0) {
+      const lastSaleTime = new Date(recentSales[0].created_at).getTime();
+      const now = Date.now();
+      const timeDiff = now - lastSaleTime;
+
+      if (timeDiff < 2000) { // 2 seconds cooldown
+        console.warn(`Rate limit hit for user ${user.id}. Time diff: ${timeDiff}ms`);
+        throw new Error('Please wait a moment before processing another sale.');
+      }
+    }
+
     if (saleData.items.length > 2000) {
       throw new Error('Too many items in a single sale (max 2000)')
     }

@@ -8,6 +8,7 @@ import { Menu } from "lucide-react";
 import { Spinner } from "@/components/ui/spinner";
 import { ShiftStatusHeader } from "../shifts/ShiftStatusHeader";
 import { useLocation } from "react-router-dom";
+import { SessionTimeout } from "@/components/security/SessionTimeout";
 
 const DashboardLayout = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -60,6 +61,7 @@ const DashboardLayout = () => {
         <div className="p-4 md:p-8 flex-1">
           <Outlet />
         </div>
+        <SessionTimeout />
       </main>
     </div>
   );

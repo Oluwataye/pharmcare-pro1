@@ -98,18 +98,41 @@ export const DataManagement = () => {
                         </Button>
                     </div>
 
-                    <div className="border rounded-lg p-4 space-y-4 opacity-50 cursor-not-allowed" title="Restore feature coming soon">
+                    <div className="border rounded-lg p-4 space-y-4">
                         <div className="flex items-center gap-3">
-                            <div className="p-2 bg-secondary/50 rounded-full">
+                            <div className="p-2 bg-secondary/10 rounded-full">
                                 <Upload className="h-5 w-5 text-secondary-foreground" />
                             </div>
                             <div>
-                                <h3 className="font-semibold">Restore Data</h3>
-                                <p className="text-sm text-muted-foreground">Restore from a previously saved backup file.</p>
+                                <h3 className="font-semibold">Cloud Backup</h3>
+                                <p className="text-sm text-muted-foreground">Trigger an immediate server-side backup to the cloud.</p>
                             </div>
                         </div>
-                        <Button variant="outline" className="w-full" disabled>
-                            Restore (Contact Admin)
+                        <Button
+                            variant="outline"
+                            className="w-full"
+                            onClick={async () => {
+                                setIsExporting(true);
+                                try {
+                                    const { data, error } = await supabase.functions.invoke('backup-db');
+                                    if (error) throw error;
+                                    toast({
+                                        title: "Backup Started",
+                                        description: "Server-side backup initiated successfully.",
+                                    });
+                                } catch (error: any) {
+                                    toast({
+                                        title: "Backup Failed",
+                                        description: error.message,
+                                        variant: "destructive"
+                                    });
+                                } finally {
+                                    setIsExporting(false);
+                                }
+                            }}
+                            disabled={isExporting}
+                        >
+                            Trigger Cloud Backup
                         </Button>
                     </div>
                 </div>
