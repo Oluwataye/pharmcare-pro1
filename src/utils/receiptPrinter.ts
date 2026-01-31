@@ -122,6 +122,25 @@ export const openPrintWindow = (): Window | null => {
 export const printReceipt = async (props: PrintReceiptProps, existingWindow?: Window | null): Promise<boolean> => {
   console.log("Printing receipt via Stage 2 Window", props);
 
+  // DEFENSIVE CHECK: Ensure props and storeSettings exist
+  if (!props) {
+    throw new PrintReceiptError(PrintError.UNKNOWN, "Printing failed: No data provided.");
+  }
+
+  // Ensure storeSettings is never undefined to prevent crash on .logo_url
+  const safeStoreSettings = props.storeSettings || {
+    name: 'Pharmacy Store',
+    address: null,
+    phone: null,
+    email: null,
+    logo_url: null,
+    print_show_logo: false,
+    print_show_address: true,
+    print_show_email: true,
+    print_show_phone: true,
+    print_show_footer: true
+  };
+
   const printWindow = existingWindow || openPrintWindow();
 
   if (!printWindow) {
@@ -134,8 +153,8 @@ export const printReceipt = async (props: PrintReceiptProps, existingWindow?: Wi
   return new Promise(async (resolve, reject) => {
     try {
       // Preload logo image if present
-      let logoUrl = props.storeSettings.logo_url;
-      if (logoUrl && props.storeSettings.print_show_logo) {
+      let logoUrl = safeStoreSettings.logo_url;
+      if (logoUrl && safeStoreSettings.print_show_logo) {
         const preloadedLogo = await preloadImage(logoUrl);
         if (!preloadedLogo) {
           console.warn('Logo failed to load, continuing without logo');
@@ -144,7 +163,10 @@ export const printReceipt = async (props: PrintReceiptProps, existingWindow?: Wi
       }
 
       // Generate receipt HTML content
-      const receiptContent = generateReceiptHTML({ ...props, storeSettings: { ...props.storeSettings, logo_url: logoUrl } });
+      const receiptContent = generateReceiptHTML({
+        ...props,
+        storeSettings: { ...safeStoreSettings, logo_url: logoUrl }
+      });
 
       // Write content to the window
       printWindow.document.open();

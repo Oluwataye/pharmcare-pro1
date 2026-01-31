@@ -146,7 +146,18 @@ export const useSalesPrinting = (
         saleType,
         dispenserId: options?.dispenserId || undefined,
         saleId: options?.saleId,
-        storeSettings: storeSettings!,
+        storeSettings: storeSettings || {
+          name: 'Pharmacy Store',
+          address: null,
+          phone: null,
+          email: null,
+          logo_url: null,
+          print_show_logo: false,
+          print_show_address: true,
+          print_show_email: true,
+          print_show_phone: true,
+          print_show_footer: true
+        },
       };
 
       if (options?.directPrint) {
