@@ -195,10 +195,10 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
           } else {
             throw lastError || new Error('Max retries exceeded');
           }
-        }
         } catch (opError) {
-        console.error(`[OfflineSync] Failed to process ${op.resource} ${op.id} after retries:`, opError);
-        failedIds.push(op.id);
+          console.error(`[OfflineSync] Failed to process ${op.resource} ${op.id} after retries:`, opError);
+          failedIds.push(op.id);
+        }
       }
 
       // Update the queue: keep only those that failed or were added during this process
