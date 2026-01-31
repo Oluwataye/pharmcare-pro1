@@ -8,13 +8,13 @@ import { logPrintAnalytics } from '@/utils/printAnalytics';
 
 export const useReceiptReprint = () => {
   const { toast } = useToast();
-  const { settings: storeSettings } = useStoreSettings();
+  const { settings: storeSettings, isLoading: isLoadingSettings } = useStoreSettings();
   const [showPreview, setShowPreview] = useState(false);
   const [previewData, setPreviewData] = useState<PrintReceiptProps | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const fetchAndPreviewReceipt = useCallback(async (saleId: string, windowRef?: Window | null) => {
-    if (!storeSettings && isLoading) {
+    if (isLoadingSettings) {
       if (windowRef && !windowRef.closed) windowRef.close();
       toast({
         title: 'Settings Loading',
@@ -62,7 +62,7 @@ export const useReceiptReprint = () => {
           date: sale.created_at ? new Date(sale.created_at) : new Date(),
           total: sale.total,
           discount: sale.discount || 0,
-          manualDiscount: sale.manual_discount || 0,
+          manualDiscount: (sale as any).manual_discount || 0,
           customerName: sale.customer_name,
           customerPhone: sale.customer_phone,
           businessName: sale.business_name,
@@ -108,7 +108,20 @@ export const useReceiptReprint = () => {
           }
         }
         cleanReceiptData.date = receiptDate;
-        cleanReceiptData.storeSettings = storeSettings;
+
+        // CRITICAL FIX: Ensure storeSettings is never passed as undefined/null to printing utility
+        cleanReceiptData.storeSettings = storeSettings || {
+          name: 'Pharmacy Store',
+          address: null,
+          phone: null,
+          email: null,
+          logo_url: null,
+          print_show_logo: false,
+          print_show_address: true,
+          print_show_email: true,
+          print_show_phone: true,
+          print_show_footer: true
+        };
 
         setPreviewData(cleanReceiptData);
 
@@ -132,12 +145,13 @@ export const useReceiptReprint = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [toast, storeSettings, isLoading]);
+  }, [toast, storeSettings, isLoadingSettings]);
 
   const executePrint = useCallback(async (customData?: PrintReceiptProps, windowRef?: Window | null) => {
     const dataToPrint = customData || previewData;
     if (!dataToPrint) return;
 
+    const items = dataToPrint.items || [];
     const startTime = Date.now();
     let printStatus: 'success' | 'failed' | 'cancelled' = 'success';
     let errorType: string | undefined;
@@ -162,7 +176,7 @@ export const useReceiptReprint = () => {
         printDurationMs: duration,
         isReprint: true,
         saleType: dataToPrint.saleType,
-        totalAmount: dataToPrint.items.reduce((sum, item) => sum + item.total, 0) - (dataToPrint.discount || 0),
+        totalAmount: items.reduce((sum, item) => sum + (item.total || 0), 0) - (dataToPrint.discount || 0) - (dataToPrint.manualDiscount || 0),
       });
 
       setShowPreview(false);
@@ -185,6 +199,7 @@ export const useReceiptReprint = () => {
 
       const duration = Date.now() - startTime;
 
+      // Defensive check for analytics to prevent secondary crashes in catch block
       await logPrintAnalytics({
         saleId: dataToPrint.saleId,
         dispenserId: dataToPrint.dispenserId,
@@ -196,7 +211,7 @@ export const useReceiptReprint = () => {
         printDurationMs: duration,
         isReprint: true,
         saleType: dataToPrint.saleType,
-        totalAmount: dataToPrint.items.reduce((sum, item) => sum + item.total, 0) - (dataToPrint.discount || 0),
+        totalAmount: items.reduce((sum, item) => sum + (item.total || 0), 0) - (dataToPrint.discount || 0) - (dataToPrint.manualDiscount || 0),
       });
 
       toast({

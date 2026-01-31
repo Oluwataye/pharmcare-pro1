@@ -53,6 +53,8 @@ export const useSalesPrinting = (
       }
 
       const duration = Date.now() - startTime;
+      const itemsToLog = dataToPrint.items || [];
+      const totalAmount = itemsToLog.reduce((sum, item) => sum + (item.total || 0), 0) - (dataToPrint.discount || 0) - (dataToPrint.manualDiscount || 0);
 
       // Log successful print
       await logPrintAnalytics({
@@ -64,7 +66,7 @@ export const useSalesPrinting = (
         printDurationMs: duration,
         isReprint: false,
         saleType: dataToPrint.saleType,
-        totalAmount: dataToPrint.items.reduce((sum, item) => sum + item.total, 0) - (dataToPrint.discount || 0) - (dataToPrint.manualDiscount || 0),
+        totalAmount,
       });
 
       setShowPreview(false);
@@ -86,6 +88,8 @@ export const useSalesPrinting = (
       }
 
       const duration = Date.now() - startTime;
+      const itemsToLog = dataToPrint.items || [];
+      const totalAmount = itemsToLog.reduce((sum, item) => sum + (item.total || 0), 0) - (dataToPrint.discount || 0) - (dataToPrint.manualDiscount || 0);
 
       await logPrintAnalytics({
         saleId: dataToPrint.saleId,
@@ -98,7 +102,7 @@ export const useSalesPrinting = (
         printDurationMs: duration,
         isReprint: false,
         saleType: dataToPrint.saleType,
-        totalAmount: dataToPrint.items.reduce((sum, item) => sum + item.total, 0) - (dataToPrint.discount || 0) - (dataToPrint.manualDiscount || 0),
+        totalAmount,
       });
 
       toast({
