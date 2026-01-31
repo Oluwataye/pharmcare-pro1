@@ -171,6 +171,29 @@ serve(async (req) => {
 
     console.log('Sale completed successfully via RPC:', result.sale_id);
 
+    // 2.5 SAVE RECEIPT DATA
+    try {
+      const { error: receiptError } = await supabase
+        .from('receipts')
+        .insert({
+          sale_id: result.sale_id,
+          receipt_data: {
+            ...saleData,
+            saleId: result.sale_id,
+            date: new Date().toISOString()
+          }
+        });
+
+      if (receiptError) {
+        console.error('Error saving receipt:', receiptError);
+        // We don't throw here to avoid failing a successful sale just because receipt storage failed
+      } else {
+        console.log('Receipt record created for sale:', result.sale_id);
+      }
+    } catch (saveError) {
+      console.error('Exception saving receipt:', saveError);
+    }
+
     // 3. LOW STOCK CHECK & ALERTING (Asynchronous/Non-blocking)
     try {
       const { data: settings } = await supabase

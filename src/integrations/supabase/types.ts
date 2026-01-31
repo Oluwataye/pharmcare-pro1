@@ -367,6 +367,7 @@ export type Database = {
           customer_phone: string | null
           discount: number | null
           id: string
+          manual_discount: number | null
           sale_type: string
           status: string
           total: number
@@ -384,6 +385,7 @@ export type Database = {
           customer_phone?: string | null
           discount?: number | null
           id?: string
+          manual_discount?: number | null
           sale_type?: string
           status?: string
           total: number
@@ -401,6 +403,7 @@ export type Database = {
           customer_phone?: string | null
           discount?: number | null
           id?: string
+          manual_discount?: number | null
           sale_type?: string
           status?: string
           total?: number

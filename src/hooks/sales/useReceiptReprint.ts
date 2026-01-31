@@ -26,22 +26,67 @@ export const useReceiptReprint = () => {
 
     setIsLoading(true);
     try {
-      const { data, error } = await supabase
+      let receiptData: any = null;
+
+      // 1. Try to fetch from 'receipts' table
+      const { data: storedReceipt, error: fetchError } = await supabase
         .from('receipts')
         .select('receipt_data')
         .eq('sale_id', saleId)
-        .single();
+        .maybeSingle();
 
-      if (error) throw error;
+      if (fetchError) {
+        console.warn('Error fetching from receipts table:', fetchError);
+      }
 
-      if (data?.receipt_data) {
-        // Parse if it's a string, otherwise use as is
-        const rawData = typeof data.receipt_data === 'string'
-          ? JSON.parse(data.receipt_data)
-          : data.receipt_data;
+      if (storedReceipt?.receipt_data) {
+        receiptData = typeof storedReceipt.receipt_data === 'string'
+          ? JSON.parse(storedReceipt.receipt_data)
+          : storedReceipt.receipt_data;
+      } else {
+        // 2. FALLBACK: Reconstruct from 'sales' and 'sales_items'
+        console.log('Receipt record not found, attempting reconstruction from sales data...');
+        const { data: sale, error: saleError } = await supabase
+          .from('sales')
+          .select('*, sales_items(*)')
+          .eq('id', saleId)
+          .maybeSingle();
 
+        if (saleError) throw saleError;
+        if (!sale) throw new Error('Sale record not found');
+
+        // Map database record to PrintReceiptProps
+        receiptData = {
+          saleId: sale.id,
+          transactionId: sale.transaction_id,
+          date: sale.created_at ? new Date(sale.created_at) : new Date(),
+          total: sale.total,
+          discount: sale.discount || 0,
+          manualDiscount: sale.manual_discount || 0,
+          customerName: sale.customer_name,
+          customerPhone: sale.customer_phone,
+          businessName: sale.business_name,
+          businessAddress: sale.business_address,
+          saleType: sale.sale_type,
+          dispenserName: sale.cashier_name,
+          dispenserEmail: sale.cashier_email,
+          dispenserId: sale.cashier_id,
+          items: (sale.sales_items || []).map((item: any) => ({
+            id: item.product_id,
+            name: item.product_name,
+            quantity: item.quantity,
+            price: item.price,
+            unitPrice: item.unit_price,
+            total: item.total,
+            discount: item.discount,
+            isWholesale: item.is_wholesale
+          }))
+        };
+      }
+
+      if (receiptData) {
         // Clean the receipt data
-        const cleanReceiptData = JSON.parse(JSON.stringify(rawData), (key, value) => {
+        const cleanReceiptData = JSON.parse(JSON.stringify(receiptData), (key, value) => {
           if (value && typeof value === 'object' && '_type' in value && 'value' in value) {
             return value.value;
           }
@@ -74,7 +119,7 @@ export const useReceiptReprint = () => {
           setShowPreview(true);
         }
       } else {
-        throw new Error('Receipt data not found');
+        throw new Error('Could not retrieve receipt data');
       }
     } catch (error: any) {
       if (windowRef && !windowRef.closed) windowRef.close();
