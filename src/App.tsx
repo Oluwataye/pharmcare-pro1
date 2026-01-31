@@ -92,7 +92,16 @@ const App = ({ queryClient, persister }: AppProps) => {
                         <Route path="/receipts" element={<Suspense fallback={<PageLoader />}><Receipts /></Suspense>} />
                         <Route path="/users" element={<Suspense fallback={<PageLoader />}><Users /></Suspense>} />
                         <Route path="/settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
-                        <Route path="/reports" element={<Suspense fallback={<PageLoader />}><Reports /></Suspense>} />
+                        <Route
+                          path="/reports"
+                          element={
+                            <ProtectedRoute
+                              requiredPermission={{ action: "read", resource: "reports" }}
+                            >
+                              <Suspense fallback={<PageLoader />}><Reports /></Suspense>
+                            </ProtectedRoute>
+                          }
+                        />
                         <Route
                           path="/print-history"
                           element={
@@ -117,7 +126,7 @@ const App = ({ queryClient, persister }: AppProps) => {
                           path="/suppliers"
                           element={
                             <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "inventory" }}
+                              requiredPermission={{ action: "read", resource: "suppliers" }}
                             >
                               <Suspense fallback={<PageLoader />}><Suppliers /></Suspense>
                             </ProtectedRoute>

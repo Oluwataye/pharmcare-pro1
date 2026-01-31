@@ -85,6 +85,10 @@ export function usePermissions() {
     return hasPermission({ action: 'read', resource: 'shifts' });
   }, [hasPermission]);
 
+  const canAccessSuppliers = useCallback((): boolean => {
+    return hasPermission({ action: 'read', resource: 'suppliers' });
+  }, [hasPermission]);
+
   return {
     hasPermission,
     canAccessInventory,
@@ -101,5 +105,6 @@ export function usePermissions() {
     canReadWholesale,
     canManageWholesale,
     canAccessShifts,
+    canAccessSuppliers,
   };
 }
