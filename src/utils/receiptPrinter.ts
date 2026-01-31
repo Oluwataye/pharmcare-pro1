@@ -220,8 +220,11 @@ export const printReceipt = async (props: PrintReceiptProps, existingWindow?: Wi
 
 // Helper function to generate receipt HTML
 function generateReceiptHTML(props: PrintReceiptProps): string {
+  // DEFENSIVE: Handle missing props
+  if (!props) return '<html><body><h1>Error: No receipt data</h1></body></html>';
+
   const {
-    items,
+    items = [],
     discount = 0,
     manualDiscount = 0,
     date = new Date(),
@@ -231,22 +234,31 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
     businessName,
     businessAddress,
     saleType = 'retail',
-    storeSettings
+    storeSettings = {} as StoreSettings
   } = props;
 
-  const storeName = storeSettings.name || 'PharmCare Pro';
-  const storeAddress = storeSettings.address || '123 Main Street, Lagos';
-  const storeEmail = storeSettings.email;
-  const storePhone = storeSettings.phone;
-  const logo = storeSettings.logo_url;
+  // ENSURE items is an array before reduce
+  const safeItems = Array.isArray(items) ? items : [];
 
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const storeName = storeSettings?.name || 'PharmCare Pro';
+  const storeAddress = storeSettings?.address || 'Address Not Set';
+  const storeEmail = storeSettings?.email;
+  const storePhone = storeSettings?.phone;
+  const logo = storeSettings?.logo_url;
+
+  const subtotal = safeItems.reduce((sum, item) => sum + ((item?.price || 0) * (item?.quantity || 0)), 0);
   const discountPercentageAmount = subtotal * (discount / 100);
   const totalDiscount = discountPercentageAmount + manualDiscount;
   const total = subtotal - totalDiscount;
 
-  const formattedDate = date.toLocaleDateString();
-  const formattedTime = date.toLocaleTimeString();
+  // Handle invalid dates safely
+  let dateObj = date;
+  if (!(dateObj instanceof Date) || isNaN(dateObj.getTime())) {
+    dateObj = new Date();
+  }
+
+  const formattedDate = dateObj.toLocaleDateString();
+  const formattedTime = dateObj.toLocaleTimeString();
 
   return `
     <!DOCTYPE html>
