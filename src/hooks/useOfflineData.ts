@@ -33,13 +33,14 @@ export function useOfflineData() {
     }
   };
 
-  const queueOperation = (type: 'create' | 'update' | 'delete', resource: string, id?: string, data?: any) => {
+  const queueOperation = (type: 'create' | 'update' | 'delete', resource: string, id?: string, data?: any, snapshot?: any) => {
     const operation: PendingOperation = {
       id: id || `temp_${Date.now()}_${Math.floor(Math.random() * 1000)}`,
       type,
       resource,
       data,
       timestamp: Date.now(),
+      snapshot,
     };
 
     addPendingOperation(operation);
@@ -70,7 +71,11 @@ export function useOfflineData() {
       });
     }
 
-    return queueOperation('update', resource, id, data);
+    // Get current item from cache to use as snapshot
+    const currentItems = queryClient.getQueryData<any[]>([resource]) || [];
+    const snapshot = currentItems.find(item => item.id === id);
+
+    return queueOperation('update', resource, id, data, snapshot);
   };
 
   const deleteOfflineItem = (resource: string, id: string) => {

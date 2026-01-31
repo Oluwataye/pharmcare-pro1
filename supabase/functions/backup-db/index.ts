@@ -77,6 +77,28 @@ serve(async (req) => {
 
     } catch (error) {
         console.error('Backup error:', error)
+
+        // Trigger Backup Failure Alert
+        try {
+            const supabase = createClient(
+                Deno.env.get('SUPABASE_URL') ?? '',
+                Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+            )
+
+            await supabase.functions.invoke('send-alert', {
+                body: {
+                    type: 'BACKUP_FAILURE',
+                    message: `System Alert: Automated database backup failed. Error: ${error.message}`,
+                    data: {
+                        error: error.message,
+                        timestamp: new Date().toISOString()
+                    }
+                }
+            });
+        } catch (alertError) {
+            console.error('Failed to send backup failure alert:', alertError);
+        }
+
         return new Response(
             JSON.stringify({ error: error.message }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }

@@ -11,13 +11,23 @@ interface OfflineContextType {
   syncData: () => Promise<void>;
   addPendingOperation: (operation: PendingOperation) => void;
   clearPendingOperations: () => void;
+  conflicts: SyncConflict[];
+  resolveConflict: (conflictId: string, resolution: 'local' | 'server' | 'merge', mergedData?: any) => Promise<void>;
 }
 
 export interface PendingOperation {
   id: string;
   type: 'create' | 'update' | 'delete';
   resource: string;
-  data?: unknown;
+  data?: any;
+  timestamp: number;
+  snapshot?: any; // The record state at the time of modification
+}
+
+export interface SyncConflict {
+  id: string;
+  operation: PendingOperation;
+  serverVersion: any;
   timestamp: number;
 }
 
@@ -30,6 +40,8 @@ const defaultOfflineContext: OfflineContextType = {
   syncData: async () => { },
   addPendingOperation: () => { },
   clearPendingOperations: () => { },
+  conflicts: [],
+  resolveConflict: async () => { },
 };
 
 const OfflineContext = createContext<OfflineContextType>(defaultOfflineContext);
@@ -48,6 +60,7 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
   const [syncPending, setSyncPending] = useState(false);
   const [pendingOperations, setPendingOperations] = useState<PendingOperation[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [conflicts, setConflicts] = useState<SyncConflict[]>([]);
   const { toast } = useToast();
 
   // Load pending operations from localStorage
@@ -145,6 +158,33 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
         try {
           console.log(`[OfflineSync] Processing ${op.resource} ${op.type} (ID: ${op.id})`);
 
+          // CONFLICT DETECTION
+          if (op.type === 'update' && op.resource !== 'sales' && op.id) {
+            const { data: serverRecord, error: fetchError } = await supabase
+              .from(op.resource as any)
+              .select('*')
+              .eq('id', op.id)
+              .single();
+
+            if (!fetchError && serverRecord) {
+              // Compare server's updated_at with local snapshot's updated_at if available
+              const serverUpdatedAt = serverRecord.updated_at ? new Date(serverRecord.updated_at).getTime() : 0;
+              const localUpdatedAt = op.snapshot?.updated_at ? new Date(op.snapshot.updated_at).getTime() : 0;
+
+              if (serverUpdatedAt > localUpdatedAt) {
+                console.warn(`[OfflineSync] Conflict detected for ${op.resource} ${op.id}`);
+                setConflicts(prev => [...prev, {
+                  id: op.id,
+                  operation: op,
+                  serverVersion: serverRecord,
+                  timestamp: Date.now()
+                }]);
+                failedIds.push(op.id);
+                continue; // Skip this operation, it needs manual resolution
+              }
+            }
+          }
+
           // RETRY LOGIC (3 attempts)
           let attempts = 0;
           let success = false;
@@ -236,6 +276,55 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
     }
   }, [isOnline, pendingOperations.length, isSyncing, syncData]);
 
+  const resolveConflict = useCallback(async (
+    conflictId: string,
+    resolution: 'local' | 'server' | 'merge',
+    mergedData?: any
+  ) => {
+    const conflict = conflicts.find(c => c.id === conflictId);
+    if (!conflict) return;
+
+    try {
+      setIsSyncing(true);
+      const { operation, serverVersion } = conflict;
+
+      if (resolution === 'server') {
+        // Discard local changes: remove from pendingOperations and conflicts
+        setPendingOperations(prev => prev.filter(op => op.id !== operation.id));
+        setConflicts(prev => prev.filter(c => c.id !== conflictId));
+        toast({ title: "Conflict Resolved", description: "Server version kept." });
+      } else {
+        // Resolve with local or merge: perform update on server
+        const finalData = resolution === 'local' ? operation.data : mergedData;
+
+        const { error } = await supabase
+          .from(operation.resource as any)
+          .update(finalData)
+          .eq('id', operation.id);
+
+        if (error) throw error;
+
+        // Clear from both queues on success
+        setPendingOperations(prev => prev.filter(op => op.id !== operation.id));
+        setConflicts(prev => prev.filter(c => c.id !== conflictId));
+
+        toast({
+          title: "Conflict Resolved",
+          description: resolution === 'local' ? "Local version applied." : "Merged version applied."
+        });
+      }
+    } catch (error) {
+      console.error('[OfflineSync] Failed to resolve conflict:', error);
+      toast({
+        title: "Resolution Failed",
+        description: "Could not apply resolution. Please try again.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  }, [conflicts, toast]);
+
   return (
     <OfflineContext.Provider
       value={{
@@ -247,6 +336,8 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
         syncData,
         addPendingOperation,
         clearPendingOperations,
+        conflicts,
+        resolveConflict
       }}
     >
       {children}

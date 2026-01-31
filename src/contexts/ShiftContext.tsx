@@ -190,7 +190,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 type: 'update',
                 resource: 'staff_shifts',
                 data: { status: 'paused' },
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                snapshot: activeShift // Snapshot of current active shift
             });
 
             toast({
@@ -229,7 +230,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 type: 'update',
                 resource: 'staff_shifts',
                 data: { status: 'active' },
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                snapshot: activeShift
             });
 
             toast({
@@ -264,7 +266,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 type: 'update',
                 resource: 'staff_shifts',
                 data: { status: 'paused' },
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                snapshot: activeStaffShifts.find(s => s.id === shiftId)
             });
 
             toast({ title: "Shift Paused (Offline)", description: "Remote change queued." });
@@ -295,7 +298,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 type: 'update',
                 resource: 'staff_shifts',
                 data: { status: 'active' },
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                snapshot: activeStaffShifts.find(s => s.id === shiftId)
             });
 
             toast({ title: "Shift Resumed (Offline)", description: "Remote change queued." });
@@ -334,7 +338,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     notes: notes,
                     expected_sales_total: 0 // Placeholder for offline closure
                 },
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                snapshot: activeShift
             });
 
             setActiveShift(null);
@@ -363,7 +368,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     actual_cash_counted: actualCash,
                     notes: notes
                 },
-                timestamp: Date.now()
+                timestamp: Date.now(),
+                snapshot: activeStaffShifts.find(s => s.id === shiftId)
             });
             toast({ title: "Shift Force Ended (Offline)", description: "Record queued." });
             return;

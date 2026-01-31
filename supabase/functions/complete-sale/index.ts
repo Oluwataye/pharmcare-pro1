@@ -171,6 +171,47 @@ serve(async (req) => {
 
     console.log('Sale completed successfully via RPC:', result.sale_id);
 
+    // 3. LOW STOCK CHECK & ALERTING (Asynchronous/Non-blocking)
+    try {
+      const { data: settings } = await supabase
+        .from('store_settings')
+        .select('low_stock_threshold_global, enable_low_stock_alerts')
+        .single();
+
+      if (settings?.enable_low_stock_alerts) {
+        const threshold = settings.low_stock_threshold_global || 10;
+        const productIds = saleData.items.map(item => item.id);
+
+        const { data: lowStockItems } = await supabase
+          .from('inventory')
+          .select('id, name, quantity')
+          .in('id', productIds)
+          .lt('quantity', threshold);
+
+        if (lowStockItems && lowStockItems.length > 0) {
+          for (const item of lowStockItems) {
+            console.log(`[Low Stock Alert] ${item.name} is at ${item.quantity}`);
+            // Invoke send-alert function
+            await supabase.functions.invoke('send-alert', {
+              body: {
+                type: 'LOW_STOCK',
+                message: `Low stock alert: ${item.name} has only ${item.quantity} units left.`,
+                data: {
+                  productId: item.id,
+                  productName: item.name,
+                  quantity: item.quantity,
+                  threshold
+                }
+              }
+            });
+          }
+        }
+      }
+    } catch (alertError) {
+      console.error('Error during low stock check/alert:', alertError);
+      // Don't fail the sale if alerting fails
+    }
+
     return new Response(
       JSON.stringify({
         success: true,

@@ -8,6 +8,7 @@ import { AuthProvider } from "./contexts/AuthContext";
 import { OfflineProvider } from "./contexts/OfflineContext";
 import { InventoryProvider } from "./contexts/InventoryContext";
 import { ShiftProvider } from "./contexts/ShiftContext";
+import { ConflictResolutionDialog } from "./components/sync/ConflictResolutionDialog";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import Login from "./pages/Login";

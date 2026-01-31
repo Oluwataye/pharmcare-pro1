@@ -18,6 +18,7 @@ import { Switch } from "@/components/ui/switch";
 import { useAuth } from "@/contexts/AuthContext";
 import { DiscountManagement } from "@/components/settings/DiscountManagement";
 import { UserProfileSettings } from "@/components/settings/UserProfileSettings";
+import { UserProfileSettings } from "@/components/settings/UserProfileSettings";
 import { GdprSettings } from "@/components/settings/GdprSettings";
 import { RetentionSettings } from "@/components/settings/RetentionSettings";
 import { EnhancedCard } from "@/components/ui/EnhancedCard";
@@ -25,6 +26,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useSystemConfig } from "@/hooks/useSystemConfig";
 import { DataManagement } from "@/components/settings/DataManagement";
 import { SecuritySettings } from "@/components/settings/SecuritySettings";
+import { NotificationSettings } from "@/components/settings/NotificationSettings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const Settings = () => {
@@ -269,6 +271,7 @@ const Settings = () => {
           )}
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
           <TabsTrigger value="security">Account Security</TabsTrigger>
+          <TabsTrigger value="notifications">Notifications</TabsTrigger>
         </TabsList>
         <TabsContent value="store">
           <Card>
@@ -528,6 +531,9 @@ const Settings = () => {
         </TabsContent>
         <TabsContent value="security">
           <SecuritySettings />
+        </TabsContent>
+        <TabsContent value="notifications">
+          <NotificationSettings />
         </TabsContent>
       </Tabs>
 

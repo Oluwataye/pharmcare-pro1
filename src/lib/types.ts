@@ -3,6 +3,10 @@ export type UserRole = 'SUPER_ADMIN' | 'ADMIN' | 'PHARMACIST' | 'DISPENSER';
 
 export interface User {
   id: string;
+  currency_symbol: string;
+  low_stock_threshold_global?: number;
+  enable_low_stock_alerts?: boolean;
+  enable_backup_alerts?: boolean;
   email: string;
   name: string;
   username?: string; // Add optional username property
