@@ -5,7 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useMFA } from '@/hooks/useMFA';
-import { Loader2, Copy, CheckCircle, ShieldDefault } from 'lucide-react';
+import { Loader2, Copy, CheckCircle, ShieldCheck } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 interface MFAEnrollmentProps {
@@ -77,7 +77,7 @@ export const MFAEnrollment = ({ onComplete, onCancel }: MFAEnrollmentProps) => {
         <Card className="w-full max-w-md mx-auto">
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                    <ShieldDefault className="h-5 w-5 text-primary" />
+                    <ShieldCheck className="h-5 w-5 text-primary" />
                     Setup Two-Factor Authentication
                 </CardTitle>
                 <CardDescription>
