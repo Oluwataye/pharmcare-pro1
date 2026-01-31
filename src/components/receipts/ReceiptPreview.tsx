@@ -11,17 +11,40 @@ interface ReceiptPreviewProps {
 
 export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: ReceiptPreviewProps) => {
   const {
-    items,
+    items = [],
     discount = 0,
     date: receiptDate,
-    cashierName,
+    dispenserName,
     customerName,
     customerPhone,
     businessName,
     businessAddress,
     saleType = 'retail',
-    storeSettings
+    storeSettings: rawStoreSettings
   } = receiptData;
+
+  // ENSURE items is an array before reduce
+  const safeItems = Array.isArray(items) ? items : [];
+
+  // Use store settings from receipt data with fallback
+  const storeSettings = rawStoreSettings || {
+    name: 'PharmCare Pro',
+    address: null,
+    phone: null,
+    email: null,
+    logo_url: null,
+    print_show_logo: false,
+    print_show_address: true,
+    print_show_email: true,
+    print_show_phone: true,
+    print_show_footer: true
+  };
+
+  const storeName = storeSettings.name || 'PharmCare Pro';
+  const storeAddress = storeSettings.address || 'Address Not Set';
+  const storeEmail = storeSettings.email;
+  const storePhone = storeSettings.phone;
+  const logo = storeSettings.logo_url;
 
   // Validate and ensure date is a valid Date object
   let date = new Date();
@@ -32,15 +55,8 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
     }
   }
 
-  // Use store settings from receipt data
-  const storeName = storeSettings.name || 'PharmCare Pro';
-  const storeAddress = storeSettings.address || '123 Main Street, Lagos';
-  const storeEmail = storeSettings.email;
-  const storePhone = storeSettings.phone;
-  const logo = storeSettings.logo_url;
-
   // Calculate totals
-  const subtotal = items.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+  const subtotal = safeItems.reduce((sum, item) => sum + ((item?.price || 0) * (item?.quantity || 0)), 0);
   const discountAmount = subtotal * (discount / 100);
   const total = subtotal - discountAmount;
 
@@ -78,7 +94,7 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
             {customerPhone && <div>Phone: {customerPhone}</div>}
             {businessName && <div>Business: {businessName}</div>}
             {businessAddress && <div>Address: {businessAddress}</div>}
-            {cashierName && <div>Dispenser: {cashierName}</div>}
+            {dispenserName && <div>Dispenser: {dispenserName}</div>}
           </div>
 
           <div className="border-t border-dashed border-border my-2" />
@@ -94,12 +110,12 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
               </tr>
             </thead>
             <tbody>
-              {items.map((item, idx) => (
+              {safeItems.map((item, idx) => (
                 <tr key={idx}>
-                  <td className="py-1">{item.name}</td>
-                  <td>{item.quantity}</td>
-                  <td>₦{item.price.toLocaleString()}</td>
-                  <td className="text-right">₦{(item.price * item.quantity).toLocaleString()}</td>
+                  <td className="py-1">{item?.name || 'Unknown'}</td>
+                  <td>{item?.quantity || 0}</td>
+                  <td>₦{(item?.price || 0).toLocaleString()}</td>
+                  <td className="text-right">₦{((item?.price || 0) * (item?.quantity || 0)).toLocaleString()}</td>
                 </tr>
               ))}
             </tbody>

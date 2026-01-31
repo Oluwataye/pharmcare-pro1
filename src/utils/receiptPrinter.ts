@@ -375,12 +375,12 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
           </tr>
         </thead>
         <tbody>
-          ${items.map(item => `
+          ${safeItems.map(item => `
             <tr>
-              <td>${item.name}</td>
-              <td>${item.quantity}</td>
-              <td>₦${item.price.toLocaleString()}</td>
-              <td class="amount">₦${(item.price * item.quantity).toLocaleString()}</td>
+              <td>${item?.name || 'Unknown'}</td>
+              <td>${item?.quantity || 0}</td>
+              <td>₦${(item?.price || 0).toLocaleString()}</td>
+              <td class="amount">₦${((item?.price || 0) * (item?.quantity || 0)).toLocaleString()}</td>
             </tr>
           `).join('')}
         </tbody>
