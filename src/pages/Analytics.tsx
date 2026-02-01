@@ -21,6 +21,7 @@ const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'
 
 const Analytics = () => {
     const [period, setPeriod] = useState("daily");
+    const [chartType, setChartType] = useState("bar");
     const [loading, setLoading] = useState(true);
     const [data, setData] = useState<any>({
         salesOverTime: [],
@@ -201,19 +202,34 @@ const Analytics = () => {
                     </h1>
                     <p className="text-muted-foreground text-sm md:text-base">Real-time performance tracking for inventory and sales</p>
                 </div>
-                <div className="flex items-center gap-2 bg-card p-1 rounded-lg border shadow-sm">
-                    <Calendar className="h-4 w-4 text-muted-foreground ml-2" />
-                    <Select value={period} onValueChange={setPeriod}>
-                        <SelectTrigger className="w-[140px] border-none shadow-none focus:ring-0 bg-transparent">
-                            <SelectValue placeholder="Select period" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="daily">Today</SelectItem>
-                            <SelectItem value="weekly">Last 7 Days</SelectItem>
-                            <SelectItem value="monthly">Last 30 Days</SelectItem>
-                            <SelectItem value="yearly">Last Year</SelectItem>
-                        </SelectContent>
-                    </Select>
+                <div className="flex flex-wrap items-center gap-2 bg-card p-1 rounded-lg border shadow-sm">
+                    <div className="flex items-center gap-2 px-2 border-r">
+                        <Calendar className="h-4 w-4 text-muted-foreground" />
+                        <Select value={period} onValueChange={setPeriod}>
+                            <SelectTrigger className="w-[130px] border-none shadow-none focus:ring-0 bg-transparent">
+                                <SelectValue placeholder="Period" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="daily">Today</SelectItem>
+                                <SelectItem value="weekly">Last 7 Days</SelectItem>
+                                <SelectItem value="monthly">Last 30 Days</SelectItem>
+                                <SelectItem value="yearly">Last Year</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+                    <div className="flex items-center gap-2 px-2">
+                        <Activity className="h-4 w-4 text-muted-foreground" />
+                        <Select value={chartType} onValueChange={setChartType}>
+                            <SelectTrigger className="w-[200px] border-none shadow-none focus:ring-0 bg-transparent">
+                                <SelectValue placeholder="Presentation View" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="bar">Bar Chart – Profit vs Expenses</SelectItem>
+                                <SelectItem value="line">Line Chart – Net Profit Trend</SelectItem>
+                                <SelectItem value="donut">Donut Chart – Distribution</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
                 </div>
             </div>
 
@@ -248,82 +264,132 @@ const Analytics = () => {
                 />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2 shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Financial Performance Trend</CardTitle>
-                        <CardDescription>Revenue, Gross Profit, and Expenses over time</CardDescription>
-                    </CardHeader>
-                    <CardContent className="h-[350px]">
-                        <ResponsiveContainer width="100%" height="100%">
+            {/* MIDDLE LAYER: Dynamic Comparison Chart */}
+            <Card className="shadow-md border-primary/10 overflow-hidden">
+                <CardHeader className="bg-muted/30 pb-4">
+                    <div className="flex justify-between items-center">
+                        <div>
+                            <CardTitle>
+                                {chartType === 'bar' && "Gross Profit vs Expenses Comparison"}
+                                {chartType === 'line' && "Net Profit Growth Trend"}
+                                {chartType === 'donut' && "Expense Category Distribution"}
+                            </CardTitle>
+                            <CardDescription>
+                                {chartType === 'bar' && "Direct comparison of gross profit and operational costs"}
+                                {chartType === 'line' && "Visual tracking of bottom-line profitability over time"}
+                                {chartType === 'donut' && "Percentage breakdown of all recorded expenses"}
+                            </CardDescription>
+                        </div>
+                        <Badge variant="secondary" className="bg-primary/10 text-primary border-primary/20">
+                            {period.toUpperCase()} VIEW
+                        </Badge>
+                    </div>
+                </CardHeader>
+                <CardContent className="h-[450px] pt-6">
+                    <ResponsiveContainer width="100%" height="100%">
+                        {chartType === 'bar' ? (
+                            <BarChart data={data.salesOverTime} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                                <XAxis dataKey="date" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
+                                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₦${val >= 1000 ? (val / 1000) + 'k' : val}`} />
+                                <Tooltip
+                                    cursor={{ fill: '#f8fafc' }}
+                                    contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    formatter={(val: number) => [`₦${val.toLocaleString()}`, '']}
+                                />
+                                <Legend verticalAlign="top" height={36} />
+                                <Bar dataKey="profit" name="Gross Profit" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                <Bar dataKey="expenses" name="Expenses" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                            </BarChart>
+                        ) : chartType === 'line' ? (
                             <LineChart data={data.salesOverTime}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                 <XAxis dataKey="date" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
                                 <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₦${val >= 1000 ? (val / 1000) + 'k' : val}`} />
                                 <Tooltip
-                                    contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}
-                                    formatter={(val: number) => [`₦${val.toLocaleString()}`, 'Amount']}
+                                    contentStyle={{ backgroundColor: '#fff', borderRadius: '12px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                                    formatter={(val: number) => [`₦${val.toLocaleString()}`, 'Net Profit']}
                                 />
-                                <Legend />
-                                <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#2563eb" strokeWidth={3} dot={{ r: 4, fill: '#2563eb' }} activeDot={{ r: 6 }} />
-                                <Line type="monotone" dataKey="profit" name="Gross Profit" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 6 }} />
-                                <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3, fill: '#ef4444' }} />
-                                <Line type="monotone" dataKey="netProfit" name="Net Profit" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1' }} activeDot={{ r: 6 }} />
+                                <Legend verticalAlign="top" height={36} />
+                                <Line type="monotone" dataKey="netProfit" name="Net Profit Trend" stroke="#6366f1" strokeWidth={4} dot={{ r: 6, fill: '#6366f1', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8 }} />
                             </LineChart>
-                        </ResponsiveContainer>
-                    </CardContent>
-                </Card>
-
-                <Card className="shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Expense Distribution</CardTitle>
-                        <CardDescription>Breakdown by category</CardDescription>
-                    </CardHeader>
-                    <CardContent className="h-[350px]">
-                        {data.expenseCategories.length > 0 ? (
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={data.expenseCategories}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={80}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                    >
-                                        {data.expenseCategories.map((entry: any, index: number) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip
-                                        formatter={(val: number) => `₦${val.toLocaleString()}`}
-                                    />
-                                    <Legend layout="vertical" align="right" verticalAlign="middle" />
-                                </PieChart>
-                            </ResponsiveContainer>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-2">
-                                <Wallet className="h-12 w-12 opacity-20" />
-                                <p>No expenses recorded</p>
-                            </div>
+                            <PieChart>
+                                <Pie
+                                    data={data.expenseCategories}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius={80}
+                                    outerRadius={120}
+                                    paddingAngle={5}
+                                    dataKey="value"
+                                >
+                                    {data.expenseCategories.map((entry: any, index: number) => (
+                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    ))}
+                                </Pie>
+                                <Tooltip formatter={(val: number) => `₦${val.toLocaleString()}`} />
+                                <Legend verticalAlign="bottom" height={36} />
+                            </PieChart>
                         )}
-                    </CardContent>
-                </Card>
-            </div>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
 
+            {/* BOTTOM LAYER: Expense Breakdown & Top Products */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <Card className="shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Top Performing Products</CardTitle>
-                        <CardDescription>Highest profit items based on real sales</CardDescription>
+                <Card className="shadow-sm border-rose-100 bg-rose-50/10">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <TrendingDown className="h-5 w-5 text-rose-500" />
+                            Detailed Expense Breakdown
+                        </CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="space-y-4">
+                        <div className="space-y-3">
+                            {data.expenseCategories.length > 0 ? (
+                                data.expenseCategories.map((category: any, idx: number) => (
+                                    <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-white border border-rose-100 shadow-sm transition-all hover:translate-x-1">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-2 h-10 rounded-full" style={{ backgroundColor: COLORS[idx % COLORS.length] }} />
+                                            <div>
+                                                <p className="font-semibold text-sm">{category.name}</p>
+                                                <div className="flex items-center gap-2">
+                                                    <span className="text-[10px] uppercase font-bold text-muted-foreground">SHARE:</span>
+                                                    <Badge variant="secondary" className="text-[10px] py-0 h-4 bg-slate-100">
+                                                        {((category.value / data.summary.totalExpenses) * 100).toFixed(1)}%
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div className="text-right">
+                                            <p className="font-bold text-rose-600">₦{category.value.toLocaleString()}</p>
+                                        </div>
+                                    </div>
+                                ))
+                            ) : (
+                                <div className="text-center py-10 opacity-50">
+                                    <Wallet className="h-10 w-10 mx-auto mb-2" />
+                                    <p>No expenses found in this period</p>
+                                </div>
+                            )}
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-sm border-emerald-100 bg-emerald-50/10">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-lg flex items-center gap-2">
+                            <TrendingUp className="h-5 w-5 text-emerald-500" />
+                            Top Performing Products
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-3">
                             {data.topProducts.map((product: any, idx: number) => (
-                                <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-slate-50 border border-slate-100 transition-colors hover:bg-white dark:bg-slate-900/50 dark:border-slate-800">
+                                <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-white border border-emerald-100 shadow-sm transition-all hover:translate-x-1">
                                     <div className="flex items-center gap-3">
-                                        <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs dark:bg-blue-900/30 dark:text-blue-400">
+                                        <div className="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-xs">
                                             #{idx + 1}
                                         </div>
                                         <div>
@@ -332,43 +398,13 @@ const Analytics = () => {
                                         </div>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-bold text-sm text-emerald-600 dark:text-emerald-400">₦{product.profit.toLocaleString()}</p>
-                                        <Badge variant="outline" className="text-[10px] py-0 h-4 bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800">
-                                            {product.revenue > 0 ? ((product.profit / product.revenue) * 100).toFixed(0) : 0}% margin
-                                        </Badge>
+                                        <p className="font-bold text-emerald-600">₦{product.profit.toLocaleString()}</p>
+                                        <span className="text-[10px] font-bold text-emerald-500">
+                                            {product.revenue > 0 ? ((product.profit / product.revenue) * 100).toFixed(0) : 0}% MARGIN
+                                        </span>
                                     </div>
                                 </div>
                             ))}
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card className="shadow-sm">
-                    <CardHeader>
-                        <CardTitle>Expense Summary</CardTitle>
-                        <CardDescription>Recent operational costs</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            {data.expenseCategories.slice(0, 5).map((category: any, idx: number) => (
-                                <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-rose-50/30 border border-rose-100 transition-colors hover:bg-white">
-                                    <div className="flex items-center gap-3">
-                                        <div className="w-2 h-8 bg-rose-400 rounded-full" />
-                                        <div>
-                                            <p className="font-semibold text-sm">{category.name}</p>
-                                            <p className="text-xs text-muted-foreground">{((category.value / data.summary.totalExpenses) * 100).toFixed(1)}% of total</p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="font-bold text-sm text-rose-600">₦{category.value.toLocaleString()}</p>
-                                    </div>
-                                </div>
-                            ))}
-                            {data.expenseCategories.length === 0 && (
-                                <div className="text-center py-8 text-muted-foreground">
-                                    No expenses in this period
-                                </div>
-                            )}
                         </div>
                     </CardContent>
                 </Card>
