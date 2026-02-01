@@ -164,17 +164,8 @@ const Sales = () => {
     const matchesStatus = filterStatus === "all" || sale.status === filterStatus;
     const matchesSaleType = saleTypeFilter === "all" || sale.saleType === saleTypeFilter;
 
-    // RBAC: Dispensers only see their current shift or today's sales
-    if (user?.role === "DISPENSER") {
-      const currentShiftName = activeShift?.shift_type || getCurrentShift();
-
-      // Matches if shift_name matches OR if it's their own sale from today regardless of shift name (fallback)
-      const matchesShift = sale.shift_name === currentShiftName || !sale.shift_name;
-      const isOwnSale = sale.dispenserId === user.id;
-
-      return matchesSearch && matchesDateFrom && matchesDateTo && matchesStatus && matchesSaleType && isOwnSale && matchesShift;
-    }
-
+    // RLS policies now handle transaction privacy at the database level
+    // No additional client-side filtering needed
     return matchesSearch && matchesDateFrom && matchesDateTo && matchesStatus && matchesSaleType;
   });
 
