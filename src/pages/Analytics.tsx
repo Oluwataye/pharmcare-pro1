@@ -235,13 +235,6 @@ const Analytics = () => {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard
-                    title="Revenue"
-                    value={`₦${data.summary.totalRevenue.toLocaleString()}`}
-                    icon={<NairaSign className="h-5 w-5 text-blue-600" />}
-                    subValue="Total sales in period"
-                    colorScheme="primary"
-                />
-                <MetricCard
                     title="Gross Profit"
                     value={`₦${data.summary.totalProfit.toLocaleString()}`}
                     icon={<TrendingUp className="h-5 w-5 text-emerald-600" />}
@@ -249,10 +242,10 @@ const Analytics = () => {
                     colorScheme="success"
                 />
                 <MetricCard
-                    title="Expenses"
+                    title="Total Expenses"
                     value={`₦${data.summary.totalExpenses.toLocaleString()}`}
                     icon={<TrendingDown className="h-5 w-5 text-rose-600" />}
-                    subValue="Total operational costs"
+                    subValue="Operational costs"
                     colorScheme="destructive"
                 />
                 <MetricCard
@@ -261,6 +254,13 @@ const Analytics = () => {
                     icon={<Activity className="h-5 w-5 text-indigo-600" />}
                     subValue={`${data.summary.totalRevenue > 0 ? ((data.summary.netProfit / data.summary.totalRevenue) * 100).toFixed(1) : 0}% net margin`}
                     colorScheme={data.summary.netProfit >= 0 ? "primary" : "destructive"}
+                />
+                <MetricCard
+                    title="Total Revenue"
+                    value={`₦${data.summary.totalRevenue.toLocaleString()}`}
+                    icon={<NairaSign className="h-5 w-5 text-blue-600" />}
+                    subValue="Gross sales income"
+                    colorScheme="primary"
                 />
             </div>
 
