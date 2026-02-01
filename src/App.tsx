@@ -19,6 +19,12 @@ import { Spinner } from "./components/ui/spinner";
 import { PWAInstallPrompt } from "./components/pwa/PWAInstallPrompt";
 import { NotificationPermissionBanner } from "./components/notifications/NotificationPermissionBanner";
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import { useAutoBackup } from "./hooks/useAutoBackup";
+
+const AutoBackupManager = () => {
+  useAutoBackup();
+  return null;
+};
 
 // Lazy load pages for better code splitting
 const Dashboard = lazy(() => import("./pages/Dashboard"));
@@ -69,6 +75,7 @@ const App = ({ queryClient, persister }: AppProps) => {
           <AuthProvider>
             <InventoryProvider>
               <ShiftProvider>
+                <AutoBackupManager />
                 <TooltipProvider>
                   <Toaster />
                   <Sonner />

@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Permission } from "@/lib/types";
 import { usePermissions } from "@/hooks/usePermissions";
 import { MFAVerification } from "@/components/auth/MFAVerification";
+import { MFAEnrollment } from "@/components/auth/MFAEnrollment";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -11,7 +12,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute = ({ children, requiredPermission }: ProtectedRouteProps) => {
-  const { isAuthenticated, isLoading, mfaRequired, verifyMFA } = useAuth();
+  const { isAuthenticated, isLoading, mfaRequired, mfaEnrollmentRequired, verifyMFA } = useAuth();
   const { hasPermission } = usePermissions();
   const location = useLocation();
 
@@ -37,6 +38,24 @@ const ProtectedRoute = ({ children, requiredPermission }: ProtectedRouteProps) =
             description="Your account is protected with 2FA. Please enter the code from your authenticator app."
           />
         </div>
+      </div>
+    );
+  }
+
+  // Handle mandatory MFA Enrollment
+  if (mfaEnrollmentRequired) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-gray-50 p-4">
+        <MFAEnrollment
+          onComplete={() => {
+            // After successful enrollment, we might need to refresh state or just reload
+            window.location.reload();
+          }}
+          onCancel={() => {
+            // If they cancel a mandatory enrollment, they can't proceed
+            window.location.href = '/login';
+          }}
+        />
       </div>
     );
   }

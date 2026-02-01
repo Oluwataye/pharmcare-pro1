@@ -103,23 +103,35 @@ serve(async (req) => {
     }
 
     // RATE LIMITING CHECK
-    // Check for recent sales by this cashier to prevent accidental double-submission or abuse
-    const { data: recentSales, error: limitError } = await supabase
+    // 1. Cooldown period (2 seconds) to prevent accidental double-clicks
+    const { data: lastSale, error: cooldownError } = await supabase
       .from('sales')
       .select('created_at')
       .eq('cashier_id', user.id)
       .order('created_at', { ascending: false })
       .limit(1);
 
-    if (recentSales && recentSales.length > 0) {
-      const lastSaleTime = new Date(recentSales[0].created_at).getTime();
+    if (lastSale && lastSale.length > 0) {
+      const lastSaleTime = new Date(lastSale[0].created_at).getTime();
       const now = Date.now();
-      const timeDiff = now - lastSaleTime;
-
-      if (timeDiff < 2000) { // 2 seconds cooldown
-        console.warn(`Rate limit hit for user ${user.id}. Time diff: ${timeDiff}ms`);
+      if (now - lastSaleTime < 2000) {
         throw new Error('Please wait a moment before processing another sale.');
       }
+    }
+
+    // 2. Hourly Rate Limit (e.g., 100 sales per hour) to prevent automated abuse
+    const oneHourAgo = new Date(Date.now() - 3600000).toISOString();
+    const { count: hourlyCount, error: hourlyError } = await supabase
+      .from('sales')
+      .select('*', { count: 'exact', head: true })
+      .eq('cashier_id', user.id)
+      .gte('created_at', oneHourAgo);
+
+    if (hourlyError) {
+      console.error('Error checking hourly rate limit:', hourlyError);
+    } else if (hourlyCount !== null && hourlyCount >= 100) {
+      console.warn(`Hourly rate limit exceeded for user ${user.id}: ${hourlyCount} sales`);
+      throw new Error('Hourly sale limit exceeded. Please contact an administrator if this is an error.');
     }
 
     if (saleData.items.length > 2000) {

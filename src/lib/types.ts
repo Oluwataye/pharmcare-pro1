@@ -18,6 +18,7 @@ export interface AuthState {
   isAuthenticated: boolean;
   isLoading: boolean;
   mfaRequired?: boolean;
+  mfaEnrollmentRequired?: boolean;
 }
 
 export interface Permission {

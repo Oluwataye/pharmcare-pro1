@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useSales } from "@/hooks/useSales";
+import { secureStorage } from "@/lib/secureStorage";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
 import { Button } from "@/components/ui/button";
@@ -28,10 +29,27 @@ const NewSale = () => {
   const { isOnline } = useOffline();
   const { canCreateWholesale } = usePermissions();
 
-  const [customerName, setCustomerName] = useState("");
-  const [customerPhone, setCustomerPhone] = useState("");
-  const [businessName, setBusinessName] = useState("");
-  const [businessAddress, setBusinessAddress] = useState("");
+  const [customerName, setCustomerName] = useState(() => secureStorage.getItem('CURRENT_SALE_CUSTOMER_NAME') || "");
+  const [customerPhone, setCustomerPhone] = useState(() => secureStorage.getItem('CURRENT_SALE_CUSTOMER_PHONE') || "");
+  const [businessName, setBusinessName] = useState(() => secureStorage.getItem('CURRENT_SALE_BUSINESS_NAME') || "");
+  const [businessAddress, setBusinessAddress] = useState(() => secureStorage.getItem('CURRENT_SALE_BUSINESS_ADDRESS') || "");
+
+  // Persist customer info
+  useEffect(() => {
+    secureStorage.setItem('CURRENT_SALE_CUSTOMER_NAME', customerName);
+  }, [customerName]);
+
+  useEffect(() => {
+    secureStorage.setItem('CURRENT_SALE_CUSTOMER_PHONE', customerPhone);
+  }, [customerPhone]);
+
+  useEffect(() => {
+    secureStorage.setItem('CURRENT_SALE_BUSINESS_NAME', businessName);
+  }, [businessName]);
+
+  useEffect(() => {
+    secureStorage.setItem('CURRENT_SALE_BUSINESS_ADDRESS', businessAddress);
+  }, [businessAddress]);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [lastCompletedSaleId, setLastCompletedSaleId] = useState<string | null>(null);

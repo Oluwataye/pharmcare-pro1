@@ -1,0 +1,63 @@
+import { useEffect, useRef } from 'react';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/contexts/AuthContext';
+
+export const useAutoBackup = () => {
+    const { user, isAuthenticated } = useAuth();
+    const hasChecked = useRef(false);
+
+    useEffect(() => {
+        if (!isAuthenticated || !user || (user.role !== 'SUPER_ADMIN' && user.role !== 'ADMIN')) {
+            return;
+        }
+
+        if (hasChecked.current) return;
+        hasChecked.current = true;
+
+        const checkAndTriggerBackup = async () => {
+            try {
+                // Get store settings to check last backup at
+                const { data: settings, error: fetchError } = await supabase
+                    .from('store_settings')
+                    .select('id, last_backup_at, enable_auto_backups')
+                    .single() as any;
+
+                if (fetchError) throw fetchError;
+
+                if (!settings?.enable_auto_backups) {
+                    console.log('[useAutoBackup] Automated backups are disabled');
+                    return;
+                }
+
+                const lastBackup = settings.last_backup_at ? new Date(settings.last_backup_at) : null;
+                const now = new Date();
+                const twentyFourHours = 24 * 60 * 60 * 1000;
+
+                if (!lastBackup || (now.getTime() - lastBackup.getTime()) > twentyFourHours) {
+                    console.log('[useAutoBackup] Starting automated backup...');
+
+                    const { data, error } = await supabase.functions.invoke('backup-db');
+
+                    if (error) throw error;
+
+                    console.log('[useAutoBackup] Backup successful:', data.file);
+
+                    // Update store settings with new last_backup_at
+                    await supabase
+                        .from('store_settings')
+                        .update({
+                            // @ts-ignore
+                            last_backup_at: new Date().toISOString()
+                        })
+                        .eq('id', (settings as any).id);
+                } else {
+                    console.log('[useAutoBackup] Last backup was recent:', lastBackup.toLocaleString());
+                }
+            } catch (err) {
+                console.error('[useAutoBackup] Error during automated backup check:', err);
+            }
+        };
+
+        checkAndTriggerBackup();
+    }, [isAuthenticated, user]);
+};

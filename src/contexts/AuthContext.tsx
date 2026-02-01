@@ -24,6 +24,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     isAuthenticated: false,
     isLoading: true,
     mfaRequired: false,
+    mfaEnrollmentRequired: false,
   });
   const [session, setSession] = React.useState<Session | null>(null);
   const { toast } = useToast();
@@ -94,10 +95,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       const userDetails: AppUser = {
         id: userId,
-        email: email, // Use the passed email instead of getUser()
+        email: email,
         name: profile.name,
         username: profile.username || undefined,
         role: roleData.role as UserRole,
+        currency_symbol: '₦', // Default to Naira as per audit
       };
 
       // Persist profile safely for offline use
@@ -133,7 +135,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               id: session.user.id,
               email: session.user.email || '',
               name: session.user.email?.split('@')[0] || 'User',
-              role: 'PHARMACIST' as UserRole // Temporary default role if no cache
+              role: 'PHARMACIST' as UserRole, // Temporary default role if no cache
+              currency_symbol: '₦'
             };
 
           setAuthState({
@@ -171,6 +174,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           user: null,
           isAuthenticated: false,
           isLoading: false,
+          mfaEnrollmentRequired: false,
         });
       }
     };
@@ -264,6 +268,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           toast({
             title: 'Action Required',
             description: 'Please verify your identity with 2FA.',
+          });
+          return;
+        }
+
+        // Enforcement: Require MFA enrollment for SUPER_ADMIN and PHARMACIST roles
+        const requiresMFA = userProfile.role === 'SUPER_ADMIN' || userProfile.role === 'PHARMACIST';
+        if (requiresMFA && mfaData && mfaData.nextLevel === 'aal1') {
+          console.log('[AuthProvider] MFA Enrollment Mandatory but not found');
+          setAuthState({
+            user: userProfile,
+            isAuthenticated: false,
+            isLoading: false,
+            mfaRequired: false,
+            mfaEnrollmentRequired: true,
+          });
+
+          toast({
+            title: 'Security Requirement',
+            description: 'Your role requires two-factor authentication. Please enroll to continue.',
           });
           return;
         }
