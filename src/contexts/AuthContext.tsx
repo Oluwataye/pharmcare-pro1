@@ -275,20 +275,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Enforcement: Require MFA enrollment for SUPER_ADMIN and PHARMACIST roles
         const requiresMFA = userProfile.role === 'SUPER_ADMIN' || userProfile.role === 'PHARMACIST';
         if (requiresMFA && mfaData && mfaData.nextLevel === 'aal1') {
-          console.log('[AuthProvider] MFA Enrollment Mandatory but not found');
-          setAuthState({
-            user: userProfile,
-            isAuthenticated: false,
-            isLoading: false,
-            mfaRequired: false,
-            mfaEnrollmentRequired: true,
-          });
+          // Check if user has any MFA factors enrolled
+          const { data: factors } = await supabase.auth.mfa.listFactors();
 
-          toast({
-            title: 'Security Requirement',
-            description: 'Your role requires two-factor authentication. Please enroll to continue.',
-          });
-          return;
+          if (!factors || factors.all.length === 0) {
+            // No factors exist, require enrollment
+            console.log('[AuthProvider] MFA Enrollment Mandatory but not found');
+            setAuthState({
+              user: userProfile,
+              isAuthenticated: false,
+              isLoading: false,
+              mfaRequired: false,
+              mfaEnrollmentRequired: true,
+            });
+
+            toast({
+              title: 'Security Requirement',
+              description: 'Your role requires two-factor authentication. Please enroll to continue.',
+            });
+            return;
+          } else {
+            // Factors exist but not verified in this session - this is handled by the aal2 check above
+            console.log('[AuthProvider] MFA factors exist, allowing login');
+          }
         }
 
         // Log successful login

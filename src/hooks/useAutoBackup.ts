@@ -22,7 +22,14 @@ export const useAutoBackup = () => {
                     .select('id, last_backup_at, enable_auto_backups')
                     .single() as any;
 
-                if (fetchError) throw fetchError;
+                if (fetchError) {
+                    // Silently fail if columns don't exist (migration not applied yet)
+                    if (fetchError.message?.includes('column') || fetchError.code === '42703') {
+                        console.log('[useAutoBackup] Backup columns not yet available, skipping automated backup');
+                        return;
+                    }
+                    throw fetchError;
+                }
 
                 if (!settings?.enable_auto_backups) {
                     console.log('[useAutoBackup] Automated backups are disabled');
@@ -55,6 +62,7 @@ export const useAutoBackup = () => {
                 }
             } catch (err) {
                 console.error('[useAutoBackup] Error during automated backup check:', err);
+                // Fail silently to prevent blocking the app
             }
         };
 

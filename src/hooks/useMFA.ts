@@ -40,6 +40,20 @@ export const useMFA = () => {
     const startEnrollment = async () => {
         setIsLoading(true);
         try {
+            // Check if user already has MFA factors
+            const { data: existingFactors } = await supabase.auth.mfa.listFactors();
+
+            if (existingFactors && existingFactors.all.length > 0) {
+                // User already has a factor, don't create a new one
+                console.log('[useMFA] User already has MFA enrolled, skipping enrollment');
+                toast({
+                    title: 'MFA Already Enrolled',
+                    description: 'You already have two-factor authentication set up.',
+                });
+                // Return the existing factor info
+                return existingFactors.totp[0];
+            }
+
             const { data, error } = await supabase.auth.mfa.enroll({
                 factorType: 'totp'
             });
