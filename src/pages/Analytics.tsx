@@ -27,9 +27,12 @@ const Analytics = () => {
         summary: {
             totalRevenue: 0,
             totalProfit: 0,
+            totalExpenses: 0,
+            netProfit: 0,
             margin: 0,
             totalSales: 0
-        }
+        },
+        expenseCategories: []
     });
 
     const fetchData = async () => {
@@ -43,19 +46,30 @@ const Analytics = () => {
             else if (period === "monthly") startDate.setMonth(now.getMonth() - 1);
             else if (period === "yearly") startDate.setFullYear(now.getFullYear() - 1);
 
-            // Fetch sales within period
+            const startDateIso = startDate.toISOString();
+
+            // 1. Fetch sales within period
             const { data: sales, error: salesError } = await supabase
                 .from('sales')
                 .select('*')
-                .gte('created_at', startDate.toISOString());
+                .gte('created_at', startDateIso);
 
             if (salesError) throw salesError;
 
-            // Fetch all sales items for these sales to calculate profit
-            // We'll fetch all items and filter by sale_id if the list is manageable, 
-            // or fetch specifically for those IDs.
-            const saleIds = (sales || []).map(s => s.id);
+            // 2. Fetch expenses within period
+            const { data: expenses, error: expensesError } = await (supabase
+                .from('expenses' as any) as any)
+                .select('*')
+                .gte('date', startDateIso.split('T')[0]);
 
+            if (expensesError) {
+                console.warn('Expenses fetch error (might not exist yet):', expensesError);
+            }
+
+            const safeExpenses = expenses || [];
+
+            // 3. Fetch sales items for profit calculation
+            const saleIds = (sales || []).map(s => s.id);
             let relevantItems: any[] = [];
             if (saleIds.length > 0) {
                 const { data: items, error: itemsError } = await supabase
@@ -68,11 +82,14 @@ const Analytics = () => {
 
             // Process Summary
             let totalRevenue = (sales || []).reduce((sum, s) => sum + Number(s.total), 0);
-            let totalProfit = relevantItems.reduce((sum, item) => {
+            let totalGrossProfit = relevantItems.reduce((sum, item) => {
                 const cost = Number(item.cost_price || 0) * item.quantity;
                 const revenue = Number(item.total);
                 return sum + (revenue - cost);
             }, 0);
+
+            let totalExpenses = safeExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
+            let netProfit = totalGrossProfit - totalExpenses;
 
             // Process Top Products
             const productMap: any = {};
@@ -95,13 +112,25 @@ const Analytics = () => {
                 .sort((a: any, b: any) => b.profit - a.profit)
                 .slice(0, 5);
 
+            // Process Expense Categories for visualization
+            const expenseCatMap: any = {};
+            safeExpenses.forEach((e: any) => {
+                if (!expenseCatMap[e.category]) expenseCatMap[e.category] = 0;
+                expenseCatMap[e.category] += Number(e.amount);
+            });
+            const expenseCategories = Object.keys(expenseCatMap).map(cat => ({
+                name: cat,
+                value: expenseCatMap[cat]
+            })).sort((a, b) => b.value - a.value);
+
             // Process Time Series Data
             const timeSeries: any = {};
+
+            // Map sales
             sales?.forEach(s => {
                 const date = new Date(s.created_at).toLocaleDateString();
-                if (!timeSeries[date]) timeSeries[date] = { date, revenue: 0, profit: 0, count: 0 };
+                if (!timeSeries[date]) timeSeries[date] = { date, revenue: 0, profit: 0, expenses: 0, netProfit: 0 };
 
-                // Calculate profit for this specific sale
                 const saleItems = relevantItems.filter(item => item.sale_id === s.id);
                 const saleProfit = saleItems.reduce((sum, item) => {
                     const cost = Number(item.cost_price || 0) * item.quantity;
@@ -110,16 +139,30 @@ const Analytics = () => {
 
                 timeSeries[date].revenue += Number(s.total);
                 timeSeries[date].profit += saleProfit;
-                timeSeries[date].count++;
+            });
+
+            // Map expenses to time series
+            safeExpenses.forEach((e: any) => {
+                const date = new Date(e.date).toLocaleDateString();
+                if (!timeSeries[date]) timeSeries[date] = { date, revenue: 0, profit: 0, expenses: 0, netProfit: 0 };
+                timeSeries[date].expenses += Number(e.amount);
+            });
+
+            // Calculate daily net profit
+            Object.keys(timeSeries).forEach(date => {
+                timeSeries[date].netProfit = timeSeries[date].profit - timeSeries[date].expenses;
             });
 
             setData({
-                salesOverTime: Object.values(timeSeries),
+                salesOverTime: Object.values(timeSeries).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()),
                 topProducts,
+                expenseCategories,
                 summary: {
                     totalRevenue,
-                    totalProfit,
-                    margin: totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0,
+                    totalProfit: totalGrossProfit,
+                    totalExpenses,
+                    netProfit,
+                    margin: totalRevenue > 0 ? (totalGrossProfit / totalRevenue) * 100 : 0,
                     totalSales: sales?.length || 0
                 }
             });
@@ -185,37 +228,37 @@ const Analytics = () => {
                     title="Gross Profit"
                     value={`₦${data.summary.totalProfit.toLocaleString()}`}
                     icon={<TrendingUp className="h-5 w-5 text-emerald-600" />}
-                    subValue={`${data.summary.margin.toFixed(1)}% profit margin`}
+                    subValue={`${data.summary.margin.toFixed(1)}% gross margin`}
                     colorScheme="success"
                 />
                 <MetricCard
-                    title="Orders"
-                    value={data.summary.totalSales}
-                    icon={<Package className="h-5 w-5 text-orange-600" />}
-                    subValue="Completed transactions"
-                    colorScheme="warning"
+                    title="Expenses"
+                    value={`₦${data.summary.totalExpenses.toLocaleString()}`}
+                    icon={<TrendingDown className="h-5 w-5 text-rose-600" />}
+                    subValue="Total operational costs"
+                    colorScheme="destructive"
                 />
                 <MetricCard
-                    title="Analysis"
-                    value="Active"
-                    icon={<RefreshCcw className="h-5 w-5 text-indigo-600 animate-spin-slow" />}
-                    subValue="Real-time data stream"
-                    colorScheme="primary"
+                    title="Net Profit"
+                    value={`₦${data.summary.netProfit.toLocaleString()}`}
+                    icon={<Activity className="h-5 w-5 text-indigo-600" />}
+                    subValue={`${data.summary.totalRevenue > 0 ? ((data.summary.netProfit / data.summary.totalRevenue) * 100).toFixed(1) : 0}% net margin`}
+                    colorScheme={data.summary.netProfit >= 0 ? "primary" : "destructive"}
                 />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <Card className="lg:col-span-2 shadow-sm">
                     <CardHeader>
-                        <CardTitle>Profitability Trend</CardTitle>
-                        <CardDescription>Revenue and profit trajectory over time</CardDescription>
+                        <CardTitle>Financial Performance Trend</CardTitle>
+                        <CardDescription>Revenue, Gross Profit, and Expenses over time</CardDescription>
                     </CardHeader>
                     <CardContent className="h-[350px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={data.salesOverTime}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                                 <XAxis dataKey="date" stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} />
-                                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₦${val / 1000}k`} />
+                                <YAxis stroke="#64748b" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(val) => `₦${val >= 1000 ? (val / 1000) + 'k' : val}`} />
                                 <Tooltip
                                     contentStyle={{ backgroundColor: '#fff', borderRadius: '8px', border: '1px solid #e2e8f0' }}
                                     formatter={(val: number) => [`₦${val.toLocaleString()}`, 'Amount']}
@@ -223,11 +266,52 @@ const Analytics = () => {
                                 <Legend />
                                 <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#2563eb" strokeWidth={3} dot={{ r: 4, fill: '#2563eb' }} activeDot={{ r: 6 }} />
                                 <Line type="monotone" dataKey="profit" name="Gross Profit" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 6 }} />
+                                <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#ef4444" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 3, fill: '#ef4444' }} />
+                                <Line type="monotone" dataKey="netProfit" name="Net Profit" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, fill: '#6366f1' }} activeDot={{ r: 6 }} />
                             </LineChart>
                         </ResponsiveContainer>
                     </CardContent>
                 </Card>
 
+                <Card className="shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Expense Distribution</CardTitle>
+                        <CardDescription>Breakdown by category</CardDescription>
+                    </CardHeader>
+                    <CardContent className="h-[350px]">
+                        {data.expenseCategories.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie
+                                        data={data.expenseCategories}
+                                        cx="50%"
+                                        cy="50%"
+                                        innerRadius={60}
+                                        outerRadius={80}
+                                        paddingAngle={5}
+                                        dataKey="value"
+                                    >
+                                        {data.expenseCategories.map((entry: any, index: number) => (
+                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip
+                                        formatter={(val: number) => `₦${val.toLocaleString()}`}
+                                    />
+                                    <Legend layout="vertical" align="right" verticalAlign="middle" />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        ) : (
+                            <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-2">
+                                <Wallet className="h-12 w-12 opacity-20" />
+                                <p>No expenses recorded</p>
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <Card className="shadow-sm">
                     <CardHeader>
                         <CardTitle>Top Performing Products</CardTitle>
@@ -254,9 +338,34 @@ const Analytics = () => {
                                     </div>
                                 </div>
                             ))}
-                            {data.topProducts.length === 0 && (
+                        </div>
+                    </CardContent>
+                </Card>
+
+                <Card className="shadow-sm">
+                    <CardHeader>
+                        <CardTitle>Expense Summary</CardTitle>
+                        <CardDescription>Recent operational costs</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="space-y-4">
+                            {data.expenseCategories.slice(0, 5).map((category: any, idx: number) => (
+                                <div key={idx} className="flex items-center justify-between p-3 rounded-lg bg-rose-50/30 border border-rose-100 transition-colors hover:bg-white">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2 h-8 bg-rose-400 rounded-full" />
+                                        <div>
+                                            <p className="font-semibold text-sm">{category.name}</p>
+                                            <p className="text-xs text-muted-foreground">{((category.value / data.summary.totalExpenses) * 100).toFixed(1)}% of total</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-sm text-rose-600">₦{category.value.toLocaleString()}</p>
+                                    </div>
+                                </div>
+                            ))}
+                            {data.expenseCategories.length === 0 && (
                                 <div className="text-center py-8 text-muted-foreground">
-                                    No sales data in this period
+                                    No expenses in this period
                                 </div>
                             )}
                         </div>

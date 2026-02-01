@@ -35,6 +35,7 @@ const Reports = lazy(() => import("./pages/Reports"));
 const Analytics = lazy(() => import("./pages/Analytics"));
 const Suppliers = lazy(() => import("./pages/Suppliers"));
 const ShiftManagement = lazy(() => import("./pages/ShiftManagement"));
+const Expenses = lazy(() => import("./pages/Expenses"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -139,6 +140,16 @@ const App = ({ queryClient, persister }: AppProps) => {
                               requiredPermission={{ action: "read", resource: "shifts" }}
                             >
                               <Suspense fallback={<PageLoader />}><ShiftManagement /></Suspense>
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/expenses"
+                          element={
+                            <ProtectedRoute
+                              requiredPermission={{ action: "read", resource: "expenses" }}
+                            >
+                              <Suspense fallback={<PageLoader />}><Expenses /></Suspense>
                             </ProtectedRoute>
                           }
                         />

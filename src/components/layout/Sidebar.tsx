@@ -20,6 +20,7 @@ import {
   Printer,
   Truck,
   Clock,
+  Wallet,
 } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
 
@@ -37,6 +38,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     canAccessReports,
     canAccessShifts,
     canAccessSuppliers,
+    canAccessExpenses,
   } = usePermissions();
   const { settings: storeSettings } = useStoreSettings();
   const [storeLogo, setStoreLogo] = useState<string>('');
@@ -109,6 +111,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       label: "Suppliers",
       path: "/suppliers",
       condition: canAccessSuppliers()
+    },
+    {
+      icon: Wallet,
+      label: "Expenses",
+      path: "/expenses",
+      condition: canAccessExpenses()
     },
     {
       icon: Settings,
