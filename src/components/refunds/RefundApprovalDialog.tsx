@@ -82,7 +82,7 @@ export const RefundApprovalDialog = ({ open, onOpenChange, refund }: RefundAppro
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="sm:max-w-[600px]">
+            <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Review Refund Request</DialogTitle>
                     <DialogDescription>
@@ -265,9 +265,14 @@ export const RefundApprovalDialog = ({ open, onOpenChange, refund }: RefundAppro
                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             Confirm Rejection
                         </Button>
-                    ) : (
-                        <Button onClick={handleApprove} disabled={isLoading}>
+                    ) : action === 'approve' ? (
+                        <Button onClick={handleApprove} disabled={isLoading || !cashReturnedAmount || !registerBalanceBefore || !registerBalanceAfter}>
                             {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Confirm Approval
+                        </Button>
+                    ) : (
+                        <Button onClick={() => setAction('approve')} disabled={isLoading}>
                             <CheckCircle className="mr-2 h-4 w-4" />
                             Approve Refund
                         </Button>
