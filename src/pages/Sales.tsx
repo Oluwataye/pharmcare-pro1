@@ -5,6 +5,7 @@ import { usePermissions } from "@/hooks/usePermissions";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { getCurrentShift } from "@/utils/shiftUtils";
+import { useShift } from "@/hooks/useShift";
 import SalesHeader from "@/components/sales/SalesHeader";
 import SalesFilters from "@/components/sales/SalesFilters";
 import SalesStatsCards from "@/components/sales/SalesStatsCards";
@@ -26,6 +27,7 @@ const Sales = () => {
   const { toast } = useToast();
   const { canReadWholesale } = usePermissions();
   const { user } = useAuth();
+  const { activeShift } = useShift();
 
   const [searchTerm, setSearchTerm] = useState("");
   const [dateFrom, setDateFrom] = useState<Date | undefined>(undefined);
@@ -162,11 +164,15 @@ const Sales = () => {
     const matchesStatus = filterStatus === "all" || sale.status === filterStatus;
     const matchesSaleType = saleTypeFilter === "all" || sale.saleType === saleTypeFilter;
 
-    // RBAC: Dispensers only see their current shift
+    // RBAC: Dispensers only see their current shift or today's sales
     if (user?.role === "DISPENSER") {
-      const currentShift = getCurrentShift();
-      const matchesShift = sale.shift_name === currentShift;
-      return matchesSearch && matchesDateFrom && matchesDateTo && matchesStatus && matchesSaleType && matchesShift;
+      const currentShiftName = activeShift?.shift_type || getCurrentShift();
+
+      // Matches if shift_name matches OR if it's their own sale from today regardless of shift name (fallback)
+      const matchesShift = sale.shift_name === currentShiftName || !sale.shift_name;
+      const isOwnSale = sale.dispenserId === user.id;
+
+      return matchesSearch && matchesDateFrom && matchesDateTo && matchesStatus && matchesSaleType && isOwnSale && matchesShift;
     }
 
     return matchesSearch && matchesDateFrom && matchesDateTo && matchesStatus && matchesSaleType;

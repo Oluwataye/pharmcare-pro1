@@ -14,6 +14,8 @@ import { NairaSign } from "@/components/icons/NairaSign";
 import { useSystemConfig } from "@/hooks/useSystemConfig";
 import { useInventory } from "@/hooks/useInventory";
 import { supabase } from "@/integrations/supabase/client";
+import { useOffline } from "@/contexts/OfflineContext";
+import { useCallback } from "react";
 
 interface Transaction {
   id: number | string;
@@ -41,49 +43,72 @@ export const DispenserDashboardContent = () => {
   const { config } = useSystemConfig();
   const { inventory } = useInventory(); // Fetch live inventory
 
+  const { pendingOperations } = useOffline();
   const [recentTransactions, setRecentTransactions] = useState<Transaction[]>([]);
   const [todaySalesTotal, setTodaySalesTotal] = useState(0);
   const [todayTxCount, setTodayTxCount] = useState(0);
   const [uniqueCustomers, setUniqueCustomers] = useState(0);
 
   // Fetch sales data
+  const fetchSalesData = useCallback(async () => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Fetch Today's Sales from Supabase
+    const { data: sales, error } = await supabase
+      .from('sales')
+      .select('*')
+      .gte('created_at', today.toISOString())
+      .order('created_at', { ascending: false });
+
+    // Extract pending sales from OfflineContext
+    const pendingSales = pendingOperations
+      .filter(op => op.resource === 'sales')
+      .map(op => {
+        const sale = op.data;
+        return {
+          id: sale.transactionId || `PENDING-${op.id}`,
+          customer: sale.customerName || 'Walk-in Customer (Offline)',
+          items: Array.isArray(sale.items) ? sale.items.length : 1,
+          amount: Number(sale.total || 0),
+          time: new Date(op.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          date: new Date(op.timestamp).toISOString().split('T')[0],
+          status: "Pending Sync"
+        };
+      });
+
+    if (sales) {
+      // Calculate Stats (include pending if needed, but usually we show live DB stats)
+      const total = sales.reduce((sum, sale) => sum + Number(sale.total || sale.total_amount || 0), 0);
+      const pendingTotal = pendingSales.reduce((sum, sale) => sum + sale.amount, 0);
+
+      setTodaySalesTotal(total + pendingTotal);
+      setTodayTxCount(sales.length + pendingSales.length);
+
+      const customers = new Set([
+        ...sales.map(s => s.customer_name).filter(Boolean),
+        ...pendingSales.map(s => s.customer).filter(Boolean)
+      ]);
+      setUniqueCustomers(customers.size);
+
+      // Set Recent Transactions for Table/Cards (Merge pending at the top)
+      const formattedTx: Transaction[] = sales.map(tx => ({
+        id: tx.transaction_id || tx.id,
+        customer: tx.customer_name || 'Walk-in Customer',
+        items: (tx.items && Array.isArray(tx.items)) ? tx.items.length : 1,
+        amount: Number(tx.total || tx.total_amount || 0),
+        time: new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        date: new Date(tx.created_at).toISOString().split('T')[0],
+        status: "Completed"
+      }));
+
+      setRecentTransactions([...pendingSales, ...formattedTx]);
+    }
+  }, [pendingOperations]);
+
   useEffect(() => {
-    const fetchSalesData = async () => {
-      const today = new Date();
-      today.setHours(0, 0, 0, 0);
-
-      // Fetch Today's Sales
-      const { data: sales, error } = await supabase
-        .from('sales')
-        .select('*') // Get all columns for Today
-        .gte('created_at', today.toISOString())
-        .order('created_at', { ascending: false });
-
-      if (sales) {
-        // Calculate Stats
-        const total = sales.reduce((sum, sale) => sum + Number(sale.total || sale.total_amount || 0), 0);
-        setTodaySalesTotal(total);
-        setTodayTxCount(sales.length);
-
-        const customers = new Set(sales.map(s => s.customer_name).filter(Boolean));
-        setUniqueCustomers(customers.size);
-
-        // Set Recent Transactions for Table/Cards
-        const formattedTx: Transaction[] = sales.map(tx => ({
-          id: tx.transaction_id || tx.id,
-          customer: tx.customer_name || 'Walk-in Customer',
-          items: (tx.items && Array.isArray(tx.items)) ? tx.items.length : 1, // approximate items count if array
-          amount: Number(tx.total || tx.total_amount || 0),
-          time: new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-          date: new Date(tx.created_at).toISOString().split('T')[0],
-          status: "Completed" // Assume completed for history
-        }));
-        setRecentTransactions(formattedTx);
-      }
-    };
-
     fetchSalesData();
-  }, []);
+  }, [fetchSalesData]);
 
   // Filter low stock items from live inventory
   // Limit to 5 for the card
@@ -113,8 +138,7 @@ export const DispenserDashboardContent = () => {
       description: "The transaction was processed successfully",
     });
     setShowNewSaleForm(false);
-    // Refresh sales could be triggered here if we moved logic to function
-    // For now we rely on simple state update or page refresh (or real-time subscription in future)
+    fetchSalesData(); // Trigger immediate refresh
   };
 
   const handleCardClick = (route: string) => {

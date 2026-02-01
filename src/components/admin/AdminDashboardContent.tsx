@@ -10,6 +10,8 @@ import { NairaSign } from "@/components/icons/NairaSign";
 import { useInventory } from "@/hooks/useInventory";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { useOffline } from "@/contexts/OfflineContext";
+import { useCallback } from "react";
 
 const AdminDashboardContent = () => {
   const navigate = useNavigate();
@@ -25,67 +27,86 @@ const AdminDashboardContent = () => {
   const lowStockItems = inventory.filter(item => item.quantity <= item.reorderLevel);
   const totalProducts = inventory.length;
 
-  useEffect(() => {
-    const fetchSalesStats = async () => {
-      try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+  const { pendingOperations } = useOffline();
 
-        const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+  const fetchSalesStats = useCallback(async () => {
+    try {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-        // Fetch Recent Transactions
-        const { data: transactions, error: txError } = await supabase
-          .from('sales')
-          .select('*')
-          .order('created_at', { ascending: false })
-          .limit(5);
+      // Fetch Recent Transactions from Supabase
+      const { data: transactions, error: txError } = await supabase
+        .from('sales')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(10);
 
-        if (txError) {
-          console.error('Error fetching transactions:', txError);
-          // Fallback to empty if table issue
-        } else if (transactions) {
-          // Transform to match EnhancedTransactionsCard props
-          const formattedTx = transactions.map(tx => ({
-            id: tx.transaction_id || tx.id, // Use transaction_id if available, else UUID
-            product: tx.customer_name || 'Walk-in Customer',
-            customer: `Items: ${(tx.items && Array.isArray(tx.items)) ? tx.items.length : 'N/A'}`,
-            amount: Number(tx.total || 0),
-            date: new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-          }));
-          setRecentTransactions(formattedTx);
-        }
+      // Extract pending sales from OfflineContext
+      const pendingSales = pendingOperations
+        .filter(op => op.resource === 'sales')
+        .map(op => {
+          const sale = op.data;
+          return {
+            id: sale.transactionId || `PENDING-${op.id}`,
+            product: sale.customerName || 'Walk-in Customer (Offline)',
+            customer: `Items: ${Array.isArray(sale.items) ? sale.items.length : 1}`,
+            amount: Number(sale.total || 0),
+            date: `Pending Sync`
+          };
+        });
 
-        // Fetch Today's Sales Sum
-        const { data: todayData, error: todayError } = await supabase
-          .from('sales')
-          .select('total')
-          .gte('created_at', today.toISOString());
-
-        if (todayError) throw todayError;
-
-        const todayTotal = todayData?.reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0;
-        setTodaySales(todayTotal);
-
-        // Fetch Month's Revenue
-        const { data: monthData, error: monthError } = await supabase
-          .from('sales')
-          .select('total')
-          .gte('created_at', firstDayOfMonth.toISOString());
-
-        if (monthError) throw monthError;
-
-        const monthTotal = monthData?.reduce((sum, sale) => sum + Number(sale.total || 0), 0) || 0;
-        setRevenueMTD(monthTotal);
-
-      } catch (error) {
-        console.error("Error fetching sales stats:", error);
-      } finally {
-        setIsLoadingSales(false);
+      if (transactions) {
+        const formattedTx = transactions.map(tx => ({
+          id: tx.transaction_id || tx.id,
+          product: tx.customer_name || 'Walk-in Customer',
+          customer: `Items: ${(tx.items && Array.isArray(tx.items)) ? tx.items.length : 'N/A'}`,
+          amount: Number(tx.total || 0),
+          date: new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+        }));
+        setRecentTransactions([...pendingSales, ...formattedTx].slice(0, 10));
       }
-    };
 
+      // Fetch Today's Sales Sum
+      const { data: todayData, error: todayError } = await supabase
+        .from('sales')
+        .select('total')
+        .gte('created_at', today.toISOString());
+
+      if (!todayError && todayData) {
+        const dbTotal = todayData.reduce((sum, sale) => sum + Number(sale.total || 0), 0);
+        const pendingTotal = pendingOperations
+          .filter(op => op.resource === 'sales' && new Date(op.timestamp) >= today)
+          .reduce((sum, op) => sum + Number(op.data?.total || 0), 0);
+
+        setTodaySales(dbTotal + pendingTotal);
+      }
+
+      // Fetch Month's Revenue
+      const { data: monthData, error: monthError } = await supabase
+        .from('sales')
+        .select('total')
+        .gte('created_at', firstDayOfMonth.toISOString());
+
+      if (!monthError && monthData) {
+        const dbMonthTotal = monthData.reduce((sum, sale) => sum + Number(sale.total || 0), 0);
+        const pendingMonthTotal = pendingOperations
+          .filter(op => op.resource === 'sales' && new Date(op.timestamp) >= firstDayOfMonth)
+          .reduce((sum, op) => sum + Number(op.data?.total || 0), 0);
+
+        setRevenueMTD(dbMonthTotal + pendingMonthTotal);
+      }
+
+    } catch (error) {
+      console.error("Error fetching sales stats:", error);
+    } finally {
+      setIsLoadingSales(false);
+    }
+  }, [pendingOperations]);
+
+  useEffect(() => {
     fetchSalesStats();
-  }, []); // Run once on mount
+  }, [fetchSalesStats]);
 
   const handleCardClick = (route: string) => {
     navigate(route);

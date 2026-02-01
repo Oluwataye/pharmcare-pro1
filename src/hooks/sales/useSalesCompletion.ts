@@ -7,6 +7,7 @@ import { customerInfoSchema, validateAndSanitize } from '@/lib/validation';
 import { secureStorage } from '@/lib/secureStorage';
 import { supabase } from '@/integrations/supabase/client';
 import { getCurrentShift } from '@/utils/shiftUtils';
+import { useAuth } from '@/contexts/AuthContext';
 import { useShift } from '../useShift';
 
 interface CompleteSaleOptions {
@@ -36,6 +37,7 @@ export const useSalesCompletion = (
   const { isOnline } = useOffline();
   const { createOfflineItem } = useOfflineData();
   const { activeShift } = useShift();
+  const { user } = useAuth();
 
   const completeSale = async (options?: CompleteSaleOptions) => {
     if (items.length === 0) {
@@ -87,7 +89,7 @@ export const useSalesCompletion = (
         saleType: currentSaleType,
         shift_name: activeShift?.shift_type || getCurrentShift(),
         shift_id: options?.shift_id || activeShift?.id,
-        staff_role: options?.staffRole
+        staff_role: options?.staffRole || user?.role
       };
 
       // If offline, save this sale for later sync

@@ -12,6 +12,8 @@ import { EnhancedTransactionsCard } from "@/components/admin/EnhancedTransaction
 import { EnhancedLowStockCard } from "@/components/admin/EnhancedLowStockCard";
 import { useInventory } from "@/hooks/useInventory";
 import { supabase } from "@/integrations/supabase/client";
+import { useOffline } from "@/contexts/OfflineContext";
+import { useCallback } from "react";
 
 interface Medication {
   id: string | number;
@@ -67,27 +69,43 @@ const PharmacistDashboard = () => {
     return diffDays > 0 && diffDays <= 30;
   }).length;
 
-  useEffect(() => {
-    const fetchTransactions = async () => {
-      const { data: transactions, error } = await supabase
-        .from('sales')
-        .select('*')
-        .order('created_at', { ascending: false })
-        .limit(5);
+  const { pendingOperations } = useOffline();
 
-      if (transactions) {
-        const formattedTx = transactions.map(tx => ({
-          id: tx.transaction_id || tx.id,
-          product: tx.customer_name || 'Walk-in Customer',
-          customer: `Items: ${(tx.items && Array.isArray(tx.items)) ? tx.items.length : 'N/A'}`,
-          amount: Number(tx.total || tx.total_amount || 0),
-          date: new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }));
-        setRecentTransactions(formattedTx);
-      }
-    };
+  const fetchTransactions = useCallback(async () => {
+    const { data: transactions, error } = await supabase
+      .from('sales')
+      .select('*')
+      .order('created_at', { ascending: false })
+      .limit(10);
+
+    const pendingSales = pendingOperations
+      .filter(op => op.resource === 'sales')
+      .map(op => {
+        const sale = op.data;
+        return {
+          id: sale.transactionId || `PENDING-${op.id}`,
+          product: sale.customerName || 'Walk-in Customer (Offline)',
+          customer: `Items: ${Array.isArray(sale.items) ? sale.items.length : 1}`,
+          amount: Number(sale.total || 0),
+          date: `Pending Sync`
+        };
+      });
+
+    if (transactions) {
+      const formattedTx = transactions.map(tx => ({
+        id: tx.transaction_id || tx.id,
+        product: tx.customer_name || 'Walk-in Customer',
+        customer: `Items: ${(tx.items && Array.isArray(tx.items)) ? tx.items.length : 'N/A'}`,
+        amount: Number(tx.total || tx.total_amount || 0),
+        date: new Date(tx.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }));
+      setRecentTransactions([...pendingSales, ...formattedTx].slice(0, 10));
+    }
+  }, [pendingOperations]);
+
+  useEffect(() => {
     fetchTransactions();
-  }, []);
+  }, [fetchTransactions]);
 
   // Low stock items for card
   const lowStockItems = inventory
@@ -107,6 +125,7 @@ const PharmacistDashboard = () => {
       description: isNew ? "The medication was added successfully" : "The medication was updated successfully",
     });
     setShowMedicationForm(false);
+    fetchTransactions(); // Refresh transactions in case stock logic changed
   };
 
   const handleCardClick = (route: string) => {

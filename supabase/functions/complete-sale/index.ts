@@ -31,6 +31,9 @@ interface CompleteSaleRequest {
   dispenserName?: string
   dispenserEmail?: string
   manualDiscount?: number
+  shift_name?: string
+  shift_id?: string
+  staff_role?: string
 }
 
 // Input validation and sanitization utilities
@@ -161,7 +164,10 @@ serve(async (req) => {
         p_cashier_id: user.id,
         p_cashier_name: sanitizeString(saleData.dispenserName, 200),
         p_cashier_email: sanitizeString(saleData.dispenserEmail, 255),
-        p_items: mappedItems
+        p_items: mappedItems,
+        p_shift_name: sanitizeString(saleData.shift_name, 100),
+        p_shift_id: saleData.shift_id,
+        p_staff_role: sanitizeString(saleData.staff_role, 50)
       })
 
     if (rpcError) {
