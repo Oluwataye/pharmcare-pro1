@@ -62,20 +62,10 @@ const Receipts = () => {
   }, [user]);
 
   useEffect(() => {
-    if (!user) return;
-
-    if (user.role === "DISPENSER") {
-      const currentShiftName = activeShift?.shift_type || getCurrentShift();
-      const filtered = receipts.filter(receipt => {
-        const matchesShift = receipt.shift_name === currentShiftName || !receipt.shift_name;
-        const isOwnSale = receipt.cashier_id === user.id;
-        return isOwnSale && matchesShift;
-      });
-      setFilteredReceipts(filtered);
-    } else {
-      setFilteredReceipts(receipts);
-    }
-  }, [receipts, user, activeShift]);
+    // RLS policies now handle transaction privacy at the database level
+    // Display all receipts returned by the database query
+    setFilteredReceipts(receipts);
+  }, [receipts]);
 
   const fetchReceipts = async () => {
     try {
