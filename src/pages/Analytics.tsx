@@ -7,9 +7,10 @@ import {
 } from 'recharts';
 import {
     TrendingUp, TrendingDown, Package, Activity,
-    Calendar, RefreshCcw, ArrowUpRight, ArrowDownRight
+    Calendar, RefreshCcw, Wallet
 } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
+import { MetricCard } from "@/components/dashboard/MetricCard";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
