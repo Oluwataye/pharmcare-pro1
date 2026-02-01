@@ -9,6 +9,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert';
 import { Loader2, AlertTriangle } from 'lucide-react';
 import { useRefund } from '@/hooks/sales/useRefund';
 import { RefundRequest } from '@/types/refund';
+import { supabase } from '@/integrations/supabase/client';
 
 interface RefundDialogProps {
     open: boolean;
@@ -36,6 +37,9 @@ export const RefundDialog = ({
     const [hasExistingRefund, setHasExistingRefund] = useState(false);
     const [isCheckingRefund, setIsCheckingRefund] = useState(true);
 
+    const [dialogItems, setDialogItems] = useState<any[]>(items || []);
+    const [isLoadingItems, setIsLoadingItems] = useState(false);
+
     useEffect(() => {
         if (open) {
             // Check if refund already exists
@@ -43,6 +47,13 @@ export const RefundDialog = ({
                 setHasExistingRefund(exists);
                 setIsCheckingRefund(false);
             });
+
+            // If no items provided, fetch them
+            if (!items || items.length === 0) {
+                fetchItems();
+            } else {
+                setDialogItems(items);
+            }
         } else {
             // Reset form when dialog closes
             setRefundType('full');
@@ -50,8 +61,26 @@ export const RefundDialog = ({
             setReason('');
             setHasExistingRefund(false);
             setIsCheckingRefund(true);
+            setDialogItems([]);
         }
-    }, [open, saleId]);
+    }, [open, saleId, items]);
+
+    const fetchItems = async () => {
+        try {
+            setIsLoadingItems(true);
+            const { data, error } = await supabase
+                .from('sales_items')
+                .select('*')
+                .eq('sale_id', saleId);
+
+            if (error) throw error;
+            setDialogItems(data || []);
+        } catch (err) {
+            console.error('Error fetching items for refund:', err);
+        } finally {
+            setIsLoadingItems(false);
+        }
+    };
 
     const handleSubmit = async () => {
         const refundAmount = refundType === 'full' ? originalAmount : parseFloat(partialAmount);
@@ -76,7 +105,7 @@ export const RefundDialog = ({
             refund_type: refundType,
             original_amount: originalAmount,
             customer_name: customerName,
-            items,
+            items: dialogItems,
         };
 
         const success = await initiateRefund(request);

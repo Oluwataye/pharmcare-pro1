@@ -3,6 +3,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useReceiptReprint } from "@/hooks/sales/useReceiptReprint";
 import { ReceiptPreview } from "@/components/receipts/ReceiptPreview";
 import { RefundDialog } from "@/components/refunds/RefundDialog";
+import { useAuth } from "@/contexts/AuthContext";
+import { useShift } from "@/hooks/useShift";
+import { getCurrentShift } from "@/utils/shiftUtils";
 import {
   Table,
   TableBody,
@@ -21,14 +24,26 @@ import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from "@/comp
 
 interface ReceiptRecord {
   id: string;
-  sale_id: string;
-  receipt_data: any;
+  transaction_id: string;
+  customer_name: string;
+  business_name: string;
+  cashier_name: string;
+  total: number;
+  discount: number;
+  sale_type: string;
   created_at: string;
+  manual_discount?: number;
+  items_count?: number;
+  cashier_id?: string;
+  shift_name?: string;
 }
 
 const Receipts = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
+  const { activeShift } = useShift();
   const [receipts, setReceipts] = useState<ReceiptRecord[]>([]);
+  const [filteredReceipts, setFilteredReceipts] = useState<ReceiptRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [selectedReceiptForRefund, setSelectedReceiptForRefund] = useState<ReceiptRecord | null>(null);
@@ -44,23 +59,58 @@ const Receipts = () => {
 
   useEffect(() => {
     fetchReceipts();
-  }, []);
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+
+    if (user.role === "DISPENSER") {
+      const currentShiftName = activeShift?.shift_type || getCurrentShift();
+      const filtered = receipts.filter(receipt => {
+        const matchesShift = receipt.shift_name === currentShiftName || !receipt.shift_name;
+        const isOwnSale = receipt.cashier_id === user.id;
+        return isOwnSale && matchesShift;
+      });
+      setFilteredReceipts(filtered);
+    } else {
+      setFilteredReceipts(receipts);
+    }
+  }, [receipts, user, activeShift]);
 
   const fetchReceipts = async () => {
     try {
       setLoading(true);
+      // Fetch from sales table instead of receipts table
+      // We join with sales_items to get the count
       const { data, error } = await supabase
-        .from('receipts')
-        .select('*')
+        .from('sales')
+        .select('*, sales_items(count)')
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      setReceipts(data || []);
+
+      const formattedReceipts: ReceiptRecord[] = (data || []).map((sale: any) => ({
+        id: sale.id,
+        transaction_id: sale.transaction_id,
+        customer_name: sale.customer_name,
+        business_name: sale.business_name,
+        cashier_name: sale.cashier_name,
+        total: Number(sale.total),
+        discount: Number(sale.discount || 0),
+        sale_type: sale.sale_type,
+        created_at: sale.created_at,
+        manual_discount: Number(sale.manual_discount || 0),
+        items_count: sale.sales_items?.[0]?.count || 0,
+        cashier_id: sale.cashier_id,
+        shift_name: sale.shift_name
+      }));
+
+      setReceipts(formattedReceipts);
     } catch (error) {
-      console.error("Error fetching receipts:", error);
+      console.error("Error fetching receipts/sales:", error);
       toast({
         title: "Error",
-        description: "Failed to load receipts. Please try again.",
+        description: "Failed to load receipt history. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -106,7 +156,7 @@ const Receipts = () => {
             <div className="flex justify-center items-center h-64">
               <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
             </div>
-          ) : receipts.length === 0 ? (
+          ) : filteredReceipts.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-64 text-muted-foreground">
               <Receipt className="h-16 w-16 mb-4 opacity-20" />
               <p>No receipts found</p>
@@ -126,19 +176,8 @@ const Receipts = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {receipts.map((receipt) => {
-                    const data = typeof receipt.receipt_data === 'string'
-                      ? JSON.parse(receipt.receipt_data)
-                      : receipt.receipt_data;
-
-                    if (!data) return null;
-
-                    const total = data.total || data.items?.reduce(
-                      (sum: number, item: any) => sum + (item.price || item.unit_price) * item.quantity,
-                      0
-                    ) || 0;
-                    const discount = data.discount || 0;
-                    const finalTotal = total - (total * (discount / 100));
+                  {filteredReceipts.map((receipt) => {
+                    const finalTotal = receipt.total;
 
                     return (
                       <TableRow key={receipt.id}>
@@ -146,16 +185,16 @@ const Receipts = () => {
                           {format(new Date(receipt.created_at), "MMM dd, yyyy HH:mm")}
                         </TableCell>
                         <TableCell className="capitalize">
-                          {data.saleType || 'retail'}
+                          {receipt.sale_type || 'retail'}
                         </TableCell>
                         <TableCell>
-                          {data.businessName || data.customerName || 'Walk-in'}
+                          {receipt.business_name || receipt.customer_name || 'Walk-in'}
                         </TableCell>
                         <TableCell>
-                          {data.dispenserName || data.cashierName || 'Unknown'}
+                          {receipt.cashier_name || 'Unknown'}
                         </TableCell>
                         <TableCell>
-                          {data.items?.length || 0} item(s)
+                          {receipt.items_count || 0} item(s)
                         </TableCell>
                         <TableCell>
                           ₦{finalTotal.toLocaleString()}
@@ -168,7 +207,7 @@ const Receipts = () => {
                                   <Button
                                     variant="ghost"
                                     size="sm"
-                                    onClick={() => handlePreviewReceipt(receipt.sale_id)}
+                                    onClick={() => handlePreviewReceipt(receipt.id)}
                                   >
                                     <Printer className="h-4 w-4" />
                                   </Button>
@@ -217,32 +256,15 @@ const Receipts = () => {
       )}
 
       {selectedReceiptForRefund && (
-        (() => {
-          const data = typeof selectedReceiptForRefund.receipt_data === 'string'
-            ? JSON.parse(selectedReceiptForRefund.receipt_data)
-            : selectedReceiptForRefund.receipt_data;
-
-          if (!data) return null;
-
-          const total = data.total || data.items?.reduce(
-            (sum: number, item: any) => sum + (item.price || item.unit_price) * item.quantity,
-            0
-          ) || 0;
-          const discount = data.discount || 0;
-          const finalTotal = total - (total * (discount / 100));
-
-          return (
-            <RefundDialog
-              open={showRefundDialog}
-              onOpenChange={setShowRefundDialog}
-              saleId={selectedReceiptForRefund.sale_id}
-              transactionId={data.transactionId || selectedReceiptForRefund.id}
-              items={data.items || []}
-              customerName={data.customerName || data.businessName}
-              originalAmount={finalTotal}
-            />
-          );
-        })()
+        <RefundDialog
+          open={showRefundDialog}
+          onOpenChange={setShowRefundDialog}
+          saleId={selectedReceiptForRefund.id}
+          transactionId={selectedReceiptForRefund.transaction_id || selectedReceiptForRefund.id}
+          items={[]} // RefundDialog will need to fetch items or we fetch them here
+          customerName={selectedReceiptForRefund.customer_name || selectedReceiptForRefund.business_name}
+          originalAmount={selectedReceiptForRefund.total}
+        />
       )}
     </div>
   );
