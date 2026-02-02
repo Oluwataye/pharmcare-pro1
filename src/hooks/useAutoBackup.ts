@@ -69,11 +69,18 @@ export const useAutoBackup = () => {
                     console.log('[useAutoBackup] Last backup was recent:', lastBackup.toLocaleString());
                 }
             } catch (err: any) {
-                // Also suppress standard PostgREST multiple results error in catch
+                // Suppress PostgREST multiple results error
                 if (err?.code === 'PGRST116') {
                     console.log('[useAutoBackup] Multiple store settings found, using the first one');
                     return;
                 }
+
+                // Suppress CORS / Network / Function fetch errors (common in some browser environments or if function not deployed)
+                if (err?.name === 'FunctionsFetchError' || err?.message?.toLowerCase().includes('failed to fetch')) {
+                    console.log('[useAutoBackup] Edge Function connectivity issue (possibly CORS or not deployed), skipping check');
+                    return;
+                }
+
                 console.error('[useAutoBackup] Error during automated backup check:', err);
                 // Fail silently to prevent blocking the app
             }
