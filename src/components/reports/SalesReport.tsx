@@ -20,7 +20,10 @@ const SalesReport = () => {
     revenue: 0,
     profit: 0,
     margin: 0,
-    growth: 0
+    growth: 0,
+    cash: 0,
+    pos: 0,
+    transfer: 0
   });
   const [chartData, setChartData] = useState<any[]>([]);
 
@@ -40,6 +43,7 @@ const SalesReport = () => {
           id,
           total,
           date,
+          payment_methods,
           sales_items (
             cost_price,
             quantity,
@@ -62,6 +66,9 @@ const SalesReport = () => {
   const processData = (data: any[]) => {
     let totalRevenue = 0;
     let totalCost = 0;
+    let totalCash = 0;
+    let totalPos = 0;
+    let totalTransfer = 0;
     const monthlyData: Record<string, { revenue: number; profit: number; cost: number }> = {};
 
     data.forEach(sale => {
@@ -83,6 +90,18 @@ const SalesReport = () => {
       monthlyData[monthKey].revenue += Number(sale.total);
       monthlyData[monthKey].cost += saleCost;
       monthlyData[monthKey].profit += (Number(sale.total) - saleCost);
+
+      // Aggregate payment modes
+      if (Array.isArray(sale.payment_methods)) {
+        sale.payment_methods.forEach((p: any) => {
+          if (p.mode === 'cash') totalCash += Number(p.amount);
+          if (p.mode === 'pos') totalPos += Number(p.amount);
+          if (p.mode === 'transfer') totalTransfer += Number(p.amount);
+        });
+      } else {
+        // Fallback for old records or partial data
+        totalCash += Number(sale.total);
+      }
     });
 
     const profit = totalRevenue - totalCost;
@@ -99,7 +118,10 @@ const SalesReport = () => {
       revenue: totalRevenue,
       profit: profit,
       margin: margin,
-      growth: 0 // Simplification for now
+      growth: 0, // Simplification for now
+      cash: totalCash,
+      pos: totalPos,
+      transfer: totalTransfer
     });
 
     setChartData(processedChartData);
@@ -150,6 +172,30 @@ const SalesReport = () => {
           value={`₦${(metrics.revenue / (chartData.length || 1)).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
           icon={TrendingDown} // Just an icon choice
           description="Per month average"
+          colorScheme="violet"
+        />
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <MetricCard
+          title="Cash Collected"
+          value={`₦${metrics.cash.toLocaleString()}`}
+          icon={NairaSign}
+          description="Total physical cash"
+          colorScheme="success"
+        />
+        <MetricCard
+          title="POS Payments"
+          value={`₦${metrics.pos.toLocaleString()}`}
+          icon={TrendingUp}
+          description="Card transactions"
+          colorScheme="blue"
+        />
+        <MetricCard
+          title="Bank Transfers"
+          value={`₦${metrics.transfer.toLocaleString()}`}
+          icon={TrendingUp}
+          description="Direct transfers"
           colorScheme="violet"
         />
       </div>

@@ -78,10 +78,22 @@ export const RefundApprovalDialog = ({ open, onOpenChange, refund }: RefundAppro
         }
     };
 
+    const handleClose = (open: boolean) => {
+        if (!open) {
+            // Reset all state when modal closes
+            setAction(null);
+            setRejectionReason('');
+            setCashReturnedAmount('');
+            setRegisterBalanceBefore('');
+            setRegisterBalanceAfter('');
+        }
+        onOpenChange(open);
+    };
+
     if (!refund) return null;
 
     return (
-        <Dialog open={open} onOpenChange={onOpenChange}>
+        <Dialog open={open} onOpenChange={handleClose}>
             <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
                 <DialogHeader>
                     <DialogTitle>Review Refund Request</DialogTitle>

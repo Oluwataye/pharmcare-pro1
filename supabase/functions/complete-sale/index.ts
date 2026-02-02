@@ -34,6 +34,7 @@ interface CompleteSaleRequest {
   shift_name?: string
   shift_id?: string
   staff_role?: string
+  payments?: { mode: string, amount: number }[]
 }
 
 // Input validation and sanitization utilities
@@ -179,7 +180,8 @@ serve(async (req) => {
         p_items: mappedItems,
         p_shift_name: sanitizeString(saleData.shift_name, 100),
         p_shift_id: saleData.shift_id,
-        p_staff_role: sanitizeString(saleData.staff_role, 50)
+        p_staff_role: sanitizeString(saleData.staff_role, 50),
+        p_payments: saleData.payments || [{ mode: 'cash', amount: saleData.total }]
       })
 
     if (rpcError) {

@@ -270,9 +270,9 @@ const ShiftManagement = () => {
                                 <TableHead>Staff</TableHead>
                                 <TableHead>Type</TableHead>
                                 <TableHead>Period</TableHead>
-                                <TableHead>Sales</TableHead>
-                                <TableHead>Cash</TableHead>
-                                <TableHead className="text-right">Diff</TableHead>
+                                <TableHead>Expected Totals</TableHead>
+                                <TableHead>Actual Cash</TableHead>
+                                <TableHead className="text-right">Cash Diff</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
@@ -293,15 +293,32 @@ const ShiftManagement = () => {
                                     <TableRow key={shift.id}>
                                         <TableCell className="font-medium">{shift.staff_name}</TableCell>
                                         <TableCell className="capitalize">{shift.shift_type}</TableCell>
-                                        <TableCell className="text-xs">
-                                            {new Date(shift.start_time).toLocaleDateString()}<br />
-                                            <span className="text-muted-foreground">
-                                                {new Date(shift.start_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
-                                                {shift.end_time ? new Date(shift.end_time).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '...'}
-                                            </span>
+                                        <TableCell>
+                                            <div className="text-xs space-y-0.5">
+                                                <div className="flex justify-between gap-4">
+                                                    <span className="text-muted-foreground">Cash:</span>
+                                                    <span className="font-medium">₦{shift.expected_cash_total?.toLocaleString() || 0}</span>
+                                                </div>
+                                                <div className="flex justify-between gap-4">
+                                                    <span className="text-muted-foreground">POS:</span>
+                                                    <span className="font-medium">₦{shift.expected_pos_total?.toLocaleString() || 0}</span>
+                                                </div>
+                                                <div className="flex justify-between gap-4 border-t pt-0.5 font-bold">
+                                                    <span>Total:</span>
+                                                    <span>₦{shift.expected_sales_total?.toLocaleString() || 0}</span>
+                                                </div>
+                                            </div>
                                         </TableCell>
-                                        <TableCell>₦{shift.expected_sales_total?.toLocaleString() || 0}</TableCell>
-                                        <TableCell>₦{shift.actual_cash_counted?.toLocaleString() || 0}</TableCell>
+                                        <TableCell>
+                                            <div className="font-medium text-green-700">
+                                                ₦{shift.actual_cash_counted?.toLocaleString() || 0}
+                                            </div>
+                                            {shift.expected_transfer_total > 0 && (
+                                                <div className="text-[10px] text-muted-foreground">
+                                                    + ₦{shift.expected_transfer_total.toLocaleString()} Transfer
+                                                </div>
+                                            )}
+                                        </TableCell>
                                         <TableCell className="text-right">
                                             {shift.actual_cash_counted !== undefined && shift.expected_sales_total !== undefined && (
                                                 <Badge variant={shift.actual_cash_counted >= shift.expected_sales_total ? "default" : "destructive"}>

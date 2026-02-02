@@ -22,6 +22,7 @@ interface CompleteSaleOptions {
   staffRole?: string;
   transactionId?: string; // Allow passing a pre-generated ID
   shift_id?: string;
+  payments?: { mode: string, amount: number }[];
 }
 
 export const useSalesCompletion = (
@@ -89,7 +90,8 @@ export const useSalesCompletion = (
         saleType: currentSaleType,
         shift_name: activeShift?.shift_type || getCurrentShift(),
         shift_id: options?.shift_id || activeShift?.id,
-        staff_role: options?.staffRole || user?.role
+        staff_role: options?.staffRole || user?.role,
+        payments: options?.payments
       };
 
       // If offline, save this sale for later sync

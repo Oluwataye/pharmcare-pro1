@@ -18,6 +18,9 @@ export interface StaffShift {
     opening_cash: number;
     closing_cash?: number;
     expected_sales_total?: number;
+    expected_cash_total?: number;
+    expected_pos_total?: number;
+    expected_transfer_total?: number;
     actual_cash_counted?: number;
     notes?: string;
 }
@@ -97,7 +100,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 console.error('[ShiftContext] Error fetching all shifts:', error);
                 throw error;
             }
-            setActiveStaffShifts(data || []);
+            setActiveStaffShifts(data as any || []);
         } catch (error) {
             console.error('Error fetching all active shifts:', error);
         }
@@ -378,7 +381,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         try {
             const { data: salesData, error: salesError } = await supabase
                 .from('sales')
-                .select('total')
+                .select('total, payment_methods')
                 .eq('cashier_id', staffId)
                 .gte('created_at', startTime);
 
@@ -386,7 +389,25 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 console.warn('[ShiftContext] Error calculating sales total:', salesError);
             }
 
-            const salesTotal = (salesData || []).reduce((sum, s) => sum + Number(s.total), 0);
+            const salesTotal = (salesData as any || []).reduce((sum: number, s: any) => sum + Number(s.total), 0);
+
+            let expectedCash = 0;
+            let expectedPos = 0;
+            let expectedTransfer = 0;
+
+            (salesData || []).forEach(sale => {
+                const payments = (sale as any).payment_methods;
+                if (Array.isArray(payments)) {
+                    payments.forEach((p: any) => {
+                        if (p.mode === 'cash') expectedCash += Number(p.amount);
+                        else if (p.mode === 'pos') expectedPos += Number(p.amount);
+                        else if (p.mode === 'transfer') expectedTransfer += Number(p.amount);
+                    });
+                } else {
+                    // Fallback for sales without detailed payment info (assume cash)
+                    expectedCash += Number(sale.total);
+                }
+            });
 
             const { error } = await supabase
                 .from('staff_shifts' as any)
@@ -394,6 +415,9 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     status: 'closed',
                     end_time: new Date().toISOString(),
                     expected_sales_total: salesTotal,
+                    expected_cash_total: expectedCash,
+                    expected_pos_total: expectedPos,
+                    expected_transfer_total: expectedTransfer,
                     actual_cash_counted: actualCash,
                     notes: notes
                 })

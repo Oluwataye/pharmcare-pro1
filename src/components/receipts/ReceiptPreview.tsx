@@ -20,7 +20,8 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
     businessName,
     businessAddress,
     saleType = 'retail',
-    storeSettings: rawStoreSettings
+    storeSettings: rawStoreSettings,
+    payments = []
   } = receiptData;
 
   // ENSURE items is an array before reduce
@@ -138,6 +139,21 @@ export const ReceiptPreview = ({ open, onOpenChange, receiptData, onPrint }: Rec
               <span>₦{total.toLocaleString()}</span>
             </div>
           </div>
+
+          {payments.length > 0 && (
+            <>
+              <div className="border-t border-dashed border-border my-2" />
+              <div className="space-y-1">
+                <div className="font-bold underline mb-1">Payment Details:</div>
+                {payments.map((p, idx) => (
+                  <div key={idx} className="flex justify-between">
+                    <span className="capitalize">{p.mode}:</span>
+                    <span>₦{p.amount.toLocaleString()}</span>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
 
           <div className="border-t border-dashed border-border my-2" />
 

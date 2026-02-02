@@ -21,6 +21,7 @@ import { customerInfoSchema, validateAndSanitize } from "@/lib/validation";
 import { logSecurityEvent } from "@/components/security/SecurityProvider";
 import { ReceiptPreview } from "@/components/receipts/ReceiptPreview";
 import { useSystemConfig } from "@/hooks/useSystemConfig";
+import PaymentModeSelector, { PaymentMode } from "@/components/sales/PaymentModeSelector";
 
 const NewSale = () => {
   const navigate = useNavigate();
@@ -55,6 +56,7 @@ const NewSale = () => {
   const [lastCompletedSaleId, setLastCompletedSaleId] = useState<string | null>(null);
   const [lastCompletedItems, setLastCompletedItems] = useState<any[]>([]);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [payments, setPayments] = useState<PaymentMode[]>([{ mode: 'cash', amount: 0 }]);
 
   const { config: systemConfig } = useSystemConfig();
 
@@ -138,6 +140,15 @@ const NewSale = () => {
     }
   };
 
+  const total = calculateTotal();
+
+  // Sync default payment amount when total changes (only if single payment mode)
+  useEffect(() => {
+    if (payments.length === 1) {
+      setPayments([{ ...payments[0], amount: total }]);
+    }
+  }, [total]);
+
   const handleCompleteSale = async () => {
     if (items.length === 0) {
       toast({
@@ -166,6 +177,16 @@ const NewSale = () => {
       return;
     }
 
+    const paymentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
+    if (Math.abs(paymentTotal - total) > 0.01) {
+      toast({
+        title: "Payment Error",
+        description: `Payment total (₦${paymentTotal.toLocaleString()}) does not match transaction total (₦${total.toLocaleString()})`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       setIsCompleting(true);
       const transactionId = `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
@@ -187,6 +208,7 @@ const NewSale = () => {
         businessAddress: saleType === 'wholesale' ? businessAddress : undefined,
         saleType,
         transactionId,
+        payments,
         existingWindow: printWindow,
       });
 
@@ -199,6 +221,11 @@ const NewSale = () => {
           transactionId
         });
         setLastCompletedSaleId(result);
+        setPayments([{ mode: 'cash', amount: 0 }]);
+        setCustomerName("");
+        setCustomerPhone("");
+        setBusinessName("");
+        setBusinessAddress("");
         setIsSuccessModalOpen(true);
       }
     } catch (error) {
@@ -411,6 +438,14 @@ const NewSale = () => {
                   isWholesale={saleType === 'wholesale'}
                   manualDiscountEnabled={systemConfig.manualDiscountEnabled}
                 />
+
+                <div className="mt-6">
+                  <PaymentModeSelector
+                    total={total}
+                    payments={payments}
+                    onPaymentsChange={setPayments}
+                  />
+                </div>
 
                 <div className="mt-4 flex justify-between items-center">
                   <Button

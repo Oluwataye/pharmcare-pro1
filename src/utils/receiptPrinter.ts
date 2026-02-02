@@ -29,6 +29,7 @@ export interface PrintReceiptProps {
   dispenserId?: string;
   saleId?: string;
   storeSettings: StoreSettings;
+  payments?: { mode: string, amount: number }[];
 }
 
 export enum PrintError {
@@ -234,7 +235,8 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
     businessName,
     businessAddress,
     saleType = 'retail',
-    storeSettings = {} as StoreSettings
+    storeSettings = {} as StoreSettings,
+    payments = []
   } = props;
 
   // ENSURE items is an array before reduce
@@ -408,6 +410,25 @@ function generateReceiptHTML(props: PrintReceiptProps): string {
           <td class="amount">₦${total.toLocaleString()}</td>
         </tr>
       </table>
+      
+      ${payments.length > 0 ? `
+      <div class="divider"></div>
+      <table>
+        <thead>
+          <tr>
+            <th colspan="2">Payment Details</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${payments.map(p => `
+            <tr>
+              <td style="text-transform: capitalize;">${p.mode}:</td>
+              <td class="amount">₦${p.amount.toLocaleString()}</td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+      ` : ''}
       
       <div class="divider"></div>
       

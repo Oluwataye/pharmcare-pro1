@@ -372,6 +372,7 @@ export type Database = {
           status: string
           total: number
           transaction_id: string
+          payment_methods: Json | null
           updated_at: string | null
         }
         Insert: {
@@ -390,6 +391,7 @@ export type Database = {
           status?: string
           total: number
           transaction_id: string
+          payment_methods?: Json | null
           updated_at?: string | null
         }
         Update: {
@@ -408,6 +410,7 @@ export type Database = {
           status?: string
           total?: number
           transaction_id?: string
+          payment_methods?: Json | null
           updated_at?: string | null
         }
         Relationships: []
