@@ -17,10 +17,12 @@ export const useAutoBackup = () => {
         const checkAndTriggerBackup = async () => {
             try {
                 // Get store settings to check last backup at
-                const { data: settings, error: fetchError } = await supabase
+                const { data, error: fetchError } = await supabase
                     .from('store_settings')
                     .select('id, last_backup_at, enable_auto_backups')
-                    .single() as any;
+                    .limit(1) as { data: any[] | null, error: any };
+
+                const settings = data && data.length > 0 ? data[0] : null;
 
                 if (fetchError) {
                     // Silently fail if columns don't exist or schema is not ready (migration not applied yet)
@@ -28,9 +30,10 @@ export const useAutoBackup = () => {
                         fetchError.message?.includes('column') ||
                         fetchError.code === '42703' ||
                         fetchError.status === 406 ||
-                        fetchError.message?.includes('Not Acceptable')
+                        fetchError.message?.includes('Not Acceptable') ||
+                        fetchError.code === 'PGRST116'
                     ) {
-                        console.log('[useAutoBackup] Schema not fully updated yet, skipping automated backup check');
+                        console.log('[useAutoBackup] Schema mismatch or multiple settings rows, skipping check');
                         return;
                     }
                     throw fetchError;
@@ -65,7 +68,12 @@ export const useAutoBackup = () => {
                 } else {
                     console.log('[useAutoBackup] Last backup was recent:', lastBackup.toLocaleString());
                 }
-            } catch (err) {
+            } catch (err: any) {
+                // Also suppress standard PostgREST multiple results error in catch
+                if (err?.code === 'PGRST116') {
+                    console.log('[useAutoBackup] Multiple store settings found, using the first one');
+                    return;
+                }
                 console.error('[useAutoBackup] Error during automated backup check:', err);
                 // Fail silently to prevent blocking the app
             }
