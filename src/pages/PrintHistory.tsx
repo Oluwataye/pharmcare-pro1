@@ -26,6 +26,7 @@ interface PrintAnalytic {
   id: string;
   created_at: string;
   sale_id: string | null;
+  transaction_id?: string | null; // From joined sales table
   cashier_name: string | null;
   customer_name: string | null;
   print_status: 'success' | 'failed' | 'cancelled';
@@ -73,7 +74,12 @@ const PrintHistory = () => {
     try {
       let query = supabase
         .from('print_analytics')
-        .select('*')
+        .select(`
+          *,
+          sales:sale_id (
+            transaction_id
+          )
+        `)
         .order('created_at', { ascending: false });
 
       // Apply filters
@@ -99,7 +105,13 @@ const PrintHistory = () => {
 
       if (error) throw error;
 
-      setAnalytics((data as PrintAnalytic[]) || []);
+      // Flatten the joined sales data
+      const formattedData = (data as any[]).map(item => ({
+        ...item,
+        transaction_id: item.sales?.transaction_id || item.sale_id // Fallback to UUID if no trans_id
+      }));
+
+      setAnalytics(formattedData as PrintAnalytic[]);
 
       // Calculate stats
       if (data && data.length > 0) {
@@ -157,7 +169,7 @@ const PrintHistory = () => {
     }
     setSelectedRefund({
       saleId: analytic.sale_id,
-      transactionId: analytic.sale_id, // Using sale_id as transaction_id
+      transactionId: analytic.transaction_id || analytic.sale_id || '', // Use human-readable ID
       amount: analytic.total_amount || 0,
       customerName: analytic.customer_name || undefined,
     });
@@ -165,9 +177,10 @@ const PrintHistory = () => {
   };
 
   const exportToCSV = () => {
-    const headers = ['Date', 'Dispenser', 'Customer', 'Status', 'Error Type', 'Duration (ms)', 'Is Reprint', 'Sale Type', 'Amount'];
+    const headers = ['Date', 'Transaction ID', 'Dispenser', 'Customer', 'Status', 'Error Type', 'Duration (ms)', 'Is Reprint', 'Sale Type', 'Amount'];
     const rows = analytics.map(a => [
       format(new Date(a.created_at), 'yyyy-MM-dd HH:mm:ss'),
+      a.transaction_id || a.sale_id || 'N/A',
       a.cashier_name || 'N/A',
       a.customer_name || 'N/A',
       a.print_status,
