@@ -103,21 +103,21 @@ const CashReconciliation = () => {
                 <MetricCard
                     title="Net Variance"
                     value={`₦${totalVariance.toLocaleString()}`}
-                    icon={totalVariance >= 0 ? <TrendingUp className="h-5 w-5 text-emerald-600" /> : <TrendingDown className="h-5 w-5 text-rose-600" />}
+                    icon={totalVariance >= 0 ? TrendingUp : TrendingDown}
                     subValue="Total over/shortage for period"
                     colorScheme={totalVariance >= 0 ? "success" : "destructive"}
                 />
                 <MetricCard
                     title="Reconciled Shifts"
                     value={filteredShifts.filter(s => s.status === 'closed').length.toString()}
-                    icon={<CheckCircle2 className="h-5 w-5 text-blue-600" />}
+                    icon={CheckCircle2}
                     subValue={`${shiftsWithVariance} shifts with variances detected`}
                     colorScheme="primary"
                 />
                 <MetricCard
                     title="Audit Alerts"
                     value={filteredShifts.filter(s => Math.abs((s.actual_cash_counted || 0) - (s.expected_cash_total || 0)) > 1000).length.toString()}
-                    icon={<AlertCircle className="h-5 w-5 text-amber-600" />}
+                    icon={AlertCircle}
                     subValue="Significant variances (> ₦1,000)"
                     colorScheme="warning"
                 />

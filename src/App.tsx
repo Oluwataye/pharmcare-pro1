@@ -152,36 +152,6 @@ const App = ({ queryClient, persister }: AppProps) => {
                             </ProtectedRoute>
                           }
                         />
-                        <Route
-                          path="/suppliers"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "suppliers" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><Suppliers /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/shifts"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "shifts" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><ShiftManagement /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/expenses"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "expenses" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><Expenses /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
                         <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
                       </Route>
                     </Routes>
