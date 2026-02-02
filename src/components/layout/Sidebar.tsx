@@ -21,6 +21,7 @@ import {
   Truck,
   Clock,
   Wallet,
+  CheckCircle2,
 } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
 
@@ -98,6 +99,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       icon: FileText,
       label: "Reports",
       path: "/reports",
+      condition: canAccessReports()
+    },
+    {
+      icon: CheckCircle2,
+      label: "Cash Reconciliation",
+      path: "/reconciliation",
       condition: canAccessReports()
     },
     {

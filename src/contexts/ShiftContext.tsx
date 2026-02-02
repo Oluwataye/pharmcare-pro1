@@ -19,10 +19,13 @@ export interface StaffShift {
     closing_cash?: number;
     expected_sales_total?: number;
     expected_cash_total?: number;
-    expected_pos_total?: number;
-    expected_transfer_total?: number;
+    expected_pos_total: number;
+    expected_transfer_total: number;
     actual_cash_counted?: number;
     notes?: string;
+    variance_reason?: string;
+    closure_status?: 'open' | 'closed';
+    created_at: string;
 }
 
 interface ShiftContextType {
@@ -351,12 +354,12 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             return;
         }
 
-        await adminEndShift(shiftId, actualCash, activeShift.staff_id, activeShift.start_time, notes);
+        await adminEndShift(shiftId, actualCash, activeShift.staff_id, activeShift.start_time, notes, notes); // Using notes as variance reason for now
         setActiveShift(null);
         localStorage.removeItem('active_staff_shift');
     };
 
-    const adminEndShift = async (shiftId: string, actualCash: number, staffId: string, startTime: string, notes?: string) => {
+    const adminEndShift = async (shiftId: string, actualCash: number, staffId: string, startTime: string, notes?: string, varianceReason?: string) => {
         if (!isOnline) {
             setActiveStaffShifts(prev => prev.filter(s => s.id !== shiftId));
 
@@ -424,8 +427,33 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 .eq('id', shiftId);
 
             if (error) throw error;
+
+            // Trigger Financial Alert if variance is significant
+            const variance = actualCash - expectedCash;
+            if (Math.abs(variance) > 1000 || variance < 0) {
+                await supabase.from('system_alerts').insert({
+                    type: 'variance',
+                    severity: Math.abs(variance) > 5000 ? 'high' : 'medium',
+                    message: `Cash variance of ₦${variance.toLocaleString()} detected for shift ${shiftId}`,
+                    details: {
+                        expected: expectedCash,
+                        actual: actualCash,
+                        variance: variance,
+                        staff_id: staffId,
+                        notes,
+                        variance_reason: varianceReason
+                    },
+                    staff_id: staffId,
+                    shift_id: shiftId
+                });
+            }
+
             await refreshShifts();
-            toast({ title: "Shift Closed", description: "Shift record has been finalized." });
+            toast({
+                title: variance === 0 ? "Shift Closed" : "Shift Reconciled",
+                description: variance === 0 ? "Shift record finalized with zero variance." : `Shift finalized with ₦${variance.toLocaleString()} variance.`,
+                variant: Math.abs(variance) > 1000 ? "destructive" : "default"
+            });
         } catch (error: any) {
             console.error('Error closing shift:', error);
             if (window.navigator.onLine) {

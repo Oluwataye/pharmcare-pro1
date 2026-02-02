@@ -42,6 +42,7 @@ const Analytics = lazy(() => import("./pages/Analytics"));
 const Suppliers = lazy(() => import("./pages/Suppliers"));
 const ShiftManagement = lazy(() => import("./pages/ShiftManagement"));
 const Expenses = lazy(() => import("./pages/Expenses"));
+const CashReconciliation = lazy(() => import("./pages/CashReconciliation"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -98,6 +99,27 @@ const App = ({ queryClient, persister }: AppProps) => {
                         <Route path="/sales" element={<Suspense fallback={<PageLoader />}><Sales /></Suspense>} />
                         <Route path="/sales/new" element={<Suspense fallback={<PageLoader />}><NewSale /></Suspense>} />
                         <Route path="/receipts" element={<Suspense fallback={<PageLoader />}><Receipts /></Suspense>} />
+                        <Route
+                          path="/shift-management"
+                          element={
+                            <ProtectedRoute
+                              requiredPermission={{ action: "read", resource: "shifts" }}
+                            >
+                              <Suspense fallback={<PageLoader />}><ShiftManagement /></Suspense>
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/expenses"
+                          element={
+                            <ProtectedRoute
+                              requiredPermission={{ action: "read", resource: "expenses" }}
+                            >
+                              <Suspense fallback={<PageLoader />}><Expenses /></Suspense>
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route path="/reconciliation" element={<Suspense fallback={<PageLoader />}><CashReconciliation /></Suspense>} />
                         <Route path="/users" element={<Suspense fallback={<PageLoader />}><Users /></Suspense>} />
                         <Route path="/settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
                         <Route

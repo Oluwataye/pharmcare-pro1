@@ -541,6 +541,171 @@ export type Database = {
         }
         Relationships: []
       }
+      sale_payments: {
+        Row: {
+          id: string
+          sale_id: string
+          payment_mode: string
+          amount: number
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          sale_id: string
+          payment_mode: string
+          amount: number
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          sale_id?: string
+          payment_mode?: string
+          amount?: number
+          created_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sale_payments_sale_id_fkey"
+            columns: ["sale_id"]
+            isOneToOne: false
+            referencedRelation: "sales"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
+      staff_shifts: {
+        Row: {
+          id: string
+          staff_id: string
+          staff_name: string
+          staff_email: string | null
+          shift_type: string
+          status: string
+          start_time: string
+          end_time: string | null
+          opening_cash: number
+          closing_cash: number | null
+          expected_sales_total: number | null
+          expected_cash_total: number | null
+          expected_pos_total: number | null
+          expected_transfer_total: number | null
+          actual_cash_counted: number | null
+          notes: string | null
+          variance_reason: string | null
+          closure_status: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          staff_id: string
+          staff_name: string
+          staff_email?: string | null
+          shift_type: string
+          status: string
+          start_time?: string
+          end_time?: string | null
+          opening_cash: number
+          closing_cash?: number | null
+          expected_sales_total?: number | null
+          expected_cash_total?: number | null
+          expected_pos_total?: number | null
+          expected_transfer_total?: number | null
+          actual_cash_counted?: number | null
+          notes?: string | null
+          variance_reason?: string | null
+          closure_status?: string | null
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          staff_id?: string
+          staff_name?: string
+          staff_email?: string | null
+          shift_type?: string
+          status?: string
+          start_time?: string
+          end_time?: string | null
+          opening_cash?: number
+          closing_cash?: number | null
+          expected_sales_total?: number | null
+          expected_cash_total?: number | null
+          expected_pos_total?: number | null
+          expected_transfer_total?: number | null
+          actual_cash_counted?: number | null
+          notes?: string | null
+          variance_reason?: string | null
+          closure_status?: string | null
+          created_at?: string
+        }
+        Relationships: []
+      }
+      system_alerts: {
+        Row: {
+          id: string
+          type: string
+          severity: string
+          message: string
+          details: Json | null
+          is_resolved: boolean | null
+          resolved_at: string | null
+          resolved_by: string | null
+          staff_id: string | null
+          shift_id: string | null
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          type: string
+          severity: string
+          message: string
+          details?: Json | null
+          is_resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          staff_id?: string | null
+          shift_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          type?: string
+          severity?: string
+          message?: string
+          details?: Json | null
+          is_resolved?: boolean | null
+          resolved_at?: string | null
+          resolved_by?: string | null
+          staff_id?: string | null
+          shift_id?: string | null
+          created_at?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "system_alerts_resolved_by_fkey"
+            columns: ["resolved_by"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_alerts_shift_id_fkey"
+            columns: ["shift_id"]
+            isOneToOne: false
+            referencedRelation: "staff_shifts"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "system_alerts_staff_id_fkey"
+            columns: ["staff_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
     }
     Views: {
       [_ in never]: never

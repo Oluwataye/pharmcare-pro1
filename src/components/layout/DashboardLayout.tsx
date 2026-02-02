@@ -9,6 +9,7 @@ import { Spinner } from "@/components/ui/spinner";
 import { ShiftStatusHeader } from "../shifts/ShiftStatusHeader";
 import { useLocation } from "react-router-dom";
 import { SessionTimeout } from "@/components/security/SessionTimeout";
+import AlertBadge from "./AlertBadge";
 
 const DashboardLayout = () => {
   const { isAuthenticated, isLoading } = useAuth();
@@ -55,7 +56,10 @@ const DashboardLayout = () => {
           <h2 className="font-semibold text-lg text-primary capitalize">
             {location.pathname.split('/').pop() || 'Dashboard'}
           </h2>
-          <ShiftStatusHeader />
+          <div className="flex items-center gap-4">
+            <AlertBadge />
+            <ShiftStatusHeader />
+          </div>
         </header>
 
         <div className="p-4 md:p-8 flex-1">
