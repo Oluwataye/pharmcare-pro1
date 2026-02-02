@@ -142,10 +142,12 @@ export const useRefund = () => {
     // Check if a sale already has a refund
     const checkRefundExists = async (saleId: string): Promise<boolean> => {
         try {
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(saleId);
+
             const { data, error } = await supabase
                 .from('refunds')
                 .select('id')
-                .eq('sale_id', saleId)
+                .or(`sale_id.eq.${isUUID ? saleId : '00000000-0000-0000-0000-000000000000'},transaction_id.eq.${saleId}`)
                 .in('status', ['pending', 'approved'])
                 .limit(1);
 

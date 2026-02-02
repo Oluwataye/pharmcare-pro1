@@ -28,12 +28,34 @@ export const useReceiptReprint = () => {
     try {
       let receiptData: any = null;
 
+      // Detect if saleId is a UUID or Transaction ID (starts with TR-)
+      const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(saleId);
+
       // 1. Try to fetch from 'receipts' table
-      const { data: storedReceipt, error: fetchError } = await supabase
+      let receiptQuery = supabase
         .from('receipts')
-        .select('receipt_data')
-        .eq('sale_id', saleId)
-        .maybeSingle();
+        .select('receipt_data');
+
+      if (isUUID) {
+        receiptQuery = receiptQuery.eq('sale_id', saleId);
+      } else {
+        // If it's a TR-xxx ID, we might need to join/find by transaction_id in sales first or if receipts has transaction_id
+        // For now, let's try querying sales table first to get the UUID if it's not a UUID
+        const { data: saleRef, error: refError } = await supabase
+          .from('sales')
+          .select('id')
+          .eq('transaction_id', saleId)
+          .maybeSingle();
+
+        if (saleRef?.id) {
+          receiptQuery = receiptQuery.eq('sale_id', saleRef.id);
+        } else {
+          // Fallback if no sales record but maybe receipts has the string (unlikely but safe)
+          receiptQuery = receiptQuery.eq('sale_id', saleId);
+        }
+      }
+
+      const { data: storedReceipt, error: fetchError } = await receiptQuery.maybeSingle();
 
       if (fetchError) {
         console.warn('Error fetching from receipts table:', fetchError);
@@ -46,11 +68,17 @@ export const useReceiptReprint = () => {
       } else {
         // 2. FALLBACK: Reconstruct from 'sales' and 'sales_items'
         console.log('Receipt record not found, attempting reconstruction from sales data...');
-        const { data: sale, error: saleError } = await supabase
+        let saleQuery = supabase
           .from('sales')
-          .select('*, sales_items(*)')
-          .eq('id', saleId)
-          .maybeSingle();
+          .select('*, sales_items(*)');
+
+        if (isUUID) {
+          saleQuery = saleQuery.eq('id', saleId);
+        } else {
+          saleQuery = saleQuery.eq('transaction_id', saleId);
+        }
+
+        const { data: sale, error: saleError } = await saleQuery.maybeSingle();
 
         if (saleError) throw saleError;
         if (!sale) throw new Error('Sale record not found');
