@@ -7,6 +7,7 @@ interface OfflineContextType {
   lastOnlineTime: Date | null;
   syncPending: boolean;
   pendingCount: number;
+  pendingOperations: PendingOperation[];
   isSyncing: boolean;
   syncData: () => Promise<void>;
   addPendingOperation: (operation: PendingOperation) => void;
@@ -40,6 +41,7 @@ const defaultOfflineContext: OfflineContextType = {
   syncData: async () => { },
   addPendingOperation: () => { },
   clearPendingOperations: () => { },
+  pendingOperations: [],
   conflicts: [],
   resolveConflict: async () => { },
 };
@@ -168,7 +170,7 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
 
             if (!fetchError && serverRecord) {
               // Compare server's updated_at with local snapshot's updated_at if available
-              const serverUpdatedAt = serverRecord.updated_at ? new Date(serverRecord.updated_at).getTime() : 0;
+              const serverUpdatedAt = (serverRecord as any).updated_at ? new Date((serverRecord as any).updated_at).getTime() : 0;
               const localUpdatedAt = op.snapshot?.updated_at ? new Date(op.snapshot.updated_at).getTime() : 0;
 
               if (serverUpdatedAt > localUpdatedAt) {
@@ -332,6 +334,7 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
         lastOnlineTime,
         syncPending,
         pendingCount: pendingOperations.length,
+        pendingOperations,
         isSyncing,
         syncData,
         addPendingOperation,

@@ -24,8 +24,16 @@ const AdminDashboardContent = () => {
   const [isLoadingSales, setIsLoadingSales] = useState(true);
 
   // Calculate inventory stats
-  const lowStockItems = inventory.filter(item => item.quantity <= item.reorderLevel);
-  const totalProducts = inventory.length;
+  const lowStockItems = ((inventory || []) as any[])
+    .filter(item => item.quantity <= item.reorderLevel)
+    .map(item => ({
+      id: item.id,
+      product: item.name,
+      category: item.category || 'Uncategorized',
+      quantity: item.quantity,
+      reorderLevel: item.reorderLevel
+    }));
+  const totalProducts = (inventory || []).length;
 
   const { pendingOperations } = useOffline();
 
@@ -43,7 +51,7 @@ const AdminDashboardContent = () => {
         .limit(10);
 
       // Extract pending sales from OfflineContext
-      const pendingSales = pendingOperations
+      const pendingSales = (pendingOperations || [])
         .filter(op => op.resource === 'sales')
         .map(op => {
           const sale = op.data;
@@ -57,7 +65,7 @@ const AdminDashboardContent = () => {
         });
 
       if (transactions) {
-        const formattedTx = transactions.map(tx => ({
+        const formattedTx = (transactions as any[]).map(tx => ({
           id: tx.transaction_id || tx.id,
           product: tx.customer_name || 'Walk-in Customer',
           customer: `Items: ${(tx.items && Array.isArray(tx.items)) ? tx.items.length : 'N/A'}`,
@@ -75,7 +83,7 @@ const AdminDashboardContent = () => {
 
       if (!todayError && todayData) {
         const dbTotal = todayData.reduce((sum, sale) => sum + Number(sale.total || 0), 0);
-        const pendingTotal = pendingOperations
+        const pendingTotal = (pendingOperations || [])
           .filter(op => op.resource === 'sales' && new Date(op.timestamp) >= today)
           .reduce((sum, op) => sum + Number(op.data?.total || 0), 0);
 
@@ -90,7 +98,7 @@ const AdminDashboardContent = () => {
 
       if (!monthError && monthData) {
         const dbMonthTotal = monthData.reduce((sum, sale) => sum + Number(sale.total || 0), 0);
-        const pendingMonthTotal = pendingOperations
+        const pendingMonthTotal = (pendingOperations || [])
           .filter(op => op.resource === 'sales' && new Date(op.timestamp) >= firstDayOfMonth)
           .reduce((sum, op) => sum + Number(op.data?.total || 0), 0);
 
