@@ -34,16 +34,16 @@ const PharmacistDashboard = () => {
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
 
   // Map inventory to medications format
-  const medications: Medication[] = inventory.map(item => {
+  const medications: Medication[] = (inventory || []).map(item => {
     let status: "In Stock" | "Low Stock" | "Critical" = "In Stock";
     if (item.quantity <= 0) status = "Critical";
-    else if (item.quantity <= item.reorderLevel) status = "Low Stock";
+    else if (item.quantity <= (item.reorderLevel || 0)) status = "Low Stock";
 
     return {
       id: item.id,
-      name: item.name,
-      category: item.category,
-      stock: item.quantity,
+      name: item.name || 'Unknown',
+      category: item.category || 'Uncategorized',
+      stock: item.quantity || 0,
       expiry: item.expiryDate ? new Date(item.expiryDate).toLocaleDateString() : 'N/A',
       status: status
     };
@@ -60,7 +60,7 @@ const PharmacistDashboard = () => {
   const criticalStockCount = medications.filter(med => med.status === "Critical").length;
 
   // Calculate expiring soon (within 30 days)
-  const expiringSoonCount = inventory.filter(item => {
+  const expiringSoonCount = (inventory || []).filter(item => {
     if (!item.expiryDate) return false;
     const expiry = new Date(item.expiryDate);
     const today = new Date();
@@ -78,10 +78,10 @@ const PharmacistDashboard = () => {
       .order('created_at', { ascending: false })
       .limit(10);
 
-    const pendingSales = pendingOperations
+    const pendingSales = (pendingOperations || [])
       .filter(op => op.resource === 'sales')
       .map(op => {
-        const sale = op.data;
+        const sale = op.data || {};
         return {
           id: sale.transactionId || `PENDING-${op.id}`,
           product: sale.customerName || 'Walk-in Customer (Offline)',
@@ -108,15 +108,15 @@ const PharmacistDashboard = () => {
   }, [fetchTransactions]);
 
   // Low stock items for card
-  const lowStockItems = inventory
-    .filter(item => item.quantity <= item.reorderLevel)
+  const lowStockItems = (inventory || [])
+    .filter(item => item.quantity <= (item.reorderLevel || 0))
     .slice(0, 3)
     .map((item, index) => ({
       id: item.id,
       product: item.name,
-      category: item.category,
+      category: item.category || 'Uncategorized',
       quantity: item.quantity,
-      reorderLevel: item.reorderLevel,
+      reorderLevel: item.reorderLevel || 0,
     }));
 
   const handleMedicationComplete = (isNew: boolean) => {

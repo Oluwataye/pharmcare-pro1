@@ -62,10 +62,10 @@ export const DispenserDashboardContent = () => {
       .order('created_at', { ascending: false });
 
     // Extract pending sales from OfflineContext
-    const pendingSales = pendingOperations
+    const pendingSales = (pendingOperations || [])
       .filter(op => op.resource === 'sales')
       .map(op => {
-        const sale = op.data;
+        const sale = op.data || {};
         return {
           id: sale.transactionId || `PENDING-${op.id}`,
           customer: sale.customerName || 'Walk-in Customer (Offline)',
@@ -112,12 +112,12 @@ export const DispenserDashboardContent = () => {
 
   // Filter low stock items from live inventory
   // Limit to 5 for the card
-  const lowStockItems: LowStockItem[] = inventory
+  const lowStockItems: LowStockItem[] = (inventory || [])
     .filter(item => item.quantity <= item.reorderLevel)
     .map(item => ({
       id: item.id,
       product: item.name,
-      category: item.category,
+      category: item.category || 'Uncategorized',
       quantity: item.quantity,
       reorderLevel: item.reorderLevel
     }));
