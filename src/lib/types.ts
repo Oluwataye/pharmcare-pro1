@@ -9,8 +9,28 @@ export interface User {
   enable_backup_alerts?: boolean;
   email: string;
   name: string;
-  username?: string; // Add optional username property
+  username?: string;
   role: UserRole;
+  branch_id?: string;
+}
+
+export interface Branch {
+  id: string;
+  name: string;
+  location?: string;
+  is_active: boolean;
+  created_at: string;
+}
+
+export interface Budget {
+  id: string;
+  branch_id?: string;
+  category: string;
+  type: 'revenue' | 'expense' | 'profit';
+  amount: number;
+  month: number;
+  year: number;
+  created_at: string;
 }
 
 export interface AuthState {

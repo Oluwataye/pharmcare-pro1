@@ -43,6 +43,7 @@ const Suppliers = lazy(() => import("./pages/Suppliers"));
 const ShiftManagement = lazy(() => import("./pages/ShiftManagement"));
 const Expenses = lazy(() => import("./pages/Expenses"));
 const CashReconciliation = lazy(() => import("./pages/CashReconciliation"));
+const Training = lazy(() => import("./pages/Training"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -162,6 +163,7 @@ const App = ({ queryClient, persister }: AppProps) => {
                             </ProtectedRoute>
                           }
                         />
+                        <Route path="/training" element={<Suspense fallback={<PageLoader />}><Training /></Suspense>} />
                         <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
                       </Route>
                     </Routes>

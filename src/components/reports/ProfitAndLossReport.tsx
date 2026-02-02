@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
@@ -17,12 +18,14 @@ import {
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend, Tooltip } from "recharts";
 import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "@/components/dashboard/MetricCard";
-import { TrendingUp, TrendingDown, Wallet, Calculator, ArrowRight, Receipt, PieChart as PieChartIcon } from "lucide-react";
+import { TrendingUp, TrendingDown, Wallet, Calculator, ArrowRight, Receipt, FileDown, PieChart as PieChartIcon } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
 import { format, startOfMonth, endOfMonth, subMonths, parseISO, isWithinInterval } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { exportToCSV } from "@/lib/exportUtils";
 
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
@@ -32,6 +35,8 @@ const ProfitAndLossReport = () => {
         start: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
         end: format(endOfMonth(new Date()), 'yyyy-MM-dd')
     });
+    const [selectedBranch, setSelectedBranch] = useState<string>('all');
+    const [branches, setBranches] = useState<any[]>([]);
 
     const [data, setData] = useState<{
         revenue: number;
@@ -40,6 +45,7 @@ const ProfitAndLossReport = () => {
         expenses: number;
         netProfit: number;
         expenseBreakdown: { category: string; amount: number }[];
+        branchDistribution: { name: string; value: number }[];
         recentTransactions: any[];
     }>({
         revenue: 0,
@@ -48,24 +54,35 @@ const ProfitAndLossReport = () => {
         expenses: 0,
         netProfit: 0,
         expenseBreakdown: [],
+        branchDistribution: [],
         recentTransactions: []
     });
 
     useEffect(() => {
+        const fetchBranches = async () => {
+            const { data } = await supabase.from('branches' as any).select('*');
+            if (data) setBranches(data);
+        };
+        fetchBranches();
+    }, []);
+
+    useEffect(() => {
         fetchPandLData();
-    }, [dateRange]);
+    }, [dateRange, selectedBranch]);
 
     const fetchPandLData = async () => {
         try {
             setLoading(true);
 
-            // 1. Fetch Sales & Items for Revenue & COGS
-            const { data: sales, error: salesError } = await supabase
+            // 1. Fetch Sales & Items
+            let salesQuery = supabase
                 .from('sales' as any)
                 .select(`
                     id, 
                     total, 
                     date,
+                    branch_id,
+                    branches:branch_id(name),
                     sales_items (
                         quantity,
                         cost_price,
@@ -75,14 +92,26 @@ const ProfitAndLossReport = () => {
                 .gte('date', dateRange.start)
                 .lte('date', dateRange.end);
 
+            if (selectedBranch !== 'all') {
+                salesQuery = salesQuery.eq('branch_id', selectedBranch);
+            }
+
+            const { data: sales, error: salesError } = await salesQuery as any;
+
             if (salesError) throw salesError;
 
-            // 2. Fetch Expenses for OPEX
-            const { data: expenses, error: expensesError } = await supabase
+            // 2. Fetch Expenses
+            let expensesQuery = supabase
                 .from('expenses' as any)
-                .select('*')
+                .select('*, branches:branch_id(name)')
                 .gte('date', dateRange.start)
                 .lte('date', dateRange.end);
+
+            if (selectedBranch !== 'all') {
+                expensesQuery = expensesQuery.eq('branch_id', selectedBranch);
+            }
+
+            const { data: expenses, error: expensesError } = await expensesQuery as any;
 
             if (expensesError) throw expensesError;
 
@@ -97,9 +126,15 @@ const ProfitAndLossReport = () => {
     const processFinancials = (sales: any[], expenses: any[]) => {
         let revenue = 0;
         let cogs = 0;
+        const branchRevMap: Record<string, number> = {};
 
         sales.forEach(sale => {
-            revenue += Number(sale.total);
+            const saleTotal = Number(sale.total);
+            revenue += saleTotal;
+
+            const branchName = sale.branches?.name || 'Main Branch';
+            branchRevMap[branchName] = (branchRevMap[branchName] || 0) + saleTotal;
+
             sale.sales_items?.forEach((item: any) => {
                 cogs += (Number(item.cost_price) || 0) * Number(item.quantity);
             });
@@ -118,6 +153,10 @@ const ProfitAndLossReport = () => {
             .map(([category, amount]) => ({ category, amount }))
             .sort((a, b) => b.amount - a.amount);
 
+        const branchDistribution = Object.entries(branchRevMap)
+            .map(([name, value]) => ({ name, value }))
+            .sort((a, b) => b.value - a.value);
+
         const grossProfit = revenue - cogs;
         const netProfit = grossProfit - totalExpenses;
 
@@ -128,8 +167,22 @@ const ProfitAndLossReport = () => {
             expenses: totalExpenses,
             netProfit,
             expenseBreakdown: sortedBreakdown,
+            branchDistribution,
             recentTransactions: expenses.slice(0, 5)
         });
+    };
+
+    const handleExportStatement = () => {
+        const exportData = [
+            { Item: 'Total Sales Revenue', Amount: data.revenue },
+            { Item: 'Cost of Goods Sold (COGS)', Amount: -data.cogs },
+            { Item: 'GROSS PROFIT', Amount: data.grossProfit },
+            ...data.expenseBreakdown.map(e => ({ Item: `Expense: ${e.category}`, Amount: -e.amount })),
+            { Item: 'Total Operating Expenses', Amount: -data.expenses },
+            { Item: 'NET PROFIT / LOSS', Amount: data.netProfit }
+        ];
+
+        exportToCSV(exportData, `PandL_Statement_${selectedBranch}`, { Item: 'Item', Amount: 'Amount (₦)' });
     };
 
     const chartData = [
@@ -161,7 +214,17 @@ const ProfitAndLossReport = () => {
                         {format(parseISO(dateRange.start), 'MMM dd, yyyy')} - {format(parseISO(dateRange.end), 'MMM dd, yyyy')}
                     </p>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
+                    <select
+                        value={selectedBranch}
+                        onChange={(e) => setSelectedBranch(e.target.value)}
+                        className="text-xs bg-background border rounded px-2 py-1 min-w-[150px]"
+                    >
+                        <option value="all">All Branches (Consolidated)</option>
+                        {branches.map(branch => (
+                            <option key={branch.id} value={branch.id}>{branch.name}</option>
+                        ))}
+                    </select>
                     <input
                         type="date"
                         value={dateRange.start}
@@ -174,6 +237,15 @@ const ProfitAndLossReport = () => {
                         onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
                         className="text-xs bg-background border rounded px-2 py-1"
                     />
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="text-xs h-8 gap-2 bg-primary/10 text-primary hover:bg-primary/20"
+                        onClick={handleExportStatement}
+                    >
+                        <FileDown className="h-3.5 w-3.5" />
+                        Export P&L
+                    </Button>
                 </div>
             </div>
 
@@ -187,7 +259,6 @@ const ProfitAndLossReport = () => {
                 <MetricCard
                     title="Gross Profit"
                     value={`₦${data.grossProfit.toLocaleString()}`}
-                    subValue={`${data.revenue > 0 ? ((data.grossProfit / data.revenue) * 100).toFixed(1) : 0}% Margin`}
                     icon={Receipt}
                     colorScheme="success"
                 />
@@ -200,9 +271,8 @@ const ProfitAndLossReport = () => {
                 <MetricCard
                     title="Net Profit"
                     value={`₦${data.netProfit.toLocaleString()}`}
-                    subValue={`${data.revenue > 0 ? ((data.netProfit / data.revenue) * 100).toFixed(1) : 0}% Net Margin`}
                     icon={data.netProfit >= 0 ? TrendingUp : TrendingDown}
-                    colorScheme={data.netProfit >= 0 ? "success" : "destructive"}
+                    colorScheme={data.netProfit >= 0 ? "success" : "rose"}
                 />
             </div>
 
@@ -237,29 +307,29 @@ const ProfitAndLossReport = () => {
                 <Card>
                     <CardHeader>
                         <CardTitle className="flex items-center gap-2">
-                            <PieChartIcon className="h-5 w-5 text-amber-500" />
-                            Expense Distribution
+                            <PieChartIcon className="h-5 w-5 text-blue-500" />
+                            Branch Contribution
                         </CardTitle>
-                        <CardDescription>By operating category</CardDescription>
+                        <CardDescription>Revenue by location</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {data.expenseBreakdown.length > 0 ? (
+                        {data.branchDistribution.length > 0 ? (
                             <div className="space-y-4">
                                 <div className="h-[200px]">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
                                             <Pie
-                                                data={data.expenseBreakdown}
-                                                dataKey="amount"
-                                                nameKey="category"
+                                                data={data.branchDistribution}
+                                                dataKey="value"
+                                                nameKey="name"
                                                 cx="50%"
                                                 cy="50%"
                                                 innerRadius={60}
                                                 outerRadius={80}
                                                 paddingAngle={5}
                                             >
-                                                {data.expenseBreakdown.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                {data.branchDistribution.map((entry, index) => (
+                                                    <Cell key={`cell-${index}`} fill={COLORS[(index + 3) % COLORS.length]} />
                                                 ))}
                                             </Pie>
                                             <Tooltip formatter={(val: number) => `₦${val.toLocaleString()}`} />
@@ -267,20 +337,20 @@ const ProfitAndLossReport = () => {
                                     </ResponsiveContainer>
                                 </div>
                                 <div className="space-y-2">
-                                    {data.expenseBreakdown.map((item, index) => (
-                                        <div key={item.category} className="flex justify-between items-center text-xs">
+                                    {data.branchDistribution.map((item, index) => (
+                                        <div key={item.name} className="flex justify-between items-center text-xs">
                                             <div className="flex items-center gap-2">
-                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[index % COLORS.length] }} />
-                                                <span className="font-medium">{item.category}</span>
+                                                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[(index + 3) % COLORS.length] }} />
+                                                <span className="font-medium">{item.name}</span>
                                             </div>
-                                            <span className="text-muted-foreground">₦{item.amount.toLocaleString()}</span>
+                                            <span className="text-muted-foreground">₦{item.value.toLocaleString()}</span>
                                         </div>
                                     ))}
                                 </div>
                             </div>
                         ) : (
                             <div className="h-[200px] flex items-center justify-center text-muted-foreground text-xs italic">
-                                No expenses recorded for this period.
+                                No branch data available.
                             </div>
                         )}
                     </CardContent>

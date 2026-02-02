@@ -39,21 +39,51 @@ export const RefundDialog = ({
 
     const [dialogItems, setDialogItems] = useState<any[]>(items || []);
     const [isLoadingItems, setIsLoadingItems] = useState(false);
+    const [resolvedUUID, setResolvedUUID] = useState<string>(saleId);
 
     useEffect(() => {
         if (open) {
-            // Check if refund already exists
-            checkRefundExists(saleId).then((exists) => {
-                setHasExistingRefund(exists);
-                setIsCheckingRefund(false);
-            });
+            const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-5][0-9a-f]{3}-[089ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(saleId);
 
-            // If no items provided, fetch them
-            if (!items || items.length === 0) {
-                fetchItems();
-            } else {
-                setDialogItems(items);
-            }
+            const initializeData = async () => {
+                setIsCheckingRefund(true);
+                let currentId = saleId;
+
+                // 1. Resolve UUID if it's a Transaction ID or if we need items
+                if (!isUUID || !items || items.length === 0) {
+                    setIsLoadingItems(true);
+                    try {
+                        const { data: sale, error } = await supabase
+                            .from('sales')
+                            .select('id, sales_items(*)')
+                            .or(`id.eq.${isUUID ? saleId : '00000000-0000-0000-0000-000000000000'},transaction_id.eq.${saleId}`)
+                            .maybeSingle();
+
+                        if (sale) {
+                            currentId = sale.id;
+                            setResolvedUUID(sale.id);
+                            if (!items || items.length === 0) {
+                                setDialogItems(sale.sales_items || []);
+                            }
+                        }
+                    } catch (err) {
+                        console.error('Error resolving sale:', err);
+                    } finally {
+                        setIsLoadingItems(false);
+                    }
+                } else {
+                    setDialogItems(items);
+                    setResolvedUUID(saleId);
+                }
+
+                // 2. Check if refund already exists
+                checkRefundExists(currentId).then((exists) => {
+                    setHasExistingRefund(exists);
+                    setIsCheckingRefund(false);
+                });
+            };
+
+            initializeData();
         } else {
             // Reset form when dialog closes
             setRefundType('full');
@@ -62,6 +92,7 @@ export const RefundDialog = ({
             setHasExistingRefund(false);
             setIsCheckingRefund(true);
             setDialogItems([]);
+            setResolvedUUID(saleId);
         }
     }, [open, saleId, items]);
 
@@ -98,7 +129,7 @@ export const RefundDialog = ({
         }
 
         const request: RefundRequest = {
-            sale_id: saleId,
+            sale_id: resolvedUUID,
             transaction_id: transactionId,
             refund_amount: refundAmount,
             refund_reason: reason.trim(),

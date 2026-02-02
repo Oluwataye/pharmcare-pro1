@@ -14,7 +14,8 @@ import {
   Shield,
   Tag,
   RefreshCcw,
-  Calculator
+  Calculator,
+  Target
 } from "lucide-react";
 import InventoryReport from "@/components/reports/InventoryReport";
 import TransactionsReport from "@/components/reports/TransactionsReport";
@@ -27,6 +28,7 @@ import { AuditLogReport } from "@/components/reports/AuditLogReport";
 import { ExpiryNotificationModal } from "@/components/reports/ExpiryNotificationModal";
 import StockAdjustmentReport from "@/components/reports/StockAdjustmentReport";
 import ProfitAndLossReport from "@/components/reports/ProfitAndLossReport";
+import BudgetVsActual from "@/components/reports/BudgetVsActual";
 import StaffPerformanceReport from "@/components/reports/StaffPerformanceReport";
 import { Spinner } from "@/components/ui/spinner";
 import { useInventory } from "@/hooks/useInventory";
@@ -109,6 +111,11 @@ const Reports = () => {
               <span className="hidden sm:inline">Profit & Loss</span>
               <span className="sm:hidden">P&L</span>
             </TabsTrigger>
+            <TabsTrigger value="budget" className="flex items-center gap-2 whitespace-nowrap text-blue-600 font-bold">
+              <Target className="h-4 w-4" />
+              <span className="hidden sm:inline">Budget vs Actual</span>
+              <span className="sm:hidden">Budget</span>
+            </TabsTrigger>
             <TabsTrigger value="staff-performance" className="flex items-center gap-2 whitespace-nowrap">
               <Users className="h-4 w-4" />
               <span className="hidden sm:inline">Staff Performance</span>
@@ -171,6 +178,10 @@ const Reports = () => {
 
             <TabsContent value="pnl" className="space-y-4">
               <ProfitAndLossReport />
+            </TabsContent>
+
+            <TabsContent value="budget" className="space-y-4">
+              <BudgetVsActual />
             </TabsContent>
 
             <TabsContent value="staff-performance" className="space-y-4">

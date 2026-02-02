@@ -22,6 +22,7 @@ import {
   Clock,
   Wallet,
   CheckCircle2,
+  GraduationCap
 } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
 
@@ -129,6 +130,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       icon: Settings,
       label: "Settings",
       path: "/settings",
+      condition: true
+    },
+    {
+      icon: GraduationCap,
+      label: "Training Guide",
+      path: "/training",
       condition: true
     },
   ];

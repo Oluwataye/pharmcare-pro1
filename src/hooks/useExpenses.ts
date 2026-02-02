@@ -22,7 +22,7 @@ export const useExpenses = () => {
     const [isLoading, setIsLoading] = useState(false);
     const { toast } = useToast();
 
-    const fetchExpenses = useCallback(async (filters?: { startDate?: string; endDate?: string; category?: string }) => {
+    const fetchExpenses = useCallback(async (filters?: { startDate?: string; endDate?: string; category?: string; branchId?: string }) => {
         setIsLoading(true);
         try {
             let query = (supabase.from('expenses' as any) as any).select('*');
@@ -35,6 +35,9 @@ export const useExpenses = () => {
             }
             if (filters?.category && filters.category !== 'all') {
                 query = query.eq('category', filters.category);
+            }
+            if (filters?.branchId) {
+                query = query.eq('branch_id', filters.branchId);
             }
 
             const { data, error } = await query.order('date', { ascending: false });
@@ -63,9 +66,13 @@ export const useExpenses = () => {
 
     const addExpense = async (expense: NewExpense) => {
         try {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: profile } = await supabase.from('profiles' as any).select('branch_id').eq('user_id', user?.id).single() as any;
+
             const { data, error } = await (supabase.from('expenses' as any) as any).insert({
                 ...expense,
-                created_by: (await supabase.auth.getUser()).data.user?.id
+                created_by: user?.id,
+                branch_id: profile?.branch_id
             }).select();
 
             if (error) throw error;

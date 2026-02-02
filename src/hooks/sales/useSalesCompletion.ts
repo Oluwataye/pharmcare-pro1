@@ -109,6 +109,7 @@ export const useSalesCompletion = (
         saleType: currentSaleType,
         shift_name: activeShift?.shift_type || getCurrentShift(),
         shift_id: options?.shift_id || activeShift?.id,
+        branch_id: user?.branch_id, // Attribute sale to user's branch
         staff_role: options?.staffRole || user?.role,
         payments: options?.payments
       };
