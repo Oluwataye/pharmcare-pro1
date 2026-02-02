@@ -14,31 +14,27 @@ serve(async (req) => {
     }
 
     try {
-        const supabase = createClient(
-            Deno.env.get('SUPABASE_URL') ?? '',
-            Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-        )
+        const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
+        const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 
-        // Check auth (only allow if admin or service role)
-        // For cron, it usually runs with service role.
-        const authHeader = req.headers.get('Authorization')
-        if (authHeader) {
-            const token = authHeader.replace('Bearer ', '')
-            const { data: { user }, error } = await supabase.auth.getUser(token)
-            // If called by user, ensure admin. If called by cron/service, user might be null but key is service role
-            // For simplicity, we trust the service role key environment or valid admin user
+        if (!supabaseUrl || !supabaseKey) {
+            throw new Error('Supabase URL or Service Role Key is missing in environment variables.');
         }
 
-        console.log('Starting automated backup...');
+        const supabase = createClient(supabaseUrl, supabaseKey)
+
+        console.log('Automated backup request received.');
 
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const tables = ['inventory', 'inventory_batches', 'sales', 'sales_items', 'stock_movements', 'profiles', 'store_settings', 'suppliers', 'refunds'];
         const backupData: Record<string, any> = {};
 
+        console.log(`Starting data fetch for ${tables.length} tables...`);
+
         for (const table of tables) {
             const { data, error } = await supabase.from(table).select('*');
             if (error) {
-                console.error(`Error backing up ${table}:`, error);
+                console.error(`Warning: Failed to fetch ${table}:`, error.message);
                 backupData[table] = { error: error.message };
             } else {
                 backupData[table] = data;
@@ -51,8 +47,13 @@ serve(async (req) => {
             type: 'automated_daily_backup'
         };
 
-        // Upload to Storage
+        console.log('Fetch complete. Validating storage bucket...');
+
+        // Ensure backups bucket exists (client-side check is limited, so we just try)
         const fileName = `daily_backup_${timestamp}.json`;
+
+        console.log(`Uploading backup to bucket 'backups' as ${fileName}...`);
+
         const { data: uploadData, error: uploadError } = await supabase
             .storage
             .from('backups')
@@ -62,8 +63,11 @@ serve(async (req) => {
             });
 
         if (uploadError) {
-            throw new Error(`Storage upload failed: ${uploadError.message}`);
+            console.error('Storage Upload Error:', uploadError);
+            throw new Error(`Storage upload failed: ${uploadError.message}. Make sure the 'backups' bucket exists.`);
         }
+
+        console.log('Backup successful:', uploadData.path);
 
         return new Response(
             JSON.stringify({
@@ -76,9 +80,9 @@ serve(async (req) => {
         )
 
     } catch (error) {
-        console.error('Backup error:', error)
+        console.error('CRITICAL BACKUP FAILURE:', error.message)
 
-        // Trigger Backup Failure Alert
+        // Try to signal failure if possible
         try {
             const supabase = createClient(
                 Deno.env.get('SUPABASE_URL') ?? '',
@@ -96,11 +100,14 @@ serve(async (req) => {
                 }
             });
         } catch (alertError) {
-            console.error('Failed to send backup failure alert:', alertError);
+            console.warn('Could not send alert notification:', alertError.message);
         }
 
         return new Response(
-            JSON.stringify({ error: error.message }),
+            JSON.stringify({
+                error: error.message,
+                details: 'Check Edge Function logs in Supabase dashboard for full stack trace.'
+            }),
             { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
         )
     }
