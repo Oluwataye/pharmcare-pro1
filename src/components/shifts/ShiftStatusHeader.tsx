@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, CheckCircle2, Wallet, CreditCard, Landmark } from "lucide-react";
+import { AlertCircle, CheckCircle2, Wallet, CreditCard, Landmark, ShoppingCart } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 export const ShiftStatusHeader = () => {

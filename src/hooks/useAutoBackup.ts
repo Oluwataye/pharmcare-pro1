@@ -23,9 +23,14 @@ export const useAutoBackup = () => {
                     .single() as any;
 
                 if (fetchError) {
-                    // Silently fail if columns don't exist (migration not applied yet)
-                    if (fetchError.message?.includes('column') || fetchError.code === '42703') {
-                        console.log('[useAutoBackup] Backup columns not yet available, skipping automated backup');
+                    // Silently fail if columns don't exist or schema is not ready (migration not applied yet)
+                    if (
+                        fetchError.message?.includes('column') ||
+                        fetchError.code === '42703' ||
+                        fetchError.status === 406 ||
+                        fetchError.message?.includes('Not Acceptable')
+                    ) {
+                        console.log('[useAutoBackup] Schema not fully updated yet, skipping automated backup check');
                         return;
                     }
                     throw fetchError;

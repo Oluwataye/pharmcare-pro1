@@ -114,11 +114,6 @@ const Reports = () => {
               <span className="hidden sm:inline">Staff Performance</span>
               <span className="sm:hidden">Staff</span>
             </TabsTrigger>
-            <TabsTrigger value="sales" className="flex items-center gap-2 whitespace-nowrap">
-              <ShoppingCart className="h-4 w-4" />
-              <span className="hidden sm:inline">Sales</span>
-              <span className="sm:hidden">Sales</span>
-            </TabsTrigger>
             <TabsTrigger value="discounts" className="flex items-center gap-2 whitespace-nowrap">
               <Tag className="h-4 w-4" />
               <span className="hidden sm:inline">Discounts</span>
@@ -182,9 +177,6 @@ const Reports = () => {
               <StaffPerformanceReport />
             </TabsContent>
 
-            <TabsContent value="sales">
-              <SalesReport />
-            </TabsContent>
 
             <TabsContent value="discounts">
               <DiscountReport />

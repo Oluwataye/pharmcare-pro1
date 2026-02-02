@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useSales } from "@/hooks/useSales";
+import { useShift } from "@/hooks/useShift";
 import { secureStorage } from "@/lib/secureStorage";
 import { useAuth } from "@/contexts/AuthContext";
 import { usePermissions } from "@/hooks/usePermissions";
@@ -56,9 +57,8 @@ const NewSale = () => {
   const [lastCompletedSaleId, setLastCompletedSaleId] = useState<string | null>(null);
   const [lastCompletedItems, setLastCompletedItems] = useState<any[]>([]);
   const [isCompleting, setIsCompleting] = useState(false);
-  const [payments, setPayments] = useState<PaymentMode[]>([{ mode: 'cash', amount: 0 }]);
-
   const { config: systemConfig } = useSystemConfig();
+  const { activeShift } = useShift();
 
   const {
     items,
@@ -282,7 +282,11 @@ const NewSale = () => {
           <Button variant="outline" onClick={() => navigate("/sales")}>
             Cancel
           </Button>
-          <Button onClick={handleCompleteSale} disabled={isCompleting}>
+          <Button
+            onClick={handleCompleteSale}
+            disabled={isCompleting || !activeShift}
+            title={!activeShift ? "You must start a shift before recording sales" : ""}
+          >
             {isCompleting ? "Processing..." : (isOfflineMode ? (
               <>
                 <Save className="mr-2 h-4 w-4" />
