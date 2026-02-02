@@ -99,26 +99,6 @@ const App = ({ queryClient, persister }: AppProps) => {
                         <Route path="/sales" element={<Suspense fallback={<PageLoader />}><Sales /></Suspense>} />
                         <Route path="/sales/new" element={<Suspense fallback={<PageLoader />}><NewSale /></Suspense>} />
                         <Route path="/receipts" element={<Suspense fallback={<PageLoader />}><Receipts /></Suspense>} />
-                        <Route
-                          path="/shift-management"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "shifts" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><ShiftManagement /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/expenses"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "expenses" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><Expenses /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
                         <Route path="/reconciliation" element={<Suspense fallback={<PageLoader />}><CashReconciliation /></Suspense>} />
                         <Route path="/users" element={<Suspense fallback={<PageLoader />}><Users /></Suspense>} />
                         <Route path="/settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
@@ -149,6 +129,36 @@ const App = ({ queryClient, persister }: AppProps) => {
                               requiredPermission={{ action: "read", resource: "reports" }}
                             >
                               <Suspense fallback={<PageLoader />}><RefundApproval /></Suspense>
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/suppliers"
+                          element={
+                            <ProtectedRoute
+                              requiredPermission={{ action: "read", resource: "suppliers" }}
+                            >
+                              <Suspense fallback={<PageLoader />}><Suppliers /></Suspense>
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/shifts"
+                          element={
+                            <ProtectedRoute
+                              requiredPermission={{ action: "read", resource: "shifts" }}
+                            >
+                              <Suspense fallback={<PageLoader />}><ShiftManagement /></Suspense>
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/expenses"
+                          element={
+                            <ProtectedRoute
+                              requiredPermission={{ action: "read", resource: "expenses" }}
+                            >
+                              <Suspense fallback={<PageLoader />}><Expenses /></Suspense>
                             </ProtectedRoute>
                           }
                         />
