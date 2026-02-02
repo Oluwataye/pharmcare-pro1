@@ -15,7 +15,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { AlertCircle, CheckCircle2, Wallet, CreditCard, Landmark, ShoppingCart } from "lucide-react";
+import { AlertCircle, CheckCircle2, Wallet, CreditCard, Landmark, ShoppingBag } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 
 export const ShiftStatusHeader = () => {
@@ -154,7 +154,7 @@ export const ShiftStatusHeader = () => {
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground flex items-center gap-1">
-                                    <ShoppingCart className="h-3 w-3" /> Cash Sales:
+                                    <ShoppingBag className="h-3 w-3" /> Cash Sales:
                                 </span>
                                 <span className="text-primary font-medium">₦{(activeShift?.expected_cash_total || 0).toLocaleString()}</span>
                             </div>

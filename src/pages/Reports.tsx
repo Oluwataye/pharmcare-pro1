@@ -7,7 +7,7 @@ import { useLocation } from "react-router-dom";
 import {
   FileText,
   Package,
-  ShoppingCart,
+  ShoppingBag,
   Users,
   History,
   Calendar,
@@ -100,7 +100,7 @@ const Reports = () => {
               <span className="sm:hidden">Adj</span>
             </TabsTrigger>
             <TabsTrigger value="transactions" className="flex items-center gap-2 whitespace-nowrap">
-              <ShoppingCart className="h-4 w-4" />
+              <ShoppingBag className="h-4 w-4" />
               <span className="hidden sm:inline">Sales Volume</span>
               <span className="sm:hidden">Sales</span>
             </TabsTrigger>

@@ -13,7 +13,7 @@ import { useInventory } from "@/hooks/useInventory";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
-import { ArrowUpRight, ArrowDownRight, RefreshCcw, ShoppingCart, Info } from "lucide-react";
+import { ArrowUpRight, ArrowDownRight, RefreshCcw, ShoppingBag, Info } from "lucide-react";
 
 interface StockMovement {
     id: string;
@@ -76,7 +76,7 @@ export const StockMovementHistory = ({ productId, limit = 50 }: StockMovementHis
     const getTypeBadge = (type: string) => {
         switch (type) {
             case 'SALE':
-                return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1"><ShoppingCart className="h-3 w-3" /> Sale</Badge>;
+                return <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1"><ShoppingBag className="h-3 w-3" /> Sale</Badge>;
             case 'ADDITION':
                 return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200 flex items-center gap-1"><ArrowUpRight className="h-3 w-3" /> Addition</Badge>;
             case 'ADJUSTMENT':

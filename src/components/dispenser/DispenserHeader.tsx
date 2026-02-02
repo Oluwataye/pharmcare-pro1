@@ -1,7 +1,7 @@
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, ShoppingCart } from "lucide-react";
+import { Search, ShoppingBag } from "lucide-react";
 
 interface DispenserHeaderProps {
   searchQuery: string;
@@ -27,7 +27,7 @@ export const DispenserHeader = ({ searchQuery, setSearchQuery, handleNewSale }: 
           />
         </div>
         <Button onClick={handleNewSale} className="bg-primary hover:bg-primary/90 transition-colors w-full sm:w-auto">
-          <ShoppingCart className="mr-2 h-4 w-4" />
+          <ShoppingBag className="mr-2 h-4 w-4" />
           New Sale
         </Button>
       </div>

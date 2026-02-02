@@ -10,7 +10,7 @@ import { OfflineSyncIndicator } from "./OfflineSyncIndicator";
 import {
   LayoutDashboard,
   Package,
-  ShoppingCart,
+  ShoppingBag,
   Users,
   Settings,
   LogOut,
@@ -66,7 +66,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       condition: canAccessInventory()
     },
     {
-      icon: ShoppingCart,
+      icon: ShoppingBag,
       label: "Sales",
       path: "/sales",
       condition: true

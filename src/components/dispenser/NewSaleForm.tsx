@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Form, FormControl, FormField, FormItem, FormLabel } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
-import { Plus, Printer, Tag, User, ShoppingCart } from "lucide-react";
+import { Plus, Printer, Tag, User, ShoppingBag } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { ProductSearch } from "./ProductSearch";
 import { SaleItemsTable } from "./SaleItemsTable";
@@ -350,7 +350,7 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
         <Card className={cardStyle}>
           <CardHeader className="pb-2">
             <CardTitle className="text-lg flex items-center gap-2">
-              <ShoppingCart className="h-5 w-5 text-muted-foreground" />
+              <ShoppingBag className="h-5 w-5 text-muted-foreground" />
               {isWholesale ? "Wholesale Order Items" : "Current Sale"}
             </CardTitle>
           </CardHeader>

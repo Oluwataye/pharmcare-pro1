@@ -26,14 +26,17 @@ export const useAutoBackup = () => {
 
                 if (fetchError) {
                     // Silently fail if columns don't exist or schema is not ready (migration not applied yet)
+                    const errorStatus = fetchError.status || (fetchError as any).statusCode;
+                    const errorMsg = fetchError.message || "";
+
                     if (
-                        fetchError.message?.includes('column') ||
+                        errorStatus === 406 ||
+                        errorMsg.includes('column') ||
                         fetchError.code === '42703' ||
-                        fetchError.status === 406 ||
-                        fetchError.message?.includes('Not Acceptable') ||
+                        errorMsg.includes('Not Acceptable') ||
                         fetchError.code === 'PGRST116'
                     ) {
-                        console.log('[useAutoBackup] Schema mismatch or multiple settings rows, skipping check');
+                        console.log('[useAutoBackup] Schema mismatch or multiple settings rows, skipping backup check until schema is updated');
                         return;
                     }
                     throw fetchError;
