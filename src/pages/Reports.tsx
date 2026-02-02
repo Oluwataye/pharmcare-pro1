@@ -13,7 +13,8 @@ import {
   Calendar,
   Shield,
   Tag,
-  RefreshCcw
+  RefreshCcw,
+  Calculator
 } from "lucide-react";
 import InventoryReport from "@/components/reports/InventoryReport";
 import TransactionsReport from "@/components/reports/TransactionsReport";
@@ -25,6 +26,8 @@ import ExpiringDrugsReport from "@/components/reports/ExpiringDrugsReport";
 import { AuditLogReport } from "@/components/reports/AuditLogReport";
 import { ExpiryNotificationModal } from "@/components/reports/ExpiryNotificationModal";
 import StockAdjustmentReport from "@/components/reports/StockAdjustmentReport";
+import ProfitAndLossReport from "@/components/reports/ProfitAndLossReport";
+import StaffPerformanceReport from "@/components/reports/StaffPerformanceReport";
 import { Spinner } from "@/components/ui/spinner";
 import { useInventory } from "@/hooks/useInventory";
 import { useAuth } from "@/contexts/AuthContext";
@@ -97,9 +100,19 @@ const Reports = () => {
               <span className="sm:hidden">Adj</span>
             </TabsTrigger>
             <TabsTrigger value="transactions" className="flex items-center gap-2 whitespace-nowrap">
-              <FileText className="h-4 w-4" />
-              <span className="hidden sm:inline">Transactions</span>
-              <span className="sm:hidden">Trans</span>
+              <ShoppingCart className="h-4 w-4" />
+              <span className="hidden sm:inline">Sales Volume</span>
+              <span className="sm:hidden">Sales</span>
+            </TabsTrigger>
+            <TabsTrigger value="pnl" className="flex items-center gap-2 whitespace-nowrap text-emerald-600 font-bold">
+              <Calculator className="h-4 w-4" />
+              <span className="hidden sm:inline">Profit & Loss</span>
+              <span className="sm:hidden">P&L</span>
+            </TabsTrigger>
+            <TabsTrigger value="staff-performance" className="flex items-center gap-2 whitespace-nowrap">
+              <Users className="h-4 w-4" />
+              <span className="hidden sm:inline">Staff Performance</span>
+              <span className="sm:hidden">Staff</span>
             </TabsTrigger>
             <TabsTrigger value="sales" className="flex items-center gap-2 whitespace-nowrap">
               <ShoppingCart className="h-4 w-4" />
@@ -159,6 +172,14 @@ const Reports = () => {
 
             <TabsContent value="transactions">
               <TransactionsReport />
+            </TabsContent>
+
+            <TabsContent value="pnl" className="space-y-4">
+              <ProfitAndLossReport />
+            </TabsContent>
+
+            <TabsContent value="staff-performance" className="space-y-4">
+              <StaffPerformanceReport />
             </TabsContent>
 
             <TabsContent value="sales">

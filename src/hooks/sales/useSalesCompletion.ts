@@ -9,6 +9,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getCurrentShift } from '@/utils/shiftUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import { useShift } from '../useShift';
+import { useInventory } from '../useInventory';
 
 interface CompleteSaleOptions {
   customerName?: string;
@@ -37,14 +38,25 @@ export const useSalesCompletion = (
   const { toast } = useToast();
   const { isOnline } = useOffline();
   const { createOfflineItem } = useOfflineData();
-  const { activeShift } = useShift();
+  const { activeShift, startShift } = useShift();
   const { user } = useAuth();
+  const { inventory } = useInventory(); // Get current cost prices from inventory
 
   const completeSale = async (options?: CompleteSaleOptions) => {
     if (items.length === 0) {
       toast({
         title: "Error",
         description: "Cannot complete sale with no items",
+        variant: "destructive",
+      });
+      return false;
+    }
+
+    // MANDATORY SHIFT CHECK (Configurable in future, but enforced now for integrity)
+    if (!activeShift) {
+      toast({
+        title: "Drawer Closed",
+        description: "You must start a shift and enter an opening balance before recording sales.",
         variant: "destructive",
       });
       return false;
@@ -75,7 +87,14 @@ export const useSalesCompletion = (
       const transactionId = options?.transactionId || `TR-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
 
       const saleData = {
-        items: [...items],
+        items: items.map(item => {
+          // Find current cost_price from inventory if available
+          const invItem = inventory?.find((i: any) => i.id === item.product_id);
+          return {
+            ...item,
+            cost_price: invItem?.cost_price || 0 // Capture for P&L COGS
+          };
+        }),
         total: calculateTotal(),
         discount: discount, // Use actual discount percentage
         manualDiscount: manualDiscount, // Include manual discount amount

@@ -48,7 +48,7 @@ export const ShiftStatusHeader = () => {
     }, [isClosing, activeShift]);
 
     // Calculate variance
-    const variance = (parseFloat(cash) || 0) - (expectedSummary?.cash || 0);
+    const variance = (parseFloat(cash) || 0) - ((activeShift?.opening_cash || 0) + (expectedSummary?.cash || 0));
 
     const handleEnd = async () => {
         await endShift(parseFloat(cash) || 0, notes);
@@ -148,9 +148,15 @@ export const ShiftStatusHeader = () => {
                         <div className="bg-muted/30 p-3 rounded-lg border space-y-2">
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground flex items-center gap-1">
-                                    <Wallet className="h-3 w-3" /> Expected Cash:
+                                    <Wallet className="h-3 w-3" /> Opening Cash:
                                 </span>
-                                <span className="font-semibold text-primary">₦{(activeShift?.expected_cash_total || 0).toLocaleString()}</span>
+                                <span>₦{(activeShift?.opening_cash || 0).toLocaleString()}</span>
+                            </div>
+                            <div className="flex justify-between text-sm">
+                                <span className="text-muted-foreground flex items-center gap-1">
+                                    <ShoppingCart className="h-3 w-3" /> Cash Sales:
+                                </span>
+                                <span className="text-primary font-medium">₦{(activeShift?.expected_cash_total || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground flex items-center gap-1">
@@ -165,9 +171,9 @@ export const ShiftStatusHeader = () => {
                                 <span>₦{(activeShift?.expected_transfer_total || 0).toLocaleString()}</span>
                             </div>
                             <Separator className="my-1" />
-                            <div className="flex justify-between text-sm font-bold">
-                                <span>Total Expected:</span>
-                                <span>₦{(activeShift?.expected_sales_total || 0).toLocaleString()}</span>
+                            <div className="flex justify-between text-sm font-bold bg-primary/5 p-1 rounded">
+                                <span>Total Expected in Drawer:</span>
+                                <span>₦{((activeShift?.opening_cash || 0) + (activeShift?.expected_cash_total || 0)).toLocaleString()}</span>
                             </div>
                         </div>
 
