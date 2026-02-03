@@ -1,6 +1,5 @@
 
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { useState } from "react";
 import {
     LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
     BarChart, Bar, Legend, Cell, PieChart, Pie
@@ -16,170 +15,19 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { EnhancedCard } from "@/components/ui/EnhancedCard";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899'];
 
 const Analytics = () => {
     const [period, setPeriod] = useState("daily");
     const [chartType, setChartType] = useState("bar");
-    const [loading, setLoading] = useState(true);
-    const [data, setData] = useState<any>({
-        salesOverTime: [],
-        topProducts: [],
-        summary: {
-            totalRevenue: 0,
-            totalProfit: 0,
-            totalExpenses: 0,
-            netProfit: 0,
-            margin: 0,
-            totalSales: 0
-        },
-        expenseCategories: []
-    });
+    // Use the optimized analytics hook with caching and parallel fetching
+    const { data, isLoading } = useAnalytics(period as any);
 
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const now = new Date();
-            let startDate = new Date();
 
-            if (period === "daily") startDate.setHours(0, 0, 0, 0);
-            else if (period === "weekly") startDate.setDate(now.getDate() - 7);
-            else if (period === "monthly") startDate.setMonth(now.getMonth() - 1);
-            else if (period === "yearly") startDate.setFullYear(now.getFullYear() - 1);
 
-            const startDateIso = startDate.toISOString();
-
-            // 1. Fetch sales within period
-            const { data: sales, error: salesError } = await supabase
-                .from('sales')
-                .select('*')
-                .gte('created_at', startDateIso);
-
-            if (salesError) throw salesError;
-
-            // 2. Fetch expenses within period
-            const { data: expenses, error: expensesError } = await (supabase
-                .from('expenses' as any) as any)
-                .select('*')
-                .gte('date', startDateIso.split('T')[0]);
-
-            if (expensesError) {
-                console.warn('Expenses fetch error (might not exist yet):', expensesError);
-            }
-
-            const safeExpenses = expenses || [];
-
-            // 3. Fetch sales items for profit calculation
-            const saleIds = (sales || []).map(s => s.id);
-            let relevantItems: any[] = [];
-            if (saleIds.length > 0) {
-                const { data: items, error: itemsError } = await supabase
-                    .from('sales_items')
-                    .select('*')
-                    .in('sale_id', saleIds);
-                if (itemsError) throw itemsError;
-                relevantItems = items || [];
-            }
-
-            // Process Summary
-            let totalRevenue = (sales || []).reduce((sum, s) => sum + Number(s.total), 0);
-            let totalGrossProfit = relevantItems.reduce((sum, item) => {
-                const cost = Number(item.cost_price || 0) * item.quantity;
-                const revenue = Number(item.total);
-                return sum + (revenue - cost);
-            }, 0);
-
-            let totalExpenses = safeExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
-            let netProfit = totalGrossProfit - totalExpenses;
-
-            // Process Top Products
-            const productMap: any = {};
-            relevantItems.forEach(item => {
-                if (!productMap[item.product_name]) {
-                    productMap[item.product_name] = {
-                        name: item.product_name,
-                        revenue: 0,
-                        profit: 0,
-                        quantity: 0
-                    };
-                }
-                const cost = Number(item.cost_price || 0) * item.quantity;
-                productMap[item.product_name].revenue += Number(item.total);
-                productMap[item.product_name].profit += (Number(item.total) - cost);
-                productMap[item.product_name].quantity += item.quantity;
-            });
-
-            const topProducts = Object.values(productMap)
-                .sort((a: any, b: any) => b.profit - a.profit)
-                .slice(0, 5);
-
-            // Process Expense Categories for visualization
-            const expenseCatMap: any = {};
-            safeExpenses.forEach((e: any) => {
-                if (!expenseCatMap[e.category]) expenseCatMap[e.category] = 0;
-                expenseCatMap[e.category] += Number(e.amount);
-            });
-            const expenseCategories = Object.keys(expenseCatMap).map(cat => ({
-                name: cat,
-                value: expenseCatMap[cat]
-            })).sort((a, b) => b.value - a.value);
-
-            // Process Time Series Data
-            const timeSeries: any = {};
-
-            // Map sales
-            sales?.forEach(s => {
-                const date = new Date(s.created_at).toLocaleDateString();
-                if (!timeSeries[date]) timeSeries[date] = { date, revenue: 0, profit: 0, expenses: 0, netProfit: 0 };
-
-                const saleItems = relevantItems.filter(item => item.sale_id === s.id);
-                const saleProfit = saleItems.reduce((sum, item) => {
-                    const cost = Number(item.cost_price || 0) * item.quantity;
-                    return sum + (Number(item.total) - cost);
-                }, 0);
-
-                timeSeries[date].revenue += Number(s.total);
-                timeSeries[date].profit += saleProfit;
-            });
-
-            // Map expenses to time series
-            safeExpenses.forEach((e: any) => {
-                const date = new Date(e.date).toLocaleDateString();
-                if (!timeSeries[date]) timeSeries[date] = { date, revenue: 0, profit: 0, expenses: 0, netProfit: 0 };
-                timeSeries[date].expenses += Number(e.amount);
-            });
-
-            // Calculate daily net profit
-            Object.keys(timeSeries).forEach(date => {
-                timeSeries[date].netProfit = timeSeries[date].profit - timeSeries[date].expenses;
-            });
-
-            setData({
-                salesOverTime: Object.values(timeSeries).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime()),
-                topProducts,
-                expenseCategories,
-                summary: {
-                    totalRevenue,
-                    totalProfit: totalGrossProfit,
-                    totalExpenses,
-                    netProfit,
-                    margin: totalRevenue > 0 ? (totalGrossProfit / totalRevenue) * 100 : 0,
-                    totalSales: sales?.length || 0
-                }
-            });
-        } catch (err) {
-            console.error("Analytics Error:", err);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    useEffect(() => {
-        fetchData();
-    }, [period]);
-
-    if (loading) return (
+    if (isLoading) return (
         <div className="p-8 space-y-6">
             <div className="flex justify-between items-center">
                 <Skeleton className="h-10 w-48" />
