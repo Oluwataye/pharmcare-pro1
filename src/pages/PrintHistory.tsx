@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,8 +9,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Calendar } from '@/components/ui/calendar';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { format } from 'date-fns';
-import { CalendarIcon, Printer, RefreshCw, Download, FileText, CheckCircle, AlertCircle, Clock } from 'lucide-react';
+import { format, startOfDay, endOfDay } from 'date-fns';
+import { CalendarIcon, Printer, RefreshCw, Download, FileText, CheckCircle, AlertCircle, Clock, Search } from 'lucide-react';
 import { NairaSign } from "@/components/icons/NairaSign";
 import { useToast } from '@/hooks/use-toast';
 import { useReceiptReprint } from '@/hooks/sales/useReceiptReprint';
@@ -21,6 +21,7 @@ import { EnhancedStatCard } from '@/components/admin/EnhancedStatCard';
 import { RefundDialog } from '@/components/refunds/RefundDialog';
 import { useAuth } from '@/contexts/AuthContext';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { useDebounce } from '@/hooks/useDebounce';
 
 interface PrintAnalytic {
   id: string;
@@ -53,6 +54,9 @@ const PrintHistory = () => {
     status: 'all',
   });
 
+  const debouncedDispenser = useDebounce(filters.dispenser, 500);
+  const debouncedCustomer = useDebounce(filters.customer, 500);
+
   // Refund dialog state
   const [showRefundDialog, setShowRefundDialog] = useState(false);
   const [selectedRefund, setSelectedRefund] = useState<{
@@ -69,7 +73,7 @@ const PrintHistory = () => {
     avgDuration: 0,
   });
 
-  const fetchAnalytics = async () => {
+  const fetchAnalytics = useCallback(async () => {
     setIsLoading(true);
     try {
       let query = supabase
@@ -84,18 +88,16 @@ const PrintHistory = () => {
 
       // Apply filters
       if (filters.startDate) {
-        query = query.gte('created_at', filters.startDate.toISOString());
+        query = query.gte('created_at', startOfDay(filters.startDate).toISOString());
       }
       if (filters.endDate) {
-        const endOfDay = new Date(filters.endDate);
-        endOfDay.setHours(23, 59, 59, 999);
-        query = query.lte('created_at', endOfDay.toISOString());
+        query = query.lte('created_at', endOfDay(filters.endDate).toISOString());
       }
-      if (filters.dispenser) {
-        query = query.ilike('cashier_name', `%${filters.dispenser}%`);
+      if (debouncedDispenser) {
+        query = query.ilike('cashier_name', `%${debouncedDispenser}%`);
       }
-      if (filters.customer) {
-        query = query.ilike('customer_name', `%${filters.customer}%`);
+      if (debouncedCustomer) {
+        query = query.ilike('customer_name', `%${debouncedCustomer}%`);
       }
       if (filters.status !== 'all') {
         query = query.eq('print_status', filters.status);
@@ -138,11 +140,11 @@ const PrintHistory = () => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [filters.startDate, filters.endDate, filters.status, debouncedDispenser, debouncedCustomer, toast]);
 
   useEffect(() => {
     fetchAnalytics();
-  }, [filters]);
+  }, [fetchAnalytics]);
 
   const handleReprint = async (saleId: string) => {
     if (!saleId) {
