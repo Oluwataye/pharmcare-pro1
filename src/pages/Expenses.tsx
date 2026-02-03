@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/table";
 import { Search, Wallet, Calendar, Filter, FileText } from "lucide-react";
 import { useExpenses } from "@/hooks/useExpenses";
+import { useDebounce } from "@/hooks/useDebounce";
 import { AddExpenseDialog } from "../components/expenses/AddExpenseDialog";
 import { DeleteExpenseDialog } from "../components/expenses/DeleteExpenseDialog";
 import { EnhancedCard } from "@/components/ui/EnhancedCard";
@@ -41,23 +42,22 @@ const Expenses = () => {
         end: ""
     });
 
-    const { expenses, isLoading, fetchExpenses } = useExpenses();
+    // Debounce search to prevent excessive queries
+    const debouncedSearchTerm = useDebounce(searchTerm, 300);
 
-    useEffect(() => {
-        fetchExpenses({
-            category: selectedCategory === "all" ? undefined : selectedCategory,
-            startDate: dateRange.start || undefined,
-            endDate: dateRange.end || undefined
-        });
-    }, [fetchExpenses, selectedCategory, dateRange]);
+    // Use React Query hook with filters - automatic caching and refetching
+    const { expenses, isLoading, refetch } = useExpenses({
+        category: selectedCategory === "all" ? undefined : selectedCategory,
+        startDate: dateRange.start || undefined,
+        endDate: dateRange.end || undefined,
+        searchTerm: debouncedSearchTerm || undefined
+    });
 
-    const filteredExpenses = expenses.filter(e =>
-        e.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        e.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        e.reference?.toLowerCase().includes(searchTerm.toLowerCase())
+    // Memoize total calculation to prevent recalculation on every render
+    const totalInView = useMemo(() =>
+        expenses.reduce((sum, e) => sum + Number(e.amount), 0),
+        [expenses]
     );
-
-    const totalInView = filteredExpenses.reduce((sum, e) => sum + Number(e.amount), 0);
 
     return (
         <div className="p-4 md:p-6 space-y-6 animate-fade-in">
@@ -70,7 +70,7 @@ const Expenses = () => {
                     <p className="text-muted-foreground">Track and manage operational costs and losses.</p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-4">
-                    <AddExpenseDialog onExpenseAdded={() => fetchExpenses()} />
+                    <AddExpenseDialog onExpenseAdded={() => refetch()} />
                 </div>
             </div>
 
@@ -89,7 +89,7 @@ const Expenses = () => {
                         <CardTitle className="text-sm font-medium text-muted-foreground">Transactions</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-blue-700">{filteredExpenses.length}</div>
+                        <div className="text-2xl font-bold text-blue-700">{expenses.length}</div>
                         <p className="text-xs text-muted-foreground">Expense entries found</p>
                     </CardContent>
                 </Card>
@@ -194,7 +194,7 @@ const Expenses = () => {
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {filteredExpenses.length === 0 ? (
+                                    {expenses.length === 0 ? (
                                         <TableRow>
                                             <TableCell colSpan={6} className="text-center py-16">
                                                 <div className="flex flex-col items-center justify-center space-y-3">
@@ -213,7 +213,7 @@ const Expenses = () => {
                                             </TableCell>
                                         </TableRow>
                                     ) : (
-                                        filteredExpenses.map((expense) => (
+                                        expenses.map((expense) => (
                                             <TableRow key={expense.id} className="hover:bg-muted/30 transition-colors group">
                                                 <TableCell className="font-medium">
                                                     {new Date(expense.date).toLocaleDateString(undefined, {
@@ -238,7 +238,7 @@ const Expenses = () => {
                                                 </TableCell>
                                                 <TableCell className="text-right opacity-0 group-hover:opacity-100 transition-opacity">
                                                     <div className="flex justify-end gap-1">
-                                                        <DeleteExpenseDialog expense={expense} onExpenseDeleted={() => fetchExpenses()} />
+                                                        <DeleteExpenseDialog expense={expense} onExpenseDeleted={() => refetch()} />
                                                     </div>
                                                 </TableCell>
                                             </TableRow>
