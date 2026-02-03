@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
@@ -6,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Product } from "@/types/sales";
 import { Search, Plus, Package } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
-import { supabase } from "@/integrations/supabase/client";
 import { SelectField } from "@/components/inventory/form/FormField";
 import { SelectItem } from "@/components/ui/select";
+import { useInventory } from "@/hooks/useInventory";
 
 interface ProductSearchSectionProps {
   onAddProduct: (product: Product, quantity: number, selectedUnit?: string) => void;
@@ -21,26 +20,20 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
   const [selectedUnit, setSelectedUnit] = useState<string>("");
   const [quantity, setQuantity] = useState(1);
   const [products, setProducts] = useState<Product[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // Use inventory from context (already loaded)
+  const { inventory, isLoading: isInventoryLoading } = useInventory();
+  const isLoading = isInventoryLoading; // Alias for component usage
   const searchInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
-  // Fetch products from Supabase inventory
+  // Fetch products from global inventory context
   useEffect(() => {
-    const fetchProducts = async () => {
-      setIsLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from('inventory')
-          .select('*')
-          .gt('quantity', 0)
-          .gt('expiry_date', new Date().toISOString())
-          .limit(1000);
-
-        if (error) throw error;
-
-        // Map inventory to Product format
-        const mappedProducts: Product[] = data.map(item => ({
+    if (inventory) {
+      // Products are already loaded in context, just map them if needed or use directly
+      // efficient mapping
+      const mappedProducts: Product[] = inventory
+        .filter((item: any) => item.quantity > 0 && new Date(item.expiry_date) > new Date())
+        .map((item: any) => ({
           id: item.id,
           name: item.name,
           price: Number(item.price),
@@ -48,39 +41,12 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
           minWholesaleQuantity: 5,
           stock: item.quantity,
           unit: item.unit,
-          multi_unit_config: (item as any).multi_unit_config as any[],
-          costPrice: Number((item as any).cost_price) || 0
+          multi_unit_config: (item.multi_unit_config as any[]) || [],
+          costPrice: Number(item.cost_price) || 0
         }));
-
-        setProducts(mappedProducts);
-      } catch (error) {
-        console.error('Error fetching inventory:', error);
-        toast({
-          title: "Error",
-          description: "Failed to load products",
-          variant: "destructive",
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchProducts();
-
-    const channel = supabase
-      .channel('inventory-changes')
-      .on('postgres_changes',
-        { event: '*', schema: 'public', table: 'inventory' },
-        () => {
-          fetchProducts();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [toast]);
+      setProducts(mappedProducts);
+    }
+  }, [inventory]);
 
   // Handle F2 shortcut to focus search
   useEffect(() => {

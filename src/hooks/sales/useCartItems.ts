@@ -14,10 +14,10 @@ export const useCartItems = () => {
 
   const { toast } = useToast();
 
-  // Save the current sale to secure storage whenever it changes
-  useEffect(() => {
-    secureStorage.setItem(CART_STORAGE_KEY, items);
-  }, [items]);
+  // Save the current sale to secure storage whenever it changes (REMOVED: Caused race conditions)
+  // useEffect(() => {
+  //   secureStorage.setItem(CART_STORAGE_KEY, items);
+  // }, [items]);
 
   const addItem = (product: Product, quantity: number = 1, isWholesale: boolean = false, customUnit?: string) => {
     console.log('useCartItems: addItem called', { product, quantity, isWholesale, customUnit });
@@ -88,12 +88,15 @@ export const useCartItems = () => {
     }
 
     setItems(newItems);
+    secureStorage.setItem(CART_STORAGE_KEY, newItems); // Explicit Sync
     console.log('useCartItems: Item added successfuly', { product: product.name, quantity, isWholesale: useWholesalePrice });
     return { success: true, usedWholesalePrice: useWholesalePrice };
   };
 
   const removeItem = (id: string) => {
-    setItems(items.filter(item => item.id !== id));
+    const newItems = items.filter(item => item.id !== id);
+    setItems(newItems);
+    secureStorage.setItem(CART_STORAGE_KEY, newItems); // Explicit Sync
   };
 
   const updateQuantity = (id: string, quantity: number) => {
@@ -106,11 +109,13 @@ export const useCartItems = () => {
       return;
     }
 
-    setItems(items.map(item =>
+    const newItems = items.map(item =>
       item.id === id
         ? { ...item, quantity, total: quantity * item.price * (1 - (item.discount || 0) / 100) }
         : item
-    ));
+    );
+    setItems(newItems);
+    secureStorage.setItem(CART_STORAGE_KEY, newItems); // Explicit Sync
   };
 
   const updateItemDiscount = (id: string, discount: number) => {
@@ -123,11 +128,13 @@ export const useCartItems = () => {
       return;
     }
 
-    setItems(items.map(item =>
+    const newItems = items.map(item =>
       item.id === id
         ? { ...item, discount, total: item.quantity * item.price * (1 - discount / 100) }
         : item
-    ));
+    );
+    setItems(newItems);
+    secureStorage.setItem(CART_STORAGE_KEY, newItems); // Explicit Sync
   };
 
   const toggleItemPriceType = (id: string) => {
@@ -140,7 +147,7 @@ export const useCartItems = () => {
       ? (item.unitPrice * 0.85) // 15% discount for wholesale
       : item.unitPrice;
 
-    setItems(items.map(i =>
+    const newItems = items.map(i =>
       i.id === id
         ? {
           ...i,
@@ -149,13 +156,16 @@ export const useCartItems = () => {
           total: i.quantity * newPrice * (1 - (i.discount || 0) / 100)
         }
         : i
-    ));
+    );
 
+    setItems(newItems);
+    secureStorage.setItem(CART_STORAGE_KEY, newItems); // Explicit Sync
     return newIsWholesale;
   };
 
   const clearItems = () => {
     setItems([]);
+    secureStorage.removeItem(CART_STORAGE_KEY); // Explicit Removal
   };
 
   return {
