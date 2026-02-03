@@ -70,15 +70,39 @@ export function EditUserDialog({ user, onUserUpdated }: EditUserDialogProps) {
     setIsSubmitting(true);
 
     try {
-      // Validate email is not already taken by another user
-      const existingEmails = ["john@example.com", "jane@example.com", "mike@example.com"];
-      if (data.email !== user.email && existingEmails.includes(data.email)) {
-        throw new Error("Email is already taken by another user");
+      // Import supabase at the top of the file
+      const { supabase } = await import('@/integrations/supabase/client');
+
+      // Update profiles table
+      const profileUpdateData: any = {
+        name: data.name,
+        username: data.username || null,
+      };
+
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .update(profileUpdateData)
+        .eq('user_id', user.id);
+
+      if (profileError) {
+        console.error('[EditUserDialog] Profile update error:', profileError);
+        throw new Error(profileError.message || 'Failed to update profile');
       }
 
-      // Simulate API call with proper delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      // Update role if changed
+      if (data.role !== user.role) {
+        const { error: roleError } = await supabase
+          .from('user_roles')
+          .update({ role: data.role })
+          .eq('user_id', user.id);
 
+        if (roleError) {
+          console.error('[EditUserDialog] Role update error:', roleError);
+          throw new Error(roleError.message || 'Failed to update role');
+        }
+      }
+
+      // Create updated user object for local state
       const updatedUser: User = {
         ...user,
         name: data.name,

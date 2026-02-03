@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import {
@@ -22,88 +22,18 @@ import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { EnhancedStatCard } from "@/components/admin/EnhancedStatCard";
 import { EnhancedCard } from "@/components/ui/EnhancedCard";
+import { useUsers } from "@/hooks/useUsers";
 
 const Users = () => {
   const [searchTerm, setSearchTerm] = useState("");
-  const [users, setUsers] = useState<User[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const { canManageUsers, canEditUsers, canDeleteUsers } = usePermissions();
   const { toast } = useToast();
 
-  // Fetch users from database using secure edge function
-  const fetchUsers = async () => {
-    try {
-      setIsLoading(true);
+  // Use the optimized useUsers hook with caching
+  const { users, isLoading, refetch } = useUsers();
 
-      // Get auth users via secure edge function (only SUPER_ADMIN can access)
-      const { data: sessionData } = await supabase.auth.getSession();
-      const session = sessionData?.session;
-      console.log("[UsersPage] Fetching users, session:", session ? "Active" : "None");
-      const accessToken = sessionData?.session?.access_token;
-
-      let authUsers: Array<{ id: string; email: string }> = [];
-
-      if (accessToken) {
-        const response = await supabase.functions.invoke('list-users', {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-          },
-        });
-
-        if (response.error) {
-          console.warn('Could not fetch auth users (may not have SUPER_ADMIN role):', response.error);
-        } else {
-          authUsers = response.data?.users || [];
-        }
-      }
-
-      // Fetch profiles (now restricted by RLS - users see only their own unless SUPER_ADMIN)
-      const { data: profiles, error: profilesError } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          user_id,
-          name,
-          username
-        `);
-
-      if (profilesError) throw profilesError;
-
-      // Fetch roles (now restricted by RLS - users see only their own unless SUPER_ADMIN)
-      const { data: rolesData, error: rolesError } = await supabase
-        .from('user_roles')
-        .select('user_id, role');
-
-      if (rolesError) throw rolesError;
-
-      const rolesMap = new Map((rolesData || []).map(r => [r.user_id, r.role]));
-      const authUsersMap = new Map(authUsers.map(u => [u.id, u.email]));
-
-      const usersList: User[] = (profiles || []).map((profile: any) => ({
-        id: profile.user_id,
-        email: authUsersMap.get(profile.user_id) || '',
-        name: profile.name,
-        username: profile.username || undefined,
-        role: rolesMap.get(profile.user_id) || 'DISPENSER',
-      }));
-
-      setUsers(usersList);
-    } catch (error: any) {
-      console.error('Error fetching users:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load users',
-        variant: 'destructive',
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
+  // Set up real-time subscription for profile changes
   useEffect(() => {
-    fetchUsers();
-
-    // Set up real-time subscription
     const channel = supabase
       .channel('users-changes')
       .on(
@@ -114,7 +44,8 @@ const Users = () => {
           table: 'profiles'
         },
         () => {
-          fetchUsers();
+          console.log('[Users] Profile changed, refetching...');
+          refetch();
         }
       )
       .subscribe();
@@ -122,17 +53,22 @@ const Users = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, []);
+  }, [refetch]);
 
-  const filteredUsers = users.filter(user =>
-    user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    user.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  // Debounced search with useMemo for performance
+  const filteredUsers = useMemo(() => {
+    const term = searchTerm.toLowerCase();
+    return users.filter(user =>
+      user.name.toLowerCase().includes(term) ||
+      user.email.toLowerCase().includes(term) ||
+      user.role.toLowerCase().includes(term) ||
+      (user.username && user.username.toLowerCase().includes(term))
+    );
+  }, [users, searchTerm]);
 
   const handleUserUpdated = (updatedUser: User) => {
-    setUsers(users.map(user => user.id === updatedUser.id ? updatedUser : user));
+    // Refetch to get latest data from database
+    refetch();
     toast({
       title: "User Updated",
       description: `${updatedUser.name}'s profile has been updated successfully.`,
@@ -140,11 +76,13 @@ const Users = () => {
   };
 
   const handleUserDeleted = (userId: string) => {
-    setUsers(users.filter(user => user.id !== userId));
+    // Refetch to get latest data from database
+    refetch();
   };
 
   const handleAddUser = (user: User) => {
-    setUsers([...users, user]);
+    // Refetch to get latest data from database
+    refetch();
     toast({
       title: "User added",
       description: "New user has been added successfully.",
