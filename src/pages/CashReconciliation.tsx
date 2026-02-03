@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
@@ -7,8 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
-import { format, subDays, startOfDay, endOfDay } from "date-fns";
+import { format } from "date-fns";
 import {
     Download,
     Filter,
@@ -23,64 +22,33 @@ import {
 } from "lucide-react";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { Spinner } from "@/components/ui/spinner";
-import { useToast } from "@/hooks/use-toast";
+import { useReconciliation } from "@/hooks/useReconciliation";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const CashReconciliation = () => {
-    const [shifts, setShifts] = useState<any[]>([]);
-    const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState("all");
     const [dateRange, setDateRange] = useState("7");
-    const { toast } = useToast();
 
-    useEffect(() => {
-        fetchReconciliationData();
-    }, [dateRange, statusFilter]);
+    // Debounce search to prevent excessive queries
+    const debouncedSearchQuery = useDebounce(searchQuery, 300);
 
-    const fetchReconciliationData = async () => {
-        try {
-            setLoading(true);
-            const startDate = startOfDay(subDays(new Date(), parseInt(dateRange))).toISOString();
+    // Use React Query hook with filters - automatic caching and refetching
+    const { shifts, isLoading } = useReconciliation({
+        dateRange,
+        status: statusFilter,
+        searchTerm: debouncedSearchQuery
+    });
 
-            let query = supabase
-                .from('staff_shifts' as any)
-                .select('*')
-                .gte('created_at', startDate)
-                .order('created_at', { ascending: false });
+    // Memoize expensive metric calculations
+    const metrics = useMemo(() => {
+        const totalVariance = shifts.reduce((acc, s) => acc + s.variance, 0);
+        const shiftsWithVariance = shifts.filter(s => Math.abs(s.variance) > 0).length;
+        const closedShifts = shifts.filter(s => s.status === 'closed').length;
+        const auditAlerts = shifts.filter(s => Math.abs(s.variance) > 1000).length;
 
-            if (statusFilter !== "all") {
-                query = query.eq('status', statusFilter);
-            }
-
-            const { data, error } = await query;
-
-            if (error) throw error;
-            setShifts(data || []);
-        } catch (error: any) {
-            console.error("Error fetching reconciliation data:", error);
-            toast({
-                title: "Error",
-                description: "Failed to load reconciliation records.",
-                variant: "destructive"
-            });
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const filteredShifts = shifts.filter(s =>
-        s.staff_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (s.notes && s.notes.toLowerCase().includes(searchQuery.toLowerCase()))
-    );
-
-    const totalVariance = filteredShifts.reduce((acc, s) => {
-        const variance = (s.actual_cash_counted || 0) - (s.expected_cash_total || 0);
-        return acc + variance;
-    }, 0);
-
-    const shiftsWithVariance = filteredShifts.filter(s =>
-        Math.abs((s.actual_cash_counted || 0) - (s.expected_cash_total || 0)) > 0
-    ).length;
+        return { totalVariance, shiftsWithVariance, closedShifts, auditAlerts };
+    }, [shifts]);
 
     return (
         <div className="p-4 md:p-6 space-y-6 animate-fade-in">
@@ -102,23 +70,23 @@ const CashReconciliation = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <MetricCard
                     title="Net Variance"
-                    value={`₦${totalVariance.toLocaleString()}`}
-                    icon={totalVariance >= 0 ? TrendingUp : TrendingDown}
-                    subValue="Total over/shortage for period"
-                    colorScheme={totalVariance >= 0 ? "success" : "destructive"}
+                    value={`₦${metrics.totalVariance.toLocaleString()}`}
+                    icon={metrics.totalVariance >= 0 ? TrendingUp : TrendingDown}
+                    description="Total over/shortage for period"
+                    colorScheme={metrics.totalVariance >= 0 ? "success" : "danger"}
                 />
                 <MetricCard
                     title="Reconciled Shifts"
-                    value={filteredShifts.filter(s => s.status === 'closed').length.toString()}
+                    value={metrics.closedShifts.toString()}
                     icon={CheckCircle2}
-                    subValue={`${shiftsWithVariance} shifts with variances detected`}
+                    description={`${metrics.shiftsWithVariance} shifts with variances detected`}
                     colorScheme="primary"
                 />
                 <MetricCard
                     title="Audit Alerts"
-                    value={filteredShifts.filter(s => Math.abs((s.actual_cash_counted || 0) - (s.expected_cash_total || 0)) > 1000).length.toString()}
+                    value={metrics.auditAlerts.toString()}
                     icon={AlertCircle}
-                    subValue="Significant variances (> ₦1,000)"
+                    description="Significant variances (> ₦1,000)"
                     colorScheme="warning"
                 />
             </div>
@@ -166,11 +134,11 @@ const CashReconciliation = () => {
                     </div>
                 </CardHeader>
                 <CardContent className="p-0">
-                    {loading ? (
+                    {isLoading ? (
                         <div className="flex justify-center items-center h-64 p-8">
                             <Spinner size="lg" />
                         </div>
-                    ) : filteredShifts.length === 0 ? (
+                    ) : shifts.length === 0 ? (
                         <div className="text-center py-20 bg-muted/5">
                             <Clock className="h-10 w-10 mx-auto text-muted-foreground mb-4 opacity-20" />
                             <p className="text-muted-foreground font-medium">No shift records found for the selected criteria.</p>
@@ -189,8 +157,8 @@ const CashReconciliation = () => {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {filteredShifts.map((shift) => {
-                                    const variance = (shift.actual_cash_counted || 0) - (shift.expected_cash_total || 0);
+                                {shifts.map((shift) => {
+                                    const variance = shift.variance; // Use pre-calculated variance
                                     const isSignificant = Math.abs(variance) > 1000;
 
                                     return (
@@ -259,7 +227,7 @@ const CashReconciliation = () => {
                 </CardContent>
             </Card>
 
-            {filteredShifts.some(s => s.notes) && (
+            {shifts.some(s => s.notes) && (
                 <Card className="border-amber-200 bg-amber-50/10 shadow-sm">
                     <CardHeader className="pb-2">
                         <CardTitle className="text-sm flex items-center gap-2 text-amber-800">
@@ -269,7 +237,7 @@ const CashReconciliation = () => {
                     </CardHeader>
                     <CardContent>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {filteredShifts.filter(s => s.notes).slice(0, 3).map(s => (
+                            {shifts.filter(s => s.notes).slice(0, 3).map(s => (
                                 <div key={s.id} className="bg-white p-3 rounded border border-amber-100 shadow-xs flex flex-col gap-2">
                                     <div className="flex justify-between items-center border-b pb-1 border-amber-50">
                                         <span className="text-[10px] font-bold uppercase text-amber-700">{s.staff_name}</span>
