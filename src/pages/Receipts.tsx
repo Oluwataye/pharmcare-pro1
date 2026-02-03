@@ -181,7 +181,7 @@ const Receipts = () => {
                           {receipt.business_name || receipt.customer_name || 'Walk-in'}
                         </TableCell>
                         <TableCell>
-                          {receipt.cashier_name || 'Unknown'}
+                          {receipt.cashier_name || 'Staff'}
                         </TableCell>
                         <TableCell>
                           {receipt.items_count || 0} item(s)

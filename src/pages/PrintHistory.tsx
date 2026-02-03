@@ -183,7 +183,7 @@ const PrintHistory = () => {
     const rows = analytics.map(a => [
       format(new Date(a.created_at), 'yyyy-MM-dd HH:mm:ss'),
       a.transaction_id || a.sale_id || 'N/A',
-      a.cashier_name || 'N/A',
+      a.cashier_name || 'Staff',
       a.customer_name || 'N/A',
       a.print_status,
       a.error_type || 'N/A',
@@ -407,7 +407,7 @@ const PrintHistory = () => {
                       <TableCell className="font-medium">
                         {format(new Date(analytic.created_at), 'MMM dd, yyyy HH:mm')}
                       </TableCell>
-                      <TableCell>{analytic.cashier_name || 'N/A'}</TableCell>
+                      <TableCell>{analytic.cashier_name || 'Staff'}</TableCell>
                       <TableCell>{analytic.customer_name || 'Walk-in'}</TableCell>
                       <TableCell>
                         <Badge

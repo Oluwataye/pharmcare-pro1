@@ -84,7 +84,7 @@ const NewSale = () => {
     isOfflineMode,
     openPrintWindow
   } = useSales({
-    dispenserName: user ? (user.username || user.name || user.email) : undefined,
+    dispenserName: user ? (user.name || user.username || user.email?.split('@')[0] || 'Staff') : 'Staff',
     dispenserEmail: user ? user.email : undefined,
     dispenserId: user ? user.id : undefined,
     staffRole: user?.role

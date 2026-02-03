@@ -71,7 +71,7 @@ const StaffPerformanceReport = () => {
             if (!stats[id]) {
                 stats[id] = {
                     id,
-                    name: sale.cashier_name || 'System / Unknown',
+                    name: sale.cashier_name || 'Store Staff',
                     totalSales: 0,
                     transactionCount: 0,
                     variances: [],
@@ -161,21 +161,21 @@ const StaffPerformanceReport = () => {
                 <MetricCard
                     title="Top Performer"
                     value={staffStats[0]?.name || "N/A"}
-                    subValue={staffStats[0] ? `₦${staffStats[0].totalSales.toLocaleString()} Vol` : ""}
+                    description={staffStats[0] ? `₦${staffStats[0].totalSales.toLocaleString()} Vol` : ""}
                     icon={Target}
                     colorScheme="success"
                 />
                 <MetricCard
                     title="Avg Team ATV"
                     value={`₦${(staffStats.reduce((a, b) => a + b.avgTransactionValue, 0) / (staffStats.length || 1)).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
-                    subValue="Average ticket size"
+                    description="Average ticket size"
                     icon={ShoppingBag}
                     colorScheme="primary"
                 />
                 <MetricCard
                     title="Accuracy Alert"
                     value={staffStats.filter(s => s.varianceFrequency > 20).length.toString()}
-                    subValue="Staff with >20% variance frequency"
+                    description="Staff with >20% variance frequency"
                     icon={AlertTriangle}
                     colorScheme="warning"
                 />
