@@ -57,6 +57,7 @@ const NewSale = () => {
   const [lastCompletedSaleId, setLastCompletedSaleId] = useState<string | null>(null);
   const [lastCompletedItems, setLastCompletedItems] = useState<any[]>([]);
   const [isCompleting, setIsCompleting] = useState(false);
+  const [payments, setPayments] = useState<PaymentMode[]>([{ mode: 'cash', amount: 0 }]);
   const { config: systemConfig } = useSystemConfig();
   const { activeShift } = useShift();
 
