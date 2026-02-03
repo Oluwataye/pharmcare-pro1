@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
@@ -7,63 +7,29 @@ import {
   ChartLegend
 } from "@/components/ui/chart";
 import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from "recharts";
-import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { TrendingUp, TrendingDown, Percent } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
-import { format, startOfMonth, endOfMonth, subMonths, parseISO } from "date-fns";
+import { format, subMonths, parseISO } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
+import { useReportsSales } from "@/hooks/reports/useReportsData";
 
 const SalesReport = () => {
-  const [loading, setLoading] = useState(true);
-  const [metrics, setMetrics] = useState({
-    revenue: 0,
-    profit: 0,
-    margin: 0,
-    growth: 0,
-    cash: 0,
-    pos: 0,
-    transfer: 0
+  const startDate = useMemo(() => subMonths(new Date(), 6).toISOString(), []);
+  const endDate = useMemo(() => new Date().toISOString(), []);
+
+  const { data: rawSales, isLoading: loading } = useReportsSales({
+    startDate,
+    endDate,
+    branchId: 'all'
   });
-  const [chartData, setChartData] = useState<any[]>([]);
 
-  useEffect(() => {
-    fetchSalesData();
-  }, []);
+  const { metrics, chartData } = useMemo(() => {
+    if (!rawSales) return {
+      metrics: { revenue: 0, profit: 0, margin: 0, growth: 0, cash: 0, pos: 0, transfer: 0 },
+      chartData: []
+    };
 
-  const fetchSalesData = async () => {
-    try {
-      setLoading(true);
-      // Fetch sales from the last 6 months
-      const startDate = subMonths(new Date(), 6).toISOString();
-
-      const { data, error } = await supabase
-        .from('sales')
-        .select(`
-          id,
-          total,
-          date,
-          payment_methods,
-          sales_items (
-            cost_price,
-            quantity,
-            total
-          )
-        `)
-        .gte('date', startDate)
-        .order('date', { ascending: true });
-
-      if (error) throw error;
-
-      processData(data);
-    } catch (error) {
-      console.error("Error fetching sales report:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const processData = (data: any[]) => {
     let totalRevenue = 0;
     let totalCost = 0;
     let totalCash = 0;
@@ -71,12 +37,11 @@ const SalesReport = () => {
     let totalTransfer = 0;
     const monthlyData: Record<string, { revenue: number; profit: number; cost: number }> = {};
 
-    data.forEach(sale => {
+    rawSales.forEach(sale => {
       const monthKey = format(parseISO(sale.date), 'MMM yyyy');
 
       // Calculate sale cost
       const saleCost = sale.sales_items?.reduce((acc: number, item: any) => {
-        // Use captured cost_price if available, otherwise 0
         const cost = Number(item.cost_price) || 0;
         return acc + (cost * item.quantity);
       }, 0) || 0;
@@ -99,7 +64,6 @@ const SalesReport = () => {
           if (p.mode === 'transfer') totalTransfer += Number(p.amount);
         });
       } else {
-        // Fallback for old records or partial data
         totalCash += Number(sale.total);
       }
     });
@@ -107,25 +71,25 @@ const SalesReport = () => {
     const profit = totalRevenue - totalCost;
     const margin = totalRevenue > 0 ? (profit / totalRevenue) * 100 : 0;
 
-    // Convert to array for chart
     const processedChartData = Object.entries(monthlyData).map(([month, values]) => ({
       month,
       sales: values.revenue,
       profit: values.profit
     }));
 
-    setMetrics({
-      revenue: totalRevenue,
-      profit: profit,
-      margin: margin,
-      growth: 0, // Simplification for now
-      cash: totalCash,
-      pos: totalPos,
-      transfer: totalTransfer
-    });
-
-    setChartData(processedChartData);
-  };
+    return {
+      metrics: {
+        revenue: totalRevenue,
+        profit: profit,
+        margin: margin,
+        growth: 0,
+        cash: totalCash,
+        pos: totalPos,
+        transfer: totalTransfer
+      },
+      chartData: processedChartData
+    };
+  }, [rawSales]);
 
   const chartConfig = {
     sales: {

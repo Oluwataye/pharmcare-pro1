@@ -1,5 +1,5 @@
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   ChartContainer,
@@ -7,49 +7,45 @@ import {
   ChartTooltipContent,
 } from "@/components/ui/chart";
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts";
-import { format, subDays } from "date-fns";
-import { supabase } from "@/integrations/supabase/client";
+import { format, subDays, startOfDay } from "date-fns";
+import { useReportsSales } from "@/hooks/reports/useReportsData";
 
 const TransactionsReport = () => {
-  const [transactionData, setTransactionData] = useState<any[]>([]);
+  const today = useMemo(() => new Date(), []);
+  const start = useMemo(() => subDays(today, 7).toISOString(), [today]);
+  const end = useMemo(() => today.toISOString(), [today]);
 
-  useEffect(() => {
-    const fetchData = async () => {
-      const today = new Date();
-      const start = subDays(today, 7);
+  const { data: rawSales } = useReportsSales({
+    startDate: start,
+    endDate: end,
+    branchId: 'all'
+  });
 
-      const { data } = await supabase
-        .from('sales')
-        .select('created_at')
-        .gte('created_at', start.toISOString());
+  const transactionData = useMemo(() => {
+    // Initialize last 7 days with 0
+    const last7Days = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = subDays(today, i);
+      last7Days.push({
+        date: format(d, 'EEE'), // Mon, Tue...
+        fullDate: format(d, 'yyyy-MM-dd'),
+        transactions: 0
+      });
+    }
 
-      if (data) {
-        // Initialize last 7 days with 0
-        // We use an array to preserve order
-        const last7Days = [];
-        for (let i = 6; i >= 0; i--) {
-          const d = subDays(today, i);
-          last7Days.push({
-            date: format(d, 'EEE'), // Mon, Tue...
-            fullDate: format(d, 'yyyy-MM-dd'),
-            transactions: 0
-          });
+    if (rawSales) {
+      // Fill counts
+      rawSales.forEach((sale: any) => {
+        const saleDate = format(new Date(sale.created_at), 'yyyy-MM-dd');
+        const dayObj = last7Days.find(d => d.fullDate === saleDate);
+        if (dayObj) {
+          dayObj.transactions += 1;
         }
+      });
+    }
 
-        // Fill counts
-        data.forEach(sale => {
-          const saleDate = format(new Date(sale.created_at), 'yyyy-MM-dd');
-          const dayObj = last7Days.find(d => d.fullDate === saleDate);
-          if (dayObj) {
-            dayObj.transactions += 1;
-          }
-        });
-
-        setTransactionData(last7Days);
-      }
-    };
-    fetchData();
-  }, []);
+    return last7Days;
+  }, [rawSales, today]);
 
   const chartConfig = {
     transactions: {

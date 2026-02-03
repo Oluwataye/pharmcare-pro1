@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
     Table,
@@ -16,114 +16,53 @@ import {
     ChartLegend
 } from "@/components/ui/chart";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend, Tooltip } from "recharts";
-import { supabase } from "@/integrations/supabase/client";
 import { MetricCard } from "@/components/dashboard/MetricCard";
 import { TrendingUp, TrendingDown, Wallet, Calculator, ArrowRight, Receipt, FileDown, PieChart as PieChartIcon } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
-import { format, startOfMonth, endOfMonth, subMonths, parseISO, isWithinInterval } from "date-fns";
+import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { Button } from "@/components/ui/button";
 import { exportToCSV } from "@/lib/exportUtils";
+import { useReportsSales, useReportsExpenses, useReportBranches } from "@/hooks/reports/useReportsData";
 
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
 const ProfitAndLossReport = () => {
-    const [loading, setLoading] = useState(true);
     const [dateRange, setDateRange] = useState({
         start: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
         end: format(endOfMonth(new Date()), 'yyyy-MM-dd')
     });
     const [selectedBranch, setSelectedBranch] = useState<string>('all');
-    const [branches, setBranches] = useState<any[]>([]);
 
-    const [data, setData] = useState<{
-        revenue: number;
-        cogs: number;
-        grossProfit: number;
-        expenses: number;
-        netProfit: number;
-        expenseBreakdown: { category: string; amount: number }[];
-        branchDistribution: { name: string; value: number }[];
-        recentTransactions: any[];
-    }>({
-        revenue: 0,
-        cogs: 0,
-        grossProfit: 0,
-        expenses: 0,
-        netProfit: 0,
-        expenseBreakdown: [],
-        branchDistribution: [],
-        recentTransactions: []
+    // Use unified hooks
+    const { data: branches = [] } = useReportBranches();
+    const { data: sales, isLoading: salesLoading } = useReportsSales({
+        startDate: dateRange.start,
+        endDate: dateRange.end,
+        branchId: selectedBranch
+    });
+    const { data: expenses, isLoading: expensesLoading } = useReportsExpenses({
+        startDate: dateRange.start,
+        endDate: dateRange.end,
+        branchId: selectedBranch
     });
 
-    useEffect(() => {
-        const fetchBranches = async () => {
-            const { data } = await supabase.from('branches' as any).select('*');
-            if (data) setBranches(data);
+    const loading = salesLoading || expensesLoading;
+
+    const data = useMemo(() => {
+        if (!sales || !expenses) return {
+            revenue: 0,
+            cogs: 0,
+            grossProfit: 0,
+            expenses: 0,
+            netProfit: 0,
+            expenseBreakdown: [],
+            branchDistribution: [],
+            recentTransactions: []
         };
-        fetchBranches();
-    }, []);
 
-    useEffect(() => {
-        fetchPandLData();
-    }, [dateRange, selectedBranch]);
-
-    const fetchPandLData = async () => {
-        try {
-            setLoading(true);
-
-            // 1. Fetch Sales & Items
-            let salesQuery = supabase
-                .from('sales' as any)
-                .select(`
-                    id, 
-                    total, 
-                    date,
-                    branch_id,
-                    branches:branch_id(name),
-                    sales_items (
-                        quantity,
-                        cost_price,
-                        total
-                    )
-                `)
-                .gte('date', dateRange.start)
-                .lte('date', dateRange.end);
-
-            if (selectedBranch !== 'all') {
-                salesQuery = salesQuery.eq('branch_id', selectedBranch);
-            }
-
-            const { data: sales, error: salesError } = await salesQuery as any;
-
-            if (salesError) throw salesError;
-
-            // 2. Fetch Expenses
-            let expensesQuery = supabase
-                .from('expenses' as any)
-                .select('*, branches:branch_id(name)')
-                .gte('date', dateRange.start)
-                .lte('date', dateRange.end);
-
-            if (selectedBranch !== 'all') {
-                expensesQuery = expensesQuery.eq('branch_id', selectedBranch);
-            }
-
-            const { data: expenses, error: expensesError } = await expensesQuery as any;
-
-            if (expensesError) throw expensesError;
-
-            processFinancials(sales || [], expenses || []);
-        } catch (error) {
-            console.error("Error fetching P&L data:", error);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    const processFinancials = (sales: any[], expenses: any[]) => {
         let revenue = 0;
         let cogs = 0;
         const branchRevMap: Record<string, number> = {};
@@ -132,7 +71,7 @@ const ProfitAndLossReport = () => {
             const saleTotal = Number(sale.total);
             revenue += saleTotal;
 
-            const branchName = sale.branches?.name || 'Main Branch';
+            const branchName = (sale as any).branches?.name || 'Main Branch';
             branchRevMap[branchName] = (branchRevMap[branchName] || 0) + saleTotal;
 
             sale.sales_items?.forEach((item: any) => {
@@ -140,12 +79,12 @@ const ProfitAndLossReport = () => {
             });
         });
 
-        let totalExpenses = 0;
+        let totalExpensesCount = 0;
         const breakdownMap: Record<string, number> = {};
 
         expenses.forEach(exp => {
             const amount = Number(exp.amount);
-            totalExpenses += amount;
+            totalExpensesCount += amount;
             breakdownMap[exp.category] = (breakdownMap[exp.category] || 0) + amount;
         });
 
@@ -158,19 +97,20 @@ const ProfitAndLossReport = () => {
             .sort((a, b) => b.value - a.value);
 
         const grossProfit = revenue - cogs;
-        const netProfit = grossProfit - totalExpenses;
+        const netProfit = grossProfit - totalExpensesCount;
 
-        setData({
+        return {
             revenue,
             cogs,
             grossProfit,
-            expenses: totalExpenses,
+            expenses: totalExpensesCount,
             netProfit,
             expenseBreakdown: sortedBreakdown,
             branchDistribution,
             recentTransactions: expenses.slice(0, 5)
-        });
-    };
+        };
+    }, [sales, expenses]);
+
 
     const handleExportStatement = () => {
         const exportData = [

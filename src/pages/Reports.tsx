@@ -63,14 +63,9 @@ const Reports = () => {
     }
   }, []);
 
-  // Simulate loading when changing tabs
+  // Direct tab switching without artificial delay
   const handleTabChange = (value: string) => {
-    setIsLoading(true);
     setActiveTab(value);
-    // Simulate API call delay
-    setTimeout(() => {
-      setIsLoading(false);
-    }, 600);
   };
 
   // Handle viewing the expiry report from the modal
@@ -156,62 +151,54 @@ const Reports = () => {
           </TabsList>
         </div>
 
-        {isLoading ? (
-          <EnhancedCard colorScheme="primary">
-            <CardContent className="flex items-center justify-center min-h-[400px]">
-              <Spinner size="lg" />
-            </CardContent>
-          </EnhancedCard>
-        ) : (
-          <>
-            <TabsContent value="inventory">
-              <InventoryReport />
+        <div className="min-h-[600px] w-full">
+          <TabsContent value="inventory">
+            <InventoryReport />
+          </TabsContent>
+
+          <TabsContent value="adjustments">
+            <StockAdjustmentReport />
+          </TabsContent>
+
+          <TabsContent value="transactions">
+            <TransactionsReport />
+          </TabsContent>
+
+          <TabsContent value="pnl" className="space-y-4">
+            <ProfitAndLossReport />
+          </TabsContent>
+
+          <TabsContent value="budget" className="space-y-4">
+            <BudgetVsActual />
+          </TabsContent>
+
+          <TabsContent value="staff-performance" className="space-y-4">
+            <StaffPerformanceReport />
+          </TabsContent>
+
+
+          <TabsContent value="discounts">
+            <DiscountReport />
+          </TabsContent>
+
+          <TabsContent value="users">
+            <UserAuditReport />
+          </TabsContent>
+
+          <TabsContent value="audit">
+            <TransactionAuditLog />
+          </TabsContent>
+
+          <TabsContent value="expiring">
+            <ExpiringDrugsReport />
+          </TabsContent>
+
+          {user?.role === 'SUPER_ADMIN' && (
+            <TabsContent value="security">
+              <AuditLogReport />
             </TabsContent>
-
-            <TabsContent value="adjustments">
-              <StockAdjustmentReport />
-            </TabsContent>
-
-            <TabsContent value="transactions">
-              <TransactionsReport />
-            </TabsContent>
-
-            <TabsContent value="pnl" className="space-y-4">
-              <ProfitAndLossReport />
-            </TabsContent>
-
-            <TabsContent value="budget" className="space-y-4">
-              <BudgetVsActual />
-            </TabsContent>
-
-            <TabsContent value="staff-performance" className="space-y-4">
-              <StaffPerformanceReport />
-            </TabsContent>
-
-
-            <TabsContent value="discounts">
-              <DiscountReport />
-            </TabsContent>
-
-            <TabsContent value="users">
-              <UserAuditReport />
-            </TabsContent>
-
-            <TabsContent value="audit">
-              <TransactionAuditLog />
-            </TabsContent>
-
-            <TabsContent value="expiring">
-              <ExpiringDrugsReport />
-            </TabsContent>
-
-            {user?.role === 'SUPER_ADMIN' && (
-              <TabsContent value="security">
-                <AuditLogReport />
-              </TabsContent>
-            )}
-          </>
-        )}
+          )}
+        </div>
       </Tabs>
 
       <ExpiryNotificationModal
