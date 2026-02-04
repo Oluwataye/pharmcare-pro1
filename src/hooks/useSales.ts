@@ -90,12 +90,13 @@ export const useSales = (options?: UseSalesOptions) => {
     return result;
   };
 
-  // Enhanced toggleItemPriceType with auto-type switching
+  // Enhanced toggleItemPriceType (Auto-switching removed)
   const enhancedToggleItemPriceType = (id: string) => {
     const isWholesale = toggleItemPriceType(id);
-    if (isWholesale && saleType !== 'wholesale') {
-      setSaleTypeMode('wholesale');
-    }
+    // Removed auto-switch to allow retail sales with discount items
+    // if (isWholesale && saleType !== 'wholesale') {
+    //   setSaleTypeMode('wholesale');
+    // }
     return isWholesale;
   };
 
@@ -106,9 +107,10 @@ export const useSales = (options?: UseSalesOptions) => {
     saleType,
     addItem: (product: any, quantity: number, isWholesale: boolean = false, customUnit?: string) => {
       const { success, usedWholesalePrice } = addItem(product, quantity, isWholesale, customUnit);
-      if (usedWholesalePrice && saleType !== 'wholesale') {
-        setSaleTypeMode('wholesale');
-      }
+      // Removed auto-switch to allow retail sales with discount items
+      // if (usedWholesalePrice && saleType !== 'wholesale') {
+      //   setSaleTypeMode('wholesale');
+      // }
       return { success, usedWholesalePrice };
     },
     removeItem,
