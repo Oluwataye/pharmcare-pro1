@@ -340,86 +340,21 @@ const NewSale = () => {
       )}
 
       <div className="grid gap-6 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center">
-              <Shield className="mr-2 h-4 w-4" />
-              {saleType === 'wholesale' ? 'Wholesale Order' : 'Customer Info'}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="sensitive-data">
-            <div className="space-y-4">
-              {validationErrors.general && (
-                <div className="text-red-500 text-sm">{validationErrors.general}</div>
-              )}
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <Label htmlFor="customer-name">
-                    {saleType === 'wholesale' ? 'Contact Person' : 'Customer Name'}
-                  </Label>
-                  <Input
-                    id="customer-name"
-                    value={customerName}
-                    onChange={(e) => handleInputChange('customerName', e.target.value)}
-                    placeholder={saleType === 'wholesale' ? 'Contact person name' : 'Customer name'}
-                    className={validationErrors.customerName ? 'border-red-500' : ''}
-                    maxLength={100}
-                  />
-                  {validationErrors.customerName && (
-                    <p className="text-red-500 text-xs mt-1">{validationErrors.customerName}</p>
-                  )}
+        <div className="space-y-6">
+          {/* 1. Product Search (Top Priority) */}
+          <Card className="border-primary/20 shadow-md">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center justify-between">
+                <div className="flex items-center">
+                  <Package className="mr-2 h-5 w-5 text-primary" />
+                  Product Search
                 </div>
-                <div>
-                  <Label htmlFor="customer-phone">Phone Number</Label>
-                  <Input
-                    id="customer-phone"
-                    value={customerPhone}
-                    onChange={(e) => handleInputChange('customerPhone', e.target.value)}
-                    placeholder="Phone number"
-                    className={validationErrors.customerPhone ? 'border-red-500' : ''}
-                    maxLength={20}
-                  />
-                  {validationErrors.customerPhone && (
-                    <p className="text-red-500 text-xs mt-1">{validationErrors.customerPhone}</p>
-                  )}
-                </div>
-              </div>
-
-              {saleType === 'wholesale' && (
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <Label htmlFor="business-name" className="text-red-500">Business Name*</Label>
-                    <Input
-                      id="business-name"
-                      value={businessName}
-                      onChange={(e) => handleInputChange('businessName', e.target.value)}
-                      placeholder="Business name"
-                      required
-                      className={validationErrors.businessName ? 'border-red-500' : ''}
-                      maxLength={200}
-                    />
-                    {validationErrors.businessName && (
-                      <p className="text-red-500 text-xs mt-1">{validationErrors.businessName}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="business-address">Business Address</Label>
-                    <Input
-                      id="business-address"
-                      value={businessAddress}
-                      onChange={(e) => handleInputChange('businessAddress', e.target.value)}
-                      placeholder="Business address"
-                      className={validationErrors.businessAddress ? 'border-red-500' : ''}
-                      maxLength={500}
-                    />
-                    {validationErrors.businessAddress && (
-                      <p className="text-red-500 text-xs mt-1">{validationErrors.businessAddress}</p>
-                    )}
-                  </div>
-                </div>
-              )}
-
+                <Badge variant="outline" className="font-normal text-xs">
+                  F2 to Focus
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
               <ProductSearchSection
                 key={resetKey} // Force reset on sale completion
                 onAddProduct={(product, quantity, selectedUnit) => {
@@ -431,9 +366,93 @@ const NewSale = () => {
                 }}
                 isWholesale={saleType === 'wholesale'}
               />
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+
+          {/* 2. Customer Info (Secondary) */}
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center text-muted-foreground">
+                <Shield className="mr-2 h-4 w-4" />
+                {saleType === 'wholesale' ? 'Wholesale Details' : 'Customer Details (Optional)'}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="sensitive-data">
+              <div className="space-y-4">
+                {validationErrors.general && (
+                  <div className="text-red-500 text-sm">{validationErrors.general}</div>
+                )}
+
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div>
+                    <Label htmlFor="customer-name" className="text-xs">
+                      {saleType === 'wholesale' ? 'Contact Person' : 'Customer Name'}
+                    </Label>
+                    <Input
+                      id="customer-name"
+                      value={customerName}
+                      onChange={(e) => handleInputChange('customerName', e.target.value)}
+                      placeholder={saleType === 'wholesale' ? 'Contact person' : 'Walk-in Customer'}
+                      className={validationErrors.customerName ? 'border-red-500 h-8' : 'h-8'}
+                      maxLength={100}
+                    />
+                    {validationErrors.customerName && (
+                      <p className="text-red-500 text-xs mt-1">{validationErrors.customerName}</p>
+                    )}
+                  </div>
+                  <div>
+                    <Label htmlFor="customer-phone" className="text-xs">Phone Number</Label>
+                    <Input
+                      id="customer-phone"
+                      value={customerPhone}
+                      onChange={(e) => handleInputChange('customerPhone', e.target.value)}
+                      placeholder="Phone"
+                      className={validationErrors.customerPhone ? 'border-red-500 h-8' : 'h-8'}
+                      maxLength={20}
+                    />
+                    {validationErrors.customerPhone && (
+                      <p className="text-red-500 text-xs mt-1">{validationErrors.customerPhone}</p>
+                    )}
+                  </div>
+                </div>
+
+                {saleType === 'wholesale' && (
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div>
+                      <Label htmlFor="business-name" className="text-red-500 text-xs">Business Name*</Label>
+                      <Input
+                        id="business-name"
+                        value={businessName}
+                        onChange={(e) => handleInputChange('businessName', e.target.value)}
+                        placeholder="Business name"
+                        required
+                        className={validationErrors.businessName ? 'border-red-500 h-8' : 'h-8'}
+                        maxLength={200}
+                      />
+                      {validationErrors.businessName && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.businessName}</p>
+                      )}
+                    </div>
+                    <div>
+                      <Label htmlFor="business-address" className="text-xs">Business Address</Label>
+                      <Input
+                        id="business-address"
+                        value={businessAddress}
+                        onChange={(e) => handleInputChange('businessAddress', e.target.value)}
+                        placeholder="Address"
+                        className={validationErrors.businessAddress ? 'border-red-500 h-8' : 'h-8'}
+                        maxLength={500}
+                      />
+                      {validationErrors.businessAddress && (
+                        <p className="text-red-500 text-xs mt-1">{validationErrors.businessAddress}</p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
 
         <Card>
           <CardHeader>
