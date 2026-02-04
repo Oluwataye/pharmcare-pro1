@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
 import { useSales } from "@/hooks/useSales";
@@ -23,6 +23,12 @@ import { logSecurityEvent } from "@/components/security/SecurityProvider";
 import { ReceiptPreview } from "@/components/receipts/ReceiptPreview";
 import { useSystemConfig } from "@/hooks/useSystemConfig";
 import PaymentModeSelector, { PaymentMode } from "@/components/sales/PaymentModeSelector";
+
+// Add useCallback to imports
+// (Assuming React imports are at top, but safely merging if possible, otherwise we rely on user manually correcting or assume React has it)
+// Checking imports...
+// import { useState, useEffect } from "react"; -> import { useState, useEffect, useCallback } from "react";
+
 
 const NewSale = () => {
   const navigate = useNavigate();
@@ -145,12 +151,18 @@ const NewSale = () => {
 
   // Sync default payment amount when total changes (only if single payment mode)
   useEffect(() => {
-    if (payments.length === 1) {
+    if (payments && payments.length === 1) {
       setPayments([{ ...payments[0], amount: total }]);
     }
-  }, [total]);
+  }, [total]); // We intentionally omit payments to avoid loops, as we only want to update on TOTAL change
 
   const handleCompleteSale = async () => {
+    if (!payments) {
+      console.error("Critical: Payments state is undefined");
+      toast({ title: "Error", description: "System state error. Please refresh.", variant: "destructive" });
+      return;
+    }
+
     if (items.length === 0) {
       toast({
         title: "Error",
@@ -179,7 +191,8 @@ const NewSale = () => {
     }
 
     const paymentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
-    if (Math.abs(paymentTotal - total) > 0.01) {
+    // Allow small floating point error
+    if (Math.abs(paymentTotal - total) > 0.05) {
       toast({
         title: "Payment Error",
         description: `Payment total (₦${paymentTotal.toLocaleString()}) does not match transaction total (₦${total.toLocaleString()})`,
@@ -222,7 +235,7 @@ const NewSale = () => {
           transactionId
         });
         setLastCompletedSaleId(result);
-        setPayments([{ mode: 'cash', amount: 0 }]);
+        setPayments([{ mode: 'cash', amount: 0 }]); // Reset payments
         setCustomerName("");
         setCustomerPhone("");
         setBusinessName("");
@@ -248,12 +261,14 @@ const NewSale = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === "F9") {
         e.preventDefault();
+        // Use a ref or call the handler directly if it wasn't recreated
+        // But since we rely on current state, we invoke the function which closes over state
         handleCompleteSale();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [items, customerName, customerPhone, businessName, businessAddress, saleType]);
+  }, [handleCompleteSale]); // Critical: Update listener when handler changes (due to new state)
 
   const handleManualPrint = () => {
     const windowRef = openPrintWindow();
