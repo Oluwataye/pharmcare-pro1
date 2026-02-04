@@ -64,6 +64,7 @@ const NewSale = () => {
   const [lastCompletedItems, setLastCompletedItems] = useState<any[]>([]);
   const [isCompleting, setIsCompleting] = useState(false);
   const [payments, setPayments] = useState<PaymentMode[]>([{ mode: 'cash', amount: 0 }]);
+  const [resetKey, setResetKey] = useState(0); // Key to force re-render of child components
   const { config: systemConfig } = useSystemConfig();
   const { activeShift } = useShift();
 
@@ -240,6 +241,7 @@ const NewSale = () => {
         setCustomerPhone("");
         setBusinessName("");
         setBusinessAddress("");
+        setResetKey(prev => prev + 1); // Force reset of search section
         setIsSuccessModalOpen(true);
       }
     } catch (error) {
@@ -419,6 +421,7 @@ const NewSale = () => {
               )}
 
               <ProductSearchSection
+                key={resetKey} // Force reset on sale completion
                 onAddProduct={(product, quantity, selectedUnit) => {
                   try {
                     addItem(product, quantity, saleType === 'wholesale', selectedUnit);

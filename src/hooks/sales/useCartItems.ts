@@ -164,6 +164,7 @@ export const useCartItems = () => {
   };
 
   const clearItems = () => {
+    console.log('useCartItems: clearing items');
     setItems([]);
     secureStorage.removeItem(CART_STORAGE_KEY); // Explicit Removal
   };

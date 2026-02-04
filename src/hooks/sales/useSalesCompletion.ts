@@ -137,6 +137,7 @@ export const useSalesCompletion = (
           });
 
           // Cleanup
+          console.log('useSalesCompletion: Sale success, clearing items...');
           clearItems();
           clearDiscount();
           resetSaleType();
@@ -144,6 +145,7 @@ export const useSalesCompletion = (
           secureStorage.removeItem('CURRENT_SALE_DISCOUNT');
           secureStorage.removeItem('CURRENT_SALE_MANUAL_DISCOUNT');
           secureStorage.removeItem('CURRENT_SALE_TYPE');
+          console.log('useSalesCompletion: Items cleared');
 
           return data.saleId || true;
 
