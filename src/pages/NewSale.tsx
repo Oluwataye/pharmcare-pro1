@@ -476,7 +476,7 @@ const NewSale = () => {
                     onClick={handleManualPrint}
                   >
                     <Printer className="mr-2 h-4 w-4" />
-                    Print Receipt
+                    Print Draft / Quote
                   </Button>
                 </div>
               </>
