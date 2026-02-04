@@ -75,8 +75,8 @@ const CurrentSaleTable = ({
                 </Button>
               </div>
             </TableCell>
-            <TableCell className="text-right">₦{item.price}</TableCell>
-            <TableCell className="text-right">₦{item.total}</TableCell>
+            <TableCell className="text-right">₦{item.price.toFixed(2)}</TableCell>
+            <TableCell className="text-right">₦{item.total.toFixed(2)}</TableCell>
             <TableCell>
               <div className="flex items-center space-x-1">
                 {onTogglePriceType && (

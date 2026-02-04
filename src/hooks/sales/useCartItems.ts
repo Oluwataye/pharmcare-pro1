@@ -35,10 +35,12 @@ export const useCartItems = () => {
     // Check if wholesale conditions are met
     let useWholesalePrice = isWholesale && product.wholesalePrice !== undefined;
 
-    // Auto-switch to wholesale price if quantity meets minimum threshold
-    if (product.minWholesaleQuantity && quantity >= product.minWholesaleQuantity && product.wholesalePrice) {
-      useWholesalePrice = true;
-    }
+    // Auto-switch to wholesale price logic REMOVED.
+    // We only use wholesale price if explicitly requested via global SaleType or toggle.
+    // Previous logic:
+    // if (product.minWholesaleQuantity && quantity >= product.minWholesaleQuantity && product.wholesalePrice) {
+    //   useWholesalePrice = true;
+    // }
 
     // Handle Multi-Unit logic
     let price = useWholesalePrice ? product.wholesalePrice! : product.price;
