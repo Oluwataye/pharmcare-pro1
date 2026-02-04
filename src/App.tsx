@@ -58,7 +58,7 @@ interface AppProps {
 }
 
 const App = ({ queryClient, persister }: AppProps) => {
-  console.log("[App] Pulse: Component rendering... [VERSION: 2026-02-04-PERF-FIX]");
+  console.log("[App] Pulse: Component rendering... [VERSION: 2026-02-04-UX-FIX]");
   // Log initial mount for debugging
   // logSecurityEvent('APP_MOUNT', {
   return (
