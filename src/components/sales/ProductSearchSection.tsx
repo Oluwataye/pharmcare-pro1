@@ -32,7 +32,8 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
       // Products are already loaded in context, just map them if needed or use directly
       // efficient mapping
       const mappedProducts: Product[] = inventory
-        .filter((item: any) => item.quantity > 0 && new Date(item.expiry_date) > new Date())
+        // Fix: Use camelCase 'expiryDate' as defined in InventoryItem (Context), not snake_case 'expiry_date' (DB)
+        .filter((item: any) => item.quantity > 0 && (item.expiryDate ? new Date(item.expiryDate) > new Date() : true))
         .map((item: any) => ({
           id: item.id,
           name: item.name,
@@ -42,7 +43,7 @@ const ProductSearchSection = ({ onAddProduct, isWholesale = false }: ProductSear
           stock: item.quantity,
           unit: item.unit,
           multi_unit_config: (item.multi_unit_config as any[]) || [],
-          costPrice: Number(item.cost_price) || 0
+          costPrice: Number(item.costPrice) || 0 // Fix: Access costPrice from context item
         }));
       setProducts(mappedProducts);
     }
