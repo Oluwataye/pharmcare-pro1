@@ -27,7 +27,7 @@ interface PaymentModeSelectorProps {
 export const PAYMENT_MODES: { value: PaymentMode['mode']; label: string; icon: any }[] = [
     { value: 'cash', label: 'Cash', icon: Banknote },
     { value: 'pos', label: 'POS (Card)', icon: CreditCard },
-    { value: 'transfer', label: 'Bank Transfer', icon: Wallet },
+    { value: 'transfer', label: 'Transfer (Credit/Pay Later)', icon: Wallet },
 ];
 
 const PaymentModeSelector: React.FC<PaymentModeSelectorProps> = ({
