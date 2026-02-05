@@ -129,7 +129,7 @@ export const DispenserDashboardContent = () => {
   );
 
   const handleNewSale = () => {
-    setShowNewSaleForm(true);
+    navigate('/sales/new');
   };
 
   const handleSaleComplete = () => {
@@ -196,48 +196,35 @@ export const DispenserDashboardContent = () => {
         handleNewSale={handleNewSale}
       />
 
-      {showNewSaleForm ? (
-        <Card className="border-2 border-primary/10">
-          <CardHeader className="p-4 md:p-6">
-            <CardTitle className="text-xl md:text-2xl">New Sale</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 md:p-6">
-            <NewSaleForm onComplete={handleSaleComplete} onCancel={() => setShowNewSaleForm(false)} />
-          </CardContent>
-        </Card>
-      ) : (
-        <>
-          <DispenserStatsCards
-            statsCards={statsCards}
-            handleCardClick={handleCardClick}
-          />
+      <DispenserStatsCards
+        statsCards={statsCards}
+        handleCardClick={handleCardClick}
+      />
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <EnhancedTransactionsCard
-              transactions={filteredTransactions.slice(0, 5).map(t => ({
-                id: t.id,
-                product: `${t.items} items`,
-                customer: t.customer,
-                amount: t.amount,
-                date: `Today, ${t.time}`
-              }))}
-              onItemClick={handleItemClick}
-              onViewAllClick={handleCardClick}
-            />
+      <div className="grid gap-4 md:grid-cols-2">
+        <EnhancedTransactionsCard
+          transactions={filteredTransactions.slice(0, 5).map(t => ({
+            id: t.id,
+            product: `${t.items} items`,
+            customer: t.customer,
+            amount: t.amount,
+            date: `Today, ${t.time}`
+          }))}
+          onItemClick={handleItemClick}
+          onViewAllClick={handleCardClick}
+        />
 
-            <EnhancedLowStockCard
-              items={lowStockItems.slice(0, 5)}
-              onItemClick={handleItemClick}
-              onViewAllClick={handleCardClick}
-            />
-          </div>
+        <EnhancedLowStockCard
+          items={lowStockItems.slice(0, 5)}
+          onItemClick={handleItemClick}
+          onViewAllClick={handleCardClick}
+        />
+      </div>
 
-          <TransactionsTable
-            filteredTransactions={filteredTransactions}
-            handleItemClick={handleItemClick}
-          />
-        </>
-      )}
+      <TransactionsTable
+        filteredTransactions={filteredTransactions}
+        handleItemClick={handleItemClick}
+      />
     </div>
   );
 };
