@@ -170,7 +170,70 @@ serve(async (req) => {
       itemCount: saleData.items.length
     })
 
-    // 2. Process Sale via Atomic RPC
+    // 2. PAYMENT & CREDIT LOGIC
+    let paymentStatus = 'paid';
+    let amountPaid = saleData.total;
+    let amountOutstanding = 0;
+    let customerId = null;
+
+    if (saleData.payments && saleData.payments.length > 0) {
+      const totalPaid = saleData.payments
+        .filter(p => p.mode !== 'transfer')
+        .reduce((sum, p) => sum + p.amount, 0);
+
+      const totalCredit = saleData.payments
+        .filter(p => p.mode === 'transfer')
+        .reduce((sum, p) => sum + p.amount, 0);
+
+      amountPaid = totalPaid;
+      amountOutstanding = totalCredit;
+
+      if (amountOutstanding > 0) {
+        if (amountPaid === 0) {
+          paymentStatus = 'pending';
+        } else {
+          paymentStatus = 'partial';
+        }
+
+        // 2a. Resolve Customer for Credit
+        if (!saleData.customerName || !saleData.customerPhone) {
+          throw new Error('Customer Name and Phone are required for credit sales');
+        }
+
+        // Try to find existing customer by phone
+        const { data: existingCustomer } = await supabase
+          .from('customers')
+          .select('id')
+          .eq('phone', saleData.customerPhone)
+          .single();
+
+        if (existingCustomer) {
+          customerId = existingCustomer.id;
+        } else {
+          // Create new customer
+          const { data: newCustomer, error: createError } = await supabase
+            .from('customers')
+            .insert({
+              name: saleData.customerName,
+              phone: saleData.customerPhone,
+              address: saleData.businessAddress || saleData.customerName + ' Address', // Fallback
+              email: null // Optional
+            })
+            .select('id')
+            .single();
+
+          if (createError) {
+            console.error('Failed to create customer:', createError);
+            throw new Error('Failed to register customer for credit sale');
+          }
+          customerId = newCustomer.id;
+        }
+      }
+    }
+
+    console.log('Payment Analysis:', { paymentStatus, amountPaid, amountOutstanding, customerId });
+
+    // 3. Process Sale via Atomic RPC
     console.log('Calling process_sale_transaction RPC for:', saleData.transactionId)
 
     // Transform items to match SQL expected recordset structure
@@ -203,7 +266,12 @@ serve(async (req) => {
         p_shift_name: sanitizeString(saleData.shift_name, 100),
         p_shift_id: saleData.shift_id,
         p_staff_role: sanitizeString(saleData.staff_role, 50),
-        p_payments: saleData.payments || [{ mode: 'cash', amount: saleData.total }]
+        p_payments: saleData.payments || [{ mode: 'cash', amount: saleData.total }],
+        // New Credit Specs
+        p_payment_status: paymentStatus,
+        p_amount_paid: amountPaid,
+        p_amount_outstanding: amountOutstanding,
+        p_customer_id: customerId
       })
 
     if (rpcError) {
@@ -213,7 +281,50 @@ serve(async (req) => {
 
     console.log('Sale completed successfully via RPC:', result.sale_id);
 
-    // 2.5 SAVE RECEIPT DATA
+    // 4. Update Ledger if Credit Sale
+    if (amountOutstanding > 0 && customerId) {
+      try {
+        // Atomic update of customer balance
+        // We can't easily do "returning" in one step with JS client easily without RPC, 
+        // keeping it simple: Fetch, Calc, Update+Insert.
+        // Ideally, 'update_customer_balance' trigger logic handles the customer update based on ledger insert, 
+        // BUT ledger insert needs 'balance_after'. 
+        // LET'S USE A SMALL RPC or direct SQL if possible? 
+        // Actually, I defined a trigger 'update_customer_balance' in migration that updates customer FROM ledger.
+        // BUT ledger needs 'balance_after'. Circular dependency if I rely on trigger to calc balance.
+        // My trigger implementation was: updates customer SET balance = NEW.balance_after. 
+        // So I MUST calculate balance_after here.
+
+        const { data: custData } = await supabase
+          .from('customers')
+          .select('credit_balance')
+          .eq('id', customerId)
+          .single();
+
+        const currentBalance = custData?.credit_balance || 0;
+        const newBalance = currentBalance + amountOutstanding;
+
+        const { error: ledgerError } = await supabase
+          .from('customer_transactions')
+          .insert({
+            customer_id: customerId,
+            type: 'DEBIT',
+            amount: amountOutstanding,
+            reference_id: result.sale_id,
+            description: `Credit Sale ${result.transaction_id}`,
+            balance_before: currentBalance,
+            balance_after: newBalance,
+            created_by: user.id
+          });
+
+        if (ledgerError) console.error('Ledger insert failed:', ledgerError);
+        // Trigger will update customer table
+      } catch (ledgerErr) {
+        console.error('Ledger processing failed:', ledgerErr);
+      }
+    }
+
+    // 5. SAVE RECEIPT DATA
     try {
       const { error: receiptError } = await supabase
         .from('receipts')
@@ -222,21 +333,22 @@ serve(async (req) => {
           receipt_data: {
             ...saleData,
             saleId: result.sale_id,
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
+            paymentStatus,
+            amountPaid,
+            amountOutstanding,
+            customerId
           }
         });
 
       if (receiptError) {
         console.error('Error saving receipt:', receiptError);
-        // We don't throw here to avoid failing a successful sale just because receipt storage failed
-      } else {
-        console.log('Receipt record created for sale:', result.sale_id);
       }
     } catch (saveError) {
       console.error('Exception saving receipt:', saveError);
     }
 
-    // 3. LOW STOCK CHECK & ALERTING (Asynchronous/Non-blocking)
+    // 6. LOW STOCK CHECK & ALERTING (Asynchronous/Non-blocking)
     try {
       const { data: settings } = await supabase
         .from('store_settings')

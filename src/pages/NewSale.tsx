@@ -192,6 +192,27 @@ const NewSale = () => {
       return;
     }
 
+    // Check for Credit Sales (Transfer)
+    const hasCredit = payments.some(p => p.mode === 'transfer');
+    if (hasCredit) {
+      if (!customerName || customerName.trim() === '' || customerName === 'Walk-in Customer') {
+        toast({
+          title: "Credit Sale Requirement",
+          description: "Credit/Transfer sales require a valid Customer Name.",
+          variant: "destructive",
+        });
+        return;
+      }
+      if (!customerPhone || customerPhone.trim() === '') {
+        toast({
+          title: "Credit Sale Requirement",
+          description: "Credit/Transfer sales require a Customer Phone Number.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     const paymentTotal = payments.reduce((sum, p) => sum + p.amount, 0);
     // Allow small floating point error
     if (Math.abs(paymentTotal - total) > 0.05) {
