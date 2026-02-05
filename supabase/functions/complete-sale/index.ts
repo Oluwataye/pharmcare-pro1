@@ -74,13 +74,16 @@ serve(async (req) => {
   try {
     const authHeader = req.headers.get('Authorization')
     if (!authHeader) {
+      console.error('No Authorization header provided')
       return new Response(
-        JSON.stringify({ error: 'Missing Authorization Header' }),
+        JSON.stringify({ error: 'Missing Authorization Header', diagnostic: 'Check frontend invoke call' }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
       )
     }
 
-    const token = authHeader.replace('Bearer ', '')
+    // Robust token extraction (case-insensitive, handles multiple spaces)
+    const token = authHeader.replace(/^[Bb]earer\s+/, '').trim()
+    console.log(`Verifying token (starts with: ${token.substring(0, 10)}...)`)
 
     // Use Service Role for Admin Access (Bypassing RLS for system checks)
     const supabase = createClient(
@@ -100,10 +103,16 @@ serve(async (req) => {
     if (authError || !user) {
       console.error('Authentication error:', authError)
       return new Response(
-        JSON.stringify({ error: 'Unauthorized: Invalid Token' }),
+        JSON.stringify({
+          error: 'Unauthorized: Invalid Token',
+          diagnostic: authError?.message || 'User not found',
+          authError: authError
+        }),
         { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
       )
     }
+
+    console.log(`User authenticated: ${user.id} (${user.email})`)
 
     const saleData: CompleteSaleRequest = await req.json()
 
