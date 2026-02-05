@@ -197,7 +197,14 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
               if (attempts > 0) await new Promise(r => setTimeout(r, 1000 * attempts)); // Backoff
 
               if (op.resource === 'sales' && op.type === 'create') {
-                const { error } = await supabase.functions.invoke('complete-sale', { body: op.data });
+                // Ensure we have the latest session for the edge function
+                const { data: { session: currentSession } } = await supabase.auth.getSession();
+                const { error } = await supabase.functions.invoke('complete-sale', {
+                  body: op.data,
+                  headers: {
+                    Authorization: `Bearer ${currentSession?.access_token}`
+                  }
+                });
                 if (error) throw error;
               } else if (op.resource === 'inventory') {
                 const inventoryData = op.data as any;
