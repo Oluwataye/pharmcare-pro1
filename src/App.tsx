@@ -165,7 +165,14 @@ const App = ({ queryClient, persister }: AppProps) => {
                             </ProtectedRoute>
                           }
                         />
-                        <Route path="/training" element={<Suspense fallback={<PageLoader />}><Training /></Suspense>} />
+                        <Route
+                          path="/training"
+                          element={
+                            <ProtectedRoute requiredRole="SUPER_ADMIN">
+                              <Suspense fallback={<PageLoader />}><Training /></Suspense>
+                            </ProtectedRoute>
+                          }
+                        />
                         <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
                       </Route>
                     </Routes>

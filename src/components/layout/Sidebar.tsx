@@ -41,6 +41,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     canAccessShifts,
     canAccessSuppliers,
     canAccessExpenses,
+    canAccessTraining,
   } = usePermissions();
   const { settings: storeSettings } = useStoreSettings();
   const [storeLogo, setStoreLogo] = useState<string>('');
@@ -136,7 +137,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       icon: GraduationCap,
       label: "Training Guide",
       path: "/training",
-      condition: true
+      condition: canAccessTraining()
     },
   ];
 

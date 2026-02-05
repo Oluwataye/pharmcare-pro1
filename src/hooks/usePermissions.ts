@@ -97,6 +97,11 @@ export function usePermissions() {
     return hasPermission({ action: 'create', resource: 'expenses' });
   }, [hasPermission]);
 
+  const canAccessTraining = useCallback((): boolean => {
+    // Only SUPER_ADMIN can access training
+    return user?.role === 'SUPER_ADMIN';
+  }, [user]);
+
   return {
     hasPermission,
     canAccessInventory,
@@ -116,5 +121,6 @@ export function usePermissions() {
     canAccessSuppliers,
     canAccessExpenses,
     canManageExpenses,
+    canAccessTraining,
   };
 }
