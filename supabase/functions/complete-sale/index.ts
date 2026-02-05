@@ -98,6 +98,28 @@ serve(async (req) => {
 
     const saleData: CompleteSaleRequest = await req.json()
 
+    // 0. ENHANCED IDENTITY CHECK
+    // If dispenserName is missing or 'Unknown', try to resolve it from profiles
+    if (!saleData.dispenserName || saleData.dispenserName === 'Unknown' || saleData.dispenserName === 'Staff') {
+      try {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profile?.name) {
+          console.log(`Resolved missing dispenser name for ${user.id}: ${profile.name}`);
+          saleData.dispenserName = profile.name;
+        } else {
+          // Fallback to email username if profile fetch fails
+          saleData.dispenserName = user.email?.split('@')[0] || 'Staff';
+        }
+      } catch (profileError) {
+        console.warn('Failed to resolve profile name:', profileError);
+      }
+    }
+
     // 1. Validate Request Structure
     if (!Array.isArray(saleData.items) || saleData.items.length === 0) {
       throw new Error('Invalid sale items: must be a non-empty array')
