@@ -44,6 +44,7 @@ const ShiftManagement = lazy(() => import("./pages/ShiftManagement"));
 const Expenses = lazy(() => import("./pages/Expenses"));
 const CashReconciliation = lazy(() => import("./pages/CashReconciliation"));
 const Training = lazy(() => import("./pages/Training"));
+const CreditManagement = lazy(() => import("./pages/CreditManagement"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -162,6 +163,14 @@ const App = ({ queryClient, persister }: AppProps) => {
                               requiredPermission={{ action: "read", resource: "expenses" }}
                             >
                               <Suspense fallback={<PageLoader />}><Expenses /></Suspense>
+                            </ProtectedRoute>
+                          }
+                        />
+                        <Route
+                          path="/credit"
+                          element={
+                            <ProtectedRoute requiredRole="SUPER_ADMIN">
+                              <Suspense fallback={<PageLoader />}><CreditManagement /></Suspense>
                             </ProtectedRoute>
                           }
                         />

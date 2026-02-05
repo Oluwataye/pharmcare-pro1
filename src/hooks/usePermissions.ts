@@ -102,6 +102,11 @@ export function usePermissions() {
     return user?.role === 'SUPER_ADMIN';
   }, [user]);
 
+  const canAccessCredit = useCallback((): boolean => {
+    // Only SUPER_ADMIN can access credit management
+    return user?.role === 'SUPER_ADMIN';
+  }, [user]);
+
   return {
     hasPermission,
     canAccessInventory,
@@ -122,5 +127,6 @@ export function usePermissions() {
     canAccessExpenses,
     canManageExpenses,
     canAccessTraining,
+    canAccessCredit,
   };
 }

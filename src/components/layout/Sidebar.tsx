@@ -22,7 +22,8 @@ import {
   Clock,
   Wallet,
   CheckCircle2,
-  GraduationCap
+  GraduationCap,
+  Banknote
 } from "lucide-react";
 import { NairaSign } from "@/components/icons/NairaSign";
 
@@ -42,6 +43,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     canAccessSuppliers,
     canAccessExpenses,
     canAccessTraining,
+    canAccessCredit,
   } = usePermissions();
   const { settings: storeSettings } = useStoreSettings();
   const [storeLogo, setStoreLogo] = useState<string>('');
@@ -126,6 +128,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       label: "Expenses",
       path: "/expenses",
       condition: canAccessExpenses()
+    },
+    {
+      icon: Banknote,
+      label: "Credit Manager",
+      path: "/credit",
+      condition: canAccessCredit()
     },
     {
       icon: Settings,
