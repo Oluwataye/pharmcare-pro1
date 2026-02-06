@@ -228,10 +228,13 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
                 const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
                 const { error } = await supabase.functions.invoke('complete-sale', {
-                  body: op.data,
+                  body: {
+                    ...op.data,
+                    _tunneled_token: token // Pass in body to avoid CORS blocks
+                  },
                   headers: {
                     Authorization: `Bearer ${anonKey}`,
-                    'x-user-token': token
+                    // 'x-user-token': token // REMOVED: Moving to body to fix CORS
                   }
                 });
 

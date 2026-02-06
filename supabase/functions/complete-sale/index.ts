@@ -35,6 +35,7 @@ interface CompleteSaleRequest {
   shift_id?: string
   staff_role?: string
   payments?: { mode: string, amount: number }[]
+  _tunneled_token?: string // NEW: Pass token in body to avoid CORS header blocks
 }
 
 // Input validation and sanitization utilities
@@ -86,8 +87,24 @@ serve(async (req) => {
       )
     }
 
-    // Auth validation: Check for custom header first (to bypass Gateway 401s), then standard Authorization
-    let token = req.headers.get('x-user-token')
+    // Auth validation: 
+    // 1. Try body first (Tunneling v2 - avoids CORS issues)
+    // 2. Try header second (Legacy/Standard)
+
+    let token = req.headers.get('x-user-token') // Legacy header
+
+    // We need to parse body early to check for tunneled token
+    const rawBody = await req.text()
+    let saleData: CompleteSaleRequest
+    try {
+      saleData = JSON.parse(rawBody)
+    } catch (e) {
+      return new Response(JSON.stringify({ error: 'Invalid JSON body' }), { status: 400, headers: corsHeaders })
+    }
+
+    if (saleData._tunneled_token) {
+      token = saleData._tunneled_token
+    }
 
     if (!token) {
       const authHeader = req.headers.get('Authorization')
@@ -124,9 +141,9 @@ serve(async (req) => {
       )
     }
 
-    console.log(`User authenticated: ${user.id} (${user.email})`)
+    // const saleData: CompleteSaleRequest = await req.json() // Already parsed above
 
-    const saleData: CompleteSaleRequest = await req.json()
+    console.log(`User authenticated: ${user.id} (${user.email})`)
 
     // 0. ENHANCED IDENTITY CHECK
     // If dispenserName is missing or 'Unknown', try to resolve it from profiles
