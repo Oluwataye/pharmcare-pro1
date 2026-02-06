@@ -4,7 +4,7 @@ project_id = "ucbmifoxfozwtrelceuv"
 verify_jwt = true
 
 [functions.complete-sale]
-verify_jwt = true
+verify_jwt = false
 
 [functions.create-user]
 verify_jwt = true
