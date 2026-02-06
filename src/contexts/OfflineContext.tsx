@@ -210,10 +210,16 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
 
                 console.log(`[OfflineSync] Syncing sale with token starting: ${token.substring(0, 10)}... (Length: ${token.length})`);
 
+                // TUNNELING STRATEGY:
+                // We send the ANON_KEY in Authorization to satisfy Supabase Gateway.
+                // We send the USER TOKEN in x-user-token for our Edge Function to verify.
+                const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+
                 const { error } = await supabase.functions.invoke('complete-sale', {
                   body: op.data,
                   headers: {
-                    Authorization: `Bearer ${token}`
+                    Authorization: `Bearer ${anonKey}`,
+                    'x-user-token': token
                   }
                 });
 

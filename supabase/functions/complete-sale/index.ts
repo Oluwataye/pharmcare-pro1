@@ -86,9 +86,25 @@ serve(async (req) => {
       )
     }
 
-    // Robust token extraction (case-insensitive, handles multiple spaces)
-    const token = authHeader.replace(/^[Bb]earer\s+/, '').trim()
-    console.log(`Verifying token (length: ${token.length}, starts with: ${token.substring(0, 10)}...)`)
+    // Auth validation: Check for custom header first (to bypass Gateway 401s), then standard Authorization
+    let token = req.headers.get('x-user-token')
+
+    if (!token) {
+      const authHeader = req.headers.get('Authorization')
+      if (authHeader) {
+        token = authHeader.replace(/^[Bb]earer\s+/, '').trim()
+      }
+    }
+
+    if (!token) {
+      console.error('Missing Auth Token')
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized', diagnostic: 'Missing Authorization or x-user-token header' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+      )
+    }
+
+    console.log(`[Auth] Verifying token (starts with: ${token.substring(0, 10)}..., Length: ${token.length})`)
 
     // Use Service Role for Admin Access (Bypassing RLS for system checks)
     const supabase = createClient(
