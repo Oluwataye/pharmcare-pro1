@@ -201,19 +201,27 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
                 // Ensure we have the latest session for the edge function
                 const { data: { session: currentSession } } = await supabase.auth.getSession();
 
-                if (!currentSession?.access_token) {
+                const token = currentSession?.access_token;
+                if (!token) {
                   console.warn('[OfflineSync] No active session token found. Aborting sync for sales/create.');
                   // Abort this specific operation but don't mark as failed in a way that drops it 
                   throw new Error('No active session (ABORT_SYNC)');
                 }
 
+                console.log(`[OfflineSync] Syncing sale with token starting: ${token.substring(0, 10)}... (Length: ${token.length})`);
+
                 const { error } = await supabase.functions.invoke('complete-sale', {
                   body: op.data,
                   headers: {
-                    Authorization: `Bearer ${currentSession.access_token}`
+                    Authorization: `Bearer ${token}`
                   }
                 });
-                if (error) throw error;
+
+                if (error) {
+                  console.error('[OfflineSync] Invoke error:', error);
+                  // If 401, force refresh? No, just log for now to confirm it's the token.
+                  throw error;
+                }
               } else if (op.resource === 'inventory') {
                 const inventoryData = op.data as any;
                 if (op.type === 'create') {
