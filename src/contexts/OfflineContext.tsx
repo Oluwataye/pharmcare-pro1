@@ -199,10 +199,17 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
               if (op.resource === 'sales' && op.type === 'create') {
                 // Ensure we have the latest session for the edge function
                 const { data: { session: currentSession } } = await supabase.auth.getSession();
+
+                if (!currentSession?.access_token) {
+                  console.warn('[OfflineSync] No active session token found. Aborting sync for sales/create.');
+                  // Abort this specific operation but don't mark as failed in a way that drops it 
+                  throw new Error('No active session (ABORT_SYNC)');
+                }
+
                 const { error } = await supabase.functions.invoke('complete-sale', {
                   body: op.data,
                   headers: {
-                    Authorization: `Bearer ${currentSession?.access_token}`
+                    Authorization: `Bearer ${currentSession.access_token}`
                   }
                 });
                 if (error) throw error;
