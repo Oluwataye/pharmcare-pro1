@@ -163,6 +163,11 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
       const operationsToProcess = [...pendingOperations];
       const successfulIds: string[] = [];
       const failedIds: string[] = [];
+      const droppedIds: string[] = []; // Items to permanently remove (Quarantine)
+      const MAX_SYNC_ATTEMPTS = 5;
+
+      // Load failure counts
+      const failureCounts = JSON.parse(localStorage.getItem('SYNC_FAILURE_COUNTS') || '{}');
 
       for (const op of operationsToProcess) {
         try {
@@ -294,18 +299,40 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
 
           if (success) {
             successfulIds.push(op.id);
+            // Clear failure count on success
+            delete failureCounts[op.id];
           } else {
-            // Enhanced error logging for debugging 401/418
-            console.error(`[OfflineSync] Critical failure for ${op.resource} ${op.id}:`, lastError);
-            if ((lastError as any)?.context) {
-              try {
-                const errorContext = await (lastError as any).context.json();
-                console.error(`[OfflineSync] Error Context:`, errorContext);
-              } catch (e) {
-                console.error(`[OfflineSync] Could not parse error context`);
+            // Increment failure count
+            const currentFailures = (failureCounts[op.id] || 0) + 1;
+            failureCounts[op.id] = currentFailures;
+
+            if (currentFailures >= MAX_SYNC_ATTEMPTS) {
+              console.error(`[OfflineSync] QUARANTINE: Operation ${op.id} failed ${currentFailures} times. Dropping.`);
+              droppedIds.push(op.id);
+              toast({
+                title: "Sync Failed",
+                description: `Item removed from queue after too many failures (${op.resource}).`,
+                variant: "destructive"
+              });
+            } else {
+              // Enhanced error logging for debugging 401/418
+              console.error(`[OfflineSync] Critical failure for ${op.resource} ${op.id}:`, lastError);
+              if ((lastError as any)?.context) {
+                try {
+                  const errorContext = await (lastError as any).context.json();
+                  console.error(`[OfflineSync] Error Context:`, errorContext);
+                } catch (e) {
+                  console.error(`[OfflineSync] Could not parse error context`);
+                }
               }
+              failedIds.push(op.id);
+              // Throw to trigger outer catch if needed, OR just continue?
+              // The outer catch adds to failedIds too. Let's just NOT throw if we handled it here?
+              // Actually, the original code had `throw`. 
+              // But the loop is `while (attempts < 3`. This block is AFTER the retry loop.
+              // If we are here, we FAILED 3 times.
+              // So now we increment the GLOBAL failure count.
             }
-            throw lastError || new Error('Max retries exceeded');
           }
         } catch (opError) {
           console.error(`[OfflineSync] Failed to process ${op.resource} ${op.id} after retries:`, opError);
@@ -313,8 +340,11 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
         }
       }
 
-      // Update the queue: keep only those that failed or were added during this process
-      setPendingOperations(prev => prev.filter(op => !successfulIds.includes(op.id)));
+      // Save updated failure counts
+      localStorage.setItem('SYNC_FAILURE_COUNTS', JSON.stringify(failureCounts));
+
+      // Update the queue: keep only those that failed (BUT NOT DROPPED) or were added during this process
+      setPendingOperations(prev => prev.filter(op => !successfulIds.includes(op.id) && !droppedIds.includes(op.id)));
 
       if (failedIds.length === 0) {
         toast({
