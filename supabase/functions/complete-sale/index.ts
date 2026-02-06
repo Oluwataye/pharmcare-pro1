@@ -72,23 +72,28 @@ serve(async (req) => {
   }
 
   try {
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      console.error('No Authorization header provided')
+    const SUPABASE_URL = Deno.env.get('SUPABASE_URL')
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SERVICE_ROLE_KEY')
+
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
+      console.error('Missing environment variables:', {
+        url: !!SUPABASE_URL,
+        key: !!SUPABASE_SERVICE_ROLE_KEY
+      })
       return new Response(
-        JSON.stringify({ error: 'Missing Authorization Header', diagnostic: 'Check frontend invoke call' }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        JSON.stringify({ error: 'System Configuration Error', diagnostic: 'Missing ENV vars on Edge Function' }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 500 }
       )
     }
 
     // Robust token extraction (case-insensitive, handles multiple spaces)
     const token = authHeader.replace(/^[Bb]earer\s+/, '').trim()
-    console.log(`Verifying token (starts with: ${token.substring(0, 10)}...)`)
+    console.log(`Verifying token (length: ${token.length}, starts with: ${token.substring(0, 10)}...)`)
 
     // Use Service Role for Admin Access (Bypassing RLS for system checks)
     const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      SUPABASE_URL,
+      SUPABASE_SERVICE_ROLE_KEY,
       {
         auth: {
           autoRefreshToken: false,
@@ -106,9 +111,11 @@ serve(async (req) => {
         JSON.stringify({
           error: 'Unauthorized: Invalid Token',
           diagnostic: authError?.message || 'User not found',
-          authError: authError
+          authError: authError,
+          statusNote: 'If you see 418, the failure is inside the function logic. If you see 401, it is at the gateway.'
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 401 }
+        // USE 418 TO DISTINGUISH FROM GATEWAY 401
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 418 }
       )
     }
 

@@ -242,6 +242,16 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
           if (success) {
             successfulIds.push(op.id);
           } else {
+            // Enhanced error logging for debugging 401/418
+            console.error(`[OfflineSync] Critical failure for ${op.resource} ${op.id}:`, lastError);
+            if ((lastError as any)?.context) {
+              try {
+                const errorContext = await (lastError as any).context.json();
+                console.error(`[OfflineSync] Error Context:`, errorContext);
+              } catch (e) {
+                console.error(`[OfflineSync] Could not parse error context`);
+              }
+            }
             throw lastError || new Error('Max retries exceeded');
           }
         } catch (opError) {
