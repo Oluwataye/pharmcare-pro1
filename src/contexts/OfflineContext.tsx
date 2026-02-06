@@ -67,6 +67,7 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
 
   // Load pending operations from localStorage
   useEffect(() => {
+    console.log('[OfflineSync] Fix loaded: 2026-02-06 13:35 - Checking session before sync'); // VERSION MARKER
     const stored = localStorage.getItem('PENDING_OPERATIONS');
     if (stored) {
       try {
