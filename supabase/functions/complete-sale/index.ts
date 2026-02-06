@@ -104,34 +104,23 @@ serve(async (req) => {
       )
     }
 
-    console.log(`[Auth] Verifying token (starts with: ${token.substring(0, 10)}..., Length: ${token.length})`)
-
-    // Use Service Role for Admin Access (Bypassing RLS for system checks)
-    const supabase = createClient(
-      SUPABASE_URL,
-      SUPABASE_SERVICE_ROLE_KEY,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
-
     // Verify User Token explicitly
     const { data: { user }, error: authError } = await supabase.auth.getUser(token)
 
     if (authError || !user) {
       console.error('Authentication error:', authError)
+      // CRITICAL HARDENING:
+      // Return 403 (Forbidden) instead of 401 (Unauthorized) when the *Function* rejects the token.
+      // This allows the Frontend to distinguish between "Supabase Gateway blocked me" (401) 
+      // and "Function rejected my tunnelled token" (403).
       return new Response(
         JSON.stringify({
           error: 'Unauthorized: Invalid Token',
+          code: 'INVALID_TOKEN_TUNNEL',
           diagnostic: authError?.message || 'User not found',
-          authError: authError,
-          statusNote: 'If you see 418, the failure is inside the function logic. If you see 401, it is at the gateway.'
+          action: 'REFRESH_SESSION'
         }),
-        // USE 418 TO DISTINGUISH FROM GATEWAY 401
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 418 }
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 403 }
       )
     }
 

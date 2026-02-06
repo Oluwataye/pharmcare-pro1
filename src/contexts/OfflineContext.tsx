@@ -62,6 +62,7 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
   const [syncPending, setSyncPending] = useState(false);
   const [pendingOperations, setPendingOperations] = useState<PendingOperation[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isAuthPaused, setIsAuthPaused] = useState(false); // STOP SIGNAL for 401 loops
   const [conflicts, setConflicts] = useState<SyncConflict[]>([]);
   const { toast } = useToast();
 
@@ -140,6 +141,12 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
   }, [toast, pendingOperations.length]);
 
   const syncData = useCallback(async () => {
+    // STOP SIGNAL: specific check for Auth Paused state
+    if (isAuthPaused) {
+      console.warn('[OfflineSync] Sync aborted: Auth is PAUSED due to 401/403 error.');
+      return;
+    }
+
     if (!isOnline) {
       toast({
         title: "Sync Delayed",
@@ -254,7 +261,31 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
                 }
               }
               success = true;
-            } catch (err) {
+            } catch (err: any) {
+              // Check for Auth Errors (Gateway 401 or Function 403)
+              const status = err?.status || err?.code;
+              const isAuthError = status === 401 || status === 403 ||
+                err?.message?.includes('JWT') ||
+                JSON.stringify(err).includes('INVALID_TOKEN');
+
+              if (isAuthError) {
+                console.error('[OfflineSync] Auth Error detected (401/403). Pausing Sync & Refreshing.');
+                setIsAuthPaused(true);
+
+                // Trigger background refresh to try and recover
+                supabase.auth.refreshSession().then(({ data, error }) => {
+                  if (!error && data.session) {
+                    console.log('[OfflineSync] Session refreshed automatically. Resuming...');
+                    setIsAuthPaused(false);
+                  } else {
+                    console.error('[OfflineSync] Auto-refresh failed. User must relogin.');
+                    toast({ title: "Session Expired", description: "Please login again to sync data.", variant: "destructive" });
+                  }
+                });
+
+                throw new Error('AUTH_PAUSE');
+              }
+
               lastError = err;
               attempts++;
               console.warn(`[OfflineSync] Attempt ${attempts} failed for ${op.resource} ${op.id}`, err);
@@ -311,11 +342,11 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
 
   // Auto-sync when coming back online
   useEffect(() => {
-    if (isOnline && pendingOperations.length > 0 && !isSyncing) {
+    if (isOnline && pendingOperations.length > 0 && !isSyncing && !isAuthPaused) {
       const timer = setTimeout(() => syncData(), 2000);
       return () => clearTimeout(timer);
     }
-  }, [isOnline, pendingOperations.length, isSyncing, syncData]);
+  }, [isOnline, pendingOperations.length, isSyncing, isAuthPaused, syncData]);
 
   const resolveConflict = useCallback(async (
     conflictId: string,
