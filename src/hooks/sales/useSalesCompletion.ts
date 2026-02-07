@@ -124,8 +124,18 @@ export const useSalesCompletion = (
       } else {
         try {
           // Complete sale online via edge function
+          const { data: { session } } = await supabase.auth.getSession();
+          const token = session?.access_token;
+          const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
+
           const { data, error } = await supabase.functions.invoke('complete-sale', {
-            body: saleData
+            body: {
+              ...saleData,
+              _tunneled_token: token // Use body tunnel for direct calls too
+            },
+            headers: {
+              Authorization: `Bearer ${anonKey}` // Satisfy Gateway with Anon Key
+            }
           });
 
           if (error) throw error;

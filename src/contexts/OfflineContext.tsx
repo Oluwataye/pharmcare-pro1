@@ -225,7 +225,7 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
                 // TUNNELING STRATEGY:
                 // We send the ANON_KEY in Authorization to satisfy Supabase Gateway.
                 // We send the USER TOKEN in x-user-token for our Edge Function to verify.
-                const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+                const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
                 const { error } = await supabase.functions.invoke('complete-sale', {
                   body: {
