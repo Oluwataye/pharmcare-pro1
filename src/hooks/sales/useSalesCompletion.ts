@@ -143,14 +143,23 @@ export const useSalesCompletion = (
             // Distinguish between genuine network issues and functional errors
             console.error('Sale Completion Error:', error);
 
-            // If it's a Supabase error with a message, use it
+            // Extract code if available from Supabase function error
+            const errCode = (error as any).code || (error as any).status;
             const msg = (error as any).message || 'Server error occurred during sale';
 
-            toast({
-              variant: "destructive",
-              title: "Sale Failed",
-              description: msg,
-            });
+            if (errCode === 'DB_RESTORE_REQUIRED' || msg.includes('DB_RESTORE_REQUIRED')) {
+              toast({
+                variant: "destructive",
+                title: "Infrastructure Repair Required",
+                description: "The database needs to be updated to match the new code. Please run the restoration script.",
+              });
+            } else {
+              toast({
+                variant: "destructive",
+                title: "Sale Failed",
+                description: msg,
+              });
+            }
 
             throw error;
           }

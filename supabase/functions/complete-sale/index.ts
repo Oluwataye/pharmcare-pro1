@@ -327,9 +327,25 @@ serve(async (req) => {
 
     if (rpcError) {
       console.error('RPC Error:', rpcError)
-      // Provide deep diagnostic info for schema cache issues
-      const diagnostic = rpcError.hint || rpcError.details || 'Check process_sale_transaction (JSON Pattern) signature';
-      throw new Error(`Database Error: ${rpcError.message} (${diagnostic})`)
+
+      // CLEVER DIAGNOSTICS: Help the frontend distinguish between 
+      // "DB is missing the new JSON pattern" and other transactional errors.
+      let errorCode = 'ATOMIC_SALE_FAILURE';
+      let message = rpcError.message;
+
+      if (rpcError.message.includes('could not find function') || rpcError.code === 'P0001') {
+        errorCode = 'DB_RESTORE_REQUIRED';
+        message = 'Database Infrastructure requires restoration. Please run the atomic_recovery_v3_json.sql script in your Supabase Dashboard.';
+      }
+
+      return new Response(
+        JSON.stringify({
+          error: message,
+          code: errorCode,
+          diagnostic: rpcError.hint || rpcError.details
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+      )
     }
 
     console.log('Sale completed successfully via RPC:', result.sale_id);
