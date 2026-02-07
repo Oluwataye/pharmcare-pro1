@@ -229,12 +229,11 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
 
                 const { error } = await supabase.functions.invoke('complete-sale', {
                   body: {
-                    ...op.data,
-                    _tunneled_token: token // Pass in body to avoid CORS blocks
+                    _tunneled_token: token,
+                    ...op.data
                   },
                   headers: {
-                    Authorization: `Bearer ${anonKey}`,
-                    // 'x-user-token': token // REMOVED: Moving to body to fix CORS
+                    Authorization: `Bearer ${anonKey}`
                   }
                 });
 

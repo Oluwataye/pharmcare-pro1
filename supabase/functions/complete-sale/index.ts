@@ -282,8 +282,9 @@ serve(async (req) => {
 
     console.log('Payment Analysis:', { paymentStatus, amountPaid, amountOutstanding, customerId });
 
-    // 3. Process Sale via Atomic RPC
-    console.log('Calling process_sale_transaction RPC for:', saleData.transactionId)
+    // 3. Process Sale via Atomic RPC (Senior Pattern: JSON Payload)
+    // This pattern is indestructible to signature changes on the database side.
+    console.log('Calling process_sale_transaction RPC with JSON payload for:', saleData.transactionId)
 
     // Transform items to match SQL expected recordset structure
     const mappedItems = saleData.items.map(item => ({
@@ -297,36 +298,37 @@ serve(async (req) => {
       total: item.total
     }));
 
+    const payload = {
+      p_transaction_id: saleData.transactionId,
+      p_total: saleData.total,
+      p_discount: saleData.discount || 0,
+      p_manual_discount: saleData.manualDiscount || 0,
+      p_customer_name: sanitizeString(saleData.customerName, 200) || null,
+      p_customer_phone: sanitizeString(saleData.customerPhone, 20) || null,
+      p_business_name: sanitizeString(saleData.businessName, 200) || null,
+      p_business_address: sanitizeString(saleData.businessAddress, 500) || null,
+      p_sale_type: saleData.saleType || 'retail',
+      p_cashier_id: user.id,
+      p_cashier_name: sanitizeString(saleData.dispenserName, 200) || null,
+      p_cashier_email: sanitizeString(saleData.dispenserEmail, 255) || null,
+      p_items: mappedItems,
+      p_shift_name: sanitizeString(saleData.shift_name, 100) || null,
+      p_shift_id: saleData.shift_id || null,
+      p_staff_role: sanitizeString(saleData.staff_role, 50) || null,
+      p_payments: (saleData.payments && saleData.payments.length > 0) ? saleData.payments : [{ mode: 'cash', amount: saleData.total }],
+      p_payment_status: paymentStatus || 'paid',
+      p_amount_paid: amountPaid || 0,
+      p_amount_outstanding: amountOutstanding || 0,
+      p_customer_id: customerId || null
+    };
+
     const { data: result, error: rpcError } = await supabase
-      .rpc('process_sale_transaction', {
-        p_transaction_id: saleData.transactionId,
-        p_total: saleData.total,
-        p_discount: saleData.discount || 0,
-        p_manual_discount: saleData.manualDiscount || 0,
-        p_customer_name: sanitizeString(saleData.customerName, 200) || null,
-        p_customer_phone: sanitizeString(saleData.customerPhone, 20) || null,
-        p_business_name: sanitizeString(saleData.businessName, 200) || null,
-        p_business_address: sanitizeString(saleData.businessAddress, 500) || null,
-        p_sale_type: saleData.saleType || 'retail',
-        p_cashier_id: user.id,
-        p_cashier_name: sanitizeString(saleData.dispenserName, 200) || null,
-        p_cashier_email: sanitizeString(saleData.dispenserEmail, 255) || null,
-        p_items: mappedItems,
-        p_shift_name: sanitizeString(saleData.shift_name, 100) || null,
-        p_shift_id: saleData.shift_id || null,
-        p_staff_role: sanitizeString(saleData.staff_role, 50) || null,
-        p_payments: (saleData.payments && saleData.payments.length > 0) ? saleData.payments : [{ mode: 'cash', amount: saleData.total }],
-        // New Credit Specs
-        p_payment_status: paymentStatus || 'paid',
-        p_amount_paid: amountPaid || 0,
-        p_amount_outstanding: amountOutstanding || 0,
-        p_customer_id: customerId || null
-      })
+      .rpc('process_sale_transaction', { p_payload: payload })
 
     if (rpcError) {
       console.error('RPC Error:', rpcError)
       // Provide deep diagnostic info for schema cache issues
-      const diagnostic = rpcError.hint || rpcError.details || 'Check process_sale_transaction signature';
+      const diagnostic = rpcError.hint || rpcError.details || 'Check process_sale_transaction (JSON Pattern) signature';
       throw new Error(`Database Error: ${rpcError.message} (${diagnostic})`)
     }
 

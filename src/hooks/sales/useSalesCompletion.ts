@@ -123,23 +123,41 @@ export const useSalesCompletion = (
         });
       } else {
         try {
-          // Complete sale online via edge function
+          // Complete sale online via edge function (Clever JSON Payload Pattern)
           const { data: { session } } = await supabase.auth.getSession();
           const token = session?.access_token;
           const anonKey = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 
           const { data, error } = await supabase.functions.invoke('complete-sale', {
             body: {
-              ...saleData,
-              _tunneled_token: token // Use body tunnel for direct calls too
+              _tunneled_token: token,
+              ...saleData
             },
             headers: {
-              Authorization: `Bearer ${anonKey}` // Satisfy Gateway with Anon Key
+              Authorization: `Bearer ${anonKey}`
             }
           });
 
-          if (error) throw error;
-          if (!data || !data.success) throw new Error('Sale completion failed');
+          if (error) {
+            // CLEVER ERROR HANDLING: 
+            // Distinguish between genuine network issues and functional errors
+            console.error('Sale Completion Error:', error);
+
+            // If it's a Supabase error with a message, use it
+            const msg = (error as any).message || 'Server error occurred during sale';
+
+            toast({
+              variant: "destructive",
+              title: "Sale Failed",
+              description: msg,
+            });
+
+            throw error;
+          }
+
+          if (!data || !data.success) {
+            throw new Error(data?.error || 'Sale completion failed');
+          }
 
           toast({
             title: `${currentSaleType === 'wholesale' ? 'Wholesale' : 'Retail'} Sale Completed`,
