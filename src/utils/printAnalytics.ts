@@ -17,11 +17,16 @@ export interface LogPrintAnalyticsParams {
 
 export const logPrintAnalytics = async (params: LogPrintAnalyticsParams) => {
   try {
+    // Defensive check: Only insert sale_id and receipt_id if they are valid UUIDs
+    const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    const saleId = params.saleId && uuidRegex.test(params.saleId) ? params.saleId : null;
+    const receiptId = params.receiptId && uuidRegex.test(params.receiptId) ? params.receiptId : null;
+
     const { error } = await supabase
       .from('print_analytics')
       .insert([{
-        sale_id: params.saleId || null,
-        receipt_id: params.receiptId || null,
+        sale_id: saleId,
+        receipt_id: receiptId,
         cashier_id: params.dispenserId || null,
         cashier_name: params.dispenserName || null,
         customer_name: params.customerName || undefined,
