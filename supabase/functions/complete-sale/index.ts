@@ -87,6 +87,8 @@ serve(async (req) => {
       )
     }
 
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+
     // Auth validation: 
     // 1. Try body first (Tunneling v2 - avoids CORS issues)
     // 2. Try header second (Legacy/Standard)
