@@ -303,29 +303,31 @@ serve(async (req) => {
         p_total: saleData.total,
         p_discount: saleData.discount || 0,
         p_manual_discount: saleData.manualDiscount || 0,
-        p_customer_name: sanitizeString(saleData.customerName, 200),
-        p_customer_phone: sanitizeString(saleData.customerPhone, 20),
-        p_business_name: sanitizeString(saleData.businessName, 200),
-        p_business_address: sanitizeString(saleData.businessAddress, 500),
-        p_sale_type: saleData.saleType,
+        p_customer_name: sanitizeString(saleData.customerName, 200) || null,
+        p_customer_phone: sanitizeString(saleData.customerPhone, 20) || null,
+        p_business_name: sanitizeString(saleData.businessName, 200) || null,
+        p_business_address: sanitizeString(saleData.businessAddress, 500) || null,
+        p_sale_type: saleData.saleType || 'retail',
         p_cashier_id: user.id,
-        p_cashier_name: sanitizeString(saleData.dispenserName, 200),
-        p_cashier_email: sanitizeString(saleData.dispenserEmail, 255),
+        p_cashier_name: sanitizeString(saleData.dispenserName, 200) || null,
+        p_cashier_email: sanitizeString(saleData.dispenserEmail, 255) || null,
         p_items: mappedItems,
-        p_shift_name: sanitizeString(saleData.shift_name, 100),
-        p_shift_id: saleData.shift_id,
-        p_staff_role: sanitizeString(saleData.staff_role, 50),
-        p_payments: saleData.payments || [{ mode: 'cash', amount: saleData.total }],
+        p_shift_name: sanitizeString(saleData.shift_name, 100) || null,
+        p_shift_id: saleData.shift_id || null,
+        p_staff_role: sanitizeString(saleData.staff_role, 50) || null,
+        p_payments: (saleData.payments && saleData.payments.length > 0) ? saleData.payments : [{ mode: 'cash', amount: saleData.total }],
         // New Credit Specs
-        p_payment_status: paymentStatus,
-        p_amount_paid: amountPaid,
-        p_amount_outstanding: amountOutstanding,
-        p_customer_id: customerId
+        p_payment_status: paymentStatus || 'paid',
+        p_amount_paid: amountPaid || 0,
+        p_amount_outstanding: amountOutstanding || 0,
+        p_customer_id: customerId || null
       })
 
     if (rpcError) {
       console.error('RPC Error:', rpcError)
-      throw new Error(rpcError.message || 'Atomic sale transaction failed')
+      // Provide deep diagnostic info for schema cache issues
+      const diagnostic = rpcError.hint || rpcError.details || 'Check process_sale_transaction signature';
+      throw new Error(`Database Error: ${rpcError.message} (${diagnostic})`)
     }
 
     console.log('Sale completed successfully via RPC:', result.sale_id);
