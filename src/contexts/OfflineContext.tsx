@@ -14,6 +14,7 @@ interface OfflineContextType {
   clearPendingOperations: () => void;
   conflicts: SyncConflict[];
   resolveConflict: (conflictId: string, resolution: 'local' | 'server' | 'merge', mergedData?: any) => Promise<void>;
+  needsRepair: boolean;
 }
 
 export interface PendingOperation {
@@ -44,6 +45,7 @@ const defaultOfflineContext: OfflineContextType = {
   pendingOperations: [],
   conflicts: [],
   resolveConflict: async () => { },
+  needsRepair: false,
 };
 
 const OfflineContext = createContext<OfflineContextType>(defaultOfflineContext);
@@ -63,6 +65,7 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
   const [pendingOperations, setPendingOperations] = useState<PendingOperation[]>([]);
   const [isSyncing, setIsSyncing] = useState(false);
   const [isAuthPaused, setIsAuthPaused] = useState(false); // STOP SIGNAL for 401 loops
+  const [needsRepair, setNeedsRepair] = useState(false);
   const [conflicts, setConflicts] = useState<SyncConflict[]>([]);
   const { toast } = useToast();
 
@@ -164,7 +167,8 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
       const successfulIds: string[] = [];
       const failedIds: string[] = [];
       const droppedIds: string[] = []; // Items to permanently remove (Quarantine)
-      const MAX_SYNC_ATTEMPTS = 5;
+      const MAX_SYNC_ATTEMPTS = 20; // Increased safety window 
+      const PROTOCOL_ERROR_KEY = 'DB_RESTORE_REQUIRED';
 
       // Load failure counts
       const failureCounts = JSON.parse(localStorage.getItem('SYNC_FAILURE_COUNTS') || '{}');
@@ -301,14 +305,27 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
 
           if (success) {
             successfulIds.push(op.id);
+            setNeedsRepair(false); // Reset on any successful sync (though protocol errors usually block all)
             // Clear failure count on success
             delete failureCounts[op.id];
           } else {
             // Increment failure count
             const currentFailures = (failureCounts[op.id] || 0) + 1;
-            failureCounts[op.id] = currentFailures;
 
-            if (currentFailures >= MAX_SYNC_ATTEMPTS) {
+            // CLEVER SAFETY: Check if the error is a Protocol Mismatch (Infrastructure Repair Required)
+            // If it is, we DO NOT count this as a "failure" that leads to vaporization/quarantine.
+            // We want this data to stay on the device until the DB is repaired.
+            const isProtocolError =
+              lastError?.message?.includes(PROTOCOL_ERROR_KEY) ||
+              lastError?.code === PROTOCOL_ERROR_KEY ||
+              JSON.stringify(lastError).includes(PROTOCOL_ERROR_KEY);
+
+            if (isProtocolError) {
+              console.warn(`[OfflineSync] Protocol Error detected for ${op.id}. Sync paused for this item to prevent data loss.`);
+              setNeedsRepair(true); // Signal the UI that repair is needed
+              // We don't increment failure counts for protocol errors
+              failedIds.push(op.id);
+            } else if (currentFailures >= MAX_SYNC_ATTEMPTS) {
               console.error(`[OfflineSync] QUARANTINE: Operation ${op.id} failed ${currentFailures} times. Dropping.`);
               droppedIds.push(op.id);
               toast({
@@ -317,6 +334,7 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
                 variant: "destructive"
               });
             } else {
+              failureCounts[op.id] = currentFailures;
               // Enhanced error logging for debugging 401/418
               console.error(`[OfflineSync] Critical failure for ${op.resource} ${op.id}:`, lastError);
               if ((lastError as any)?.context) {
@@ -442,7 +460,8 @@ export const OfflineProvider = ({ children }: OfflineProviderProps) => {
         addPendingOperation,
         clearPendingOperations,
         conflicts,
-        resolveConflict
+        resolveConflict,
+        needsRepair
       }}
     >
       {children}

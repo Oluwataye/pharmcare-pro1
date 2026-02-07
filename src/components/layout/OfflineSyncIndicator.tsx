@@ -1,16 +1,16 @@
 import { useOffline } from "@/contexts/OfflineContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { 
-  Popover, 
-  PopoverContent, 
-  PopoverTrigger 
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger
 } from "@/components/ui/popover";
-import { 
-  WifiOff, 
-  Wifi, 
-  RefreshCw, 
-  Cloud, 
+import {
+  WifiOff,
+  Wifi,
+  RefreshCw,
+  Cloud,
   CloudOff,
   Check,
   AlertCircle
@@ -18,9 +18,12 @@ import {
 import { cn } from "@/lib/utils";
 
 export function OfflineSyncIndicator() {
-  const { isOnline, syncPending, pendingCount, syncData, isSyncing } = useOffline();
+  const { isOnline, syncPending, pendingCount, syncData, isSyncing, needsRepair } = useOffline();
 
   const getStatusIcon = () => {
+    if (needsRepair) {
+      return <AlertCircle className="h-4 w-4" />;
+    }
     if (isSyncing) {
       return <RefreshCw className="h-4 w-4 animate-spin" />;
     }
@@ -34,6 +37,7 @@ export function OfflineSyncIndicator() {
   };
 
   const getStatusColor = () => {
+    if (needsRepair) return "bg-destructive/10 text-destructive border-destructive/20 shadow-sm";
     if (isSyncing) return "bg-blue-500/10 text-blue-600 border-blue-200";
     if (!isOnline) return "bg-destructive/10 text-destructive border-destructive/20";
     if (syncPending || pendingCount > 0) return "bg-yellow-500/10 text-yellow-600 border-yellow-200";
@@ -41,6 +45,7 @@ export function OfflineSyncIndicator() {
   };
 
   const getStatusText = () => {
+    if (needsRepair) return "Repair Required";
     if (isSyncing) return "Syncing...";
     if (!isOnline) return "Offline";
     if (syncPending || pendingCount > 0) return `${pendingCount} pending`;
@@ -63,8 +68,8 @@ export function OfflineSyncIndicator() {
             {getStatusText()}
           </span>
           {pendingCount > 0 && (
-            <Badge 
-              variant="secondary" 
+            <Badge
+              variant="secondary"
               className="h-5 min-w-5 px-1.5 text-xs bg-yellow-500 text-white"
             >
               {pendingCount}
@@ -90,8 +95,8 @@ export function OfflineSyncIndicator() {
                 {isOnline ? "Connected" : "Offline Mode"}
               </p>
               <p className="text-xs text-muted-foreground">
-                {isOnline 
-                  ? "All changes sync in real-time" 
+                {isOnline
+                  ? "All changes sync in real-time"
                   : "Changes saved locally"}
               </p>
             </div>
@@ -112,8 +117,8 @@ export function OfflineSyncIndicator() {
           )}
 
           {isOnline && (syncPending || pendingCount > 0) && (
-            <Button 
-              onClick={syncData} 
+            <Button
+              onClick={syncData}
               disabled={isSyncing}
               className="w-full"
               size="sm"
