@@ -45,6 +45,7 @@ const Expenses = lazy(() => import("./pages/Expenses"));
 const CashReconciliation = lazy(() => import("./pages/CashReconciliation"));
 const Training = lazy(() => import("./pages/Training"));
 const CreditManagement = lazy(() => import("./pages/CreditManagement"));
+const TechnicalGuide = lazy(() => import("./pages/TechnicalGuide"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -182,6 +183,7 @@ const App = ({ queryClient, persister }: AppProps) => {
                             </ProtectedRoute>
                           }
                         />
+                        <Route path="/technical-guide" element={<Suspense fallback={<PageLoader />}><TechnicalGuide /></Suspense>} />
                         <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
                       </Route>
                     </Routes>
