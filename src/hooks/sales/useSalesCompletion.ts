@@ -186,16 +186,31 @@ export const useSalesCompletion = (
 
           return data.saleId || true;
 
-        } catch (onlineError) {
-          console.warn('Online sale completion failed, falling back to offline mode:', onlineError);
+        } catch (onlineError: any) {
+          console.warn('Online sale completion failed:', onlineError);
 
-          // Fallback to offline save
+          // HONEST ERROR POLICY:
+          // If it's a protocol mismatch (Infrastructure Repair Required), 
+          // do NOT fall back to offline. Halt and let the user fix the DB.
+          const msg = onlineError?.message || '';
+          const code = onlineError?.code || (onlineError as any)?.context?.code;
+          const isProtocolError = msg.includes('DB_RESTORE_REQUIRED') || code === 'DB_RESTORE_REQUIRED';
+
+          if (isProtocolError) {
+            console.error('[HonestError] Fast-fail triggered: Database requires repair. Halting sale.');
+            // Do NOT clear items, do NOT save offline. Just stop.
+            return false;
+          }
+
+          // Legacy/Network Fallback: 
+          // For generic network errors, still use the durable offline queue.
+          console.log('[OfflineFallback] Network issue detected. Saving to durable vault.');
           createOfflineItem('sales', saleData);
 
           toast({
             title: "Saved Offline (Network Issue)",
             description: "Connection unstable. Sale saved offline and will sync automatically.",
-            variant: "default" // Use default or specific variant for notice
+            variant: "default"
           });
 
           // Cleanup
@@ -207,7 +222,6 @@ export const useSalesCompletion = (
           secureStorage.removeItem('CURRENT_SALE_MANUAL_DISCOUNT');
           secureStorage.removeItem('CURRENT_SALE_TYPE');
 
-          // Return transactionId so printing still happens!
           return transactionId;
         }
       }
