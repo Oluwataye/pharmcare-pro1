@@ -189,25 +189,42 @@ export const useSalesCompletion = (
         } catch (onlineError: any) {
           console.error('[HonestError] Detailed Capture:', onlineError);
 
-          // HONEST ERROR POLICY v4:
-          // 1. If we REACHED the server and it gave an error (4xx/5xx), it is NOT a transient network issue.
-          // 2. Halt the sale, do NOT save offline, do NOT clear the cart.
-          // 3. This gives the user absolute transparency and a chance to fix the issue (e.g., login, DB repair).
-
+          // HONEST ERROR POLICY v5 (Ultra-Diagnostics):
+          // Deeply extract error details from Supabase FunctionsHttpError
+          let serverMessage = onlineError?.message || "";
+          let serverCode = onlineError?.code || (onlineError as any)?.context?.code;
           const status = onlineError?.status || (onlineError as any)?.context?.status;
           const errorString = JSON.stringify(onlineError);
-          const isProtocolError = errorString.includes('DB_RESTORE_REQUIRED');
+
+          // Attempt to parse the hidden JSON body if it's a FunctionsHttpError
+          if (onlineError?.context && typeof (onlineError.context as any).json === 'function') {
+            try {
+              const body = await (onlineError.context as any).json();
+              if (body?.code) serverCode = body.code;
+              if (body?.error) serverMessage = body.error;
+              console.log('[HonestError] Extracted body:', body);
+            } catch (e) {
+              console.warn('[HonestError] Could not parse error context as JSON');
+            }
+          }
+
+          const isProtocolError = serverCode === 'DB_RESTORE_REQUIRED' || errorString.includes('DB_RESTORE_REQUIRED');
           const isAuthError = status === 401 || status === 403 || errorString.includes('JWT');
 
           if (status || isProtocolError || isAuthError) {
-            console.error('[HonestError] Server-side/Auth/Protocol error detected. Halting sale to ensure transparency.');
-            // Note: Toast was already shown in the inner error check if (error) block.
-            // If it wasn't, we show a generic one here just in case.
-            if (!isProtocolError && !isAuthError) {
+            console.error('[HonestError] Server-side/Auth/Protocol error detected. Halting sale.');
+
+            if (isProtocolError) {
+              toast({
+                variant: "destructive",
+                title: "Infrastructure Repair Required",
+                description: "The database needs to be updated to match the new code. Please run the restoration script provided in the Technical Guide.",
+              });
+            } else if (!isAuthError) {
               toast({
                 variant: "destructive",
                 title: "Server Communication Error",
-                description: onlineError?.message || "The server rejected the transaction. Please check your connection and try again.",
+                description: serverMessage || "The server rejected the transaction. Please check your connection or technical guide.",
               });
             }
             return false;

@@ -102,7 +102,34 @@ export function OfflineSyncIndicator() {
             </div>
           </div>
 
-          {pendingCount > 0 && (
+          {needsRepair && (
+            <div className="flex flex-col gap-3 p-3 bg-destructive/10 rounded-lg border border-destructive/20">
+              <div className="flex items-center gap-3">
+                <AlertCircle className="h-5 w-5 text-destructive" />
+                <div className="flex-1">
+                  <p className="text-sm font-bold text-destructive leading-none mb-1">
+                    Repair Required
+                  </p>
+                  <p className="text-xs text-destructive/80 font-mono">
+                    CODE: DB_RESTORE_REQUIRED
+                  </p>
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground leading-snug">
+                Your database structure is out of sync with the latest code. This prevents sales from finalizing online.
+              </p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full text-xs h-7 border-destructive/30 hover:bg-destructive/5"
+                onClick={() => window.open('https://pharmcarepro.netlify.app/technical-guide', '_blank')}
+              >
+                View Repair Instructions
+              </Button>
+            </div>
+          )}
+
+          {pendingCount > 0 && !needsRepair && (
             <div className="flex items-center gap-3 p-3 bg-yellow-500/10 rounded-lg">
               <AlertCircle className="h-5 w-5 text-yellow-600" />
               <div className="flex-1">
@@ -116,7 +143,7 @@ export function OfflineSyncIndicator() {
             </div>
           )}
 
-          {isOnline && (syncPending || pendingCount > 0) && (
+          {isOnline && (syncPending || pendingCount > 0) && !needsRepair && (
             <Button
               onClick={syncData}
               disabled={isSyncing}

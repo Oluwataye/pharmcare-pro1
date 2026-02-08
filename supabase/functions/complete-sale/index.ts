@@ -344,7 +344,14 @@ serve(async (req) => {
           code: errorCode,
           diagnostic: rpcError.hint || rpcError.details
         }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' }, status: 400 }
+        {
+          headers: {
+            ...corsHeaders,
+            'Content-Type': 'application/json',
+            'x-error-code': errorCode // v5: Diagnostic Header
+          },
+          status: 400
+        }
       )
     }
 
