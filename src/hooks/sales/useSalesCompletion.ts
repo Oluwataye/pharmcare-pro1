@@ -187,29 +187,40 @@ export const useSalesCompletion = (
           return data.saleId || true;
 
         } catch (onlineError: any) {
-          console.warn('Online sale completion failed:', onlineError);
+          console.error('[HonestError] Detailed Capture:', onlineError);
 
-          // HONEST ERROR POLICY:
-          // If it's a protocol mismatch (Infrastructure Repair Required), 
-          // do NOT fall back to offline. Halt and let the user fix the DB.
-          const msg = onlineError?.message || '';
-          const code = onlineError?.code || (onlineError as any)?.context?.code;
-          const isProtocolError = msg.includes('DB_RESTORE_REQUIRED') || code === 'DB_RESTORE_REQUIRED';
+          // HONEST ERROR POLICY v4:
+          // 1. If we REACHED the server and it gave an error (4xx/5xx), it is NOT a transient network issue.
+          // 2. Halt the sale, do NOT save offline, do NOT clear the cart.
+          // 3. This gives the user absolute transparency and a chance to fix the issue (e.g., login, DB repair).
 
-          if (isProtocolError) {
-            console.error('[HonestError] Fast-fail triggered: Database requires repair. Halting sale.');
-            // Do NOT clear items, do NOT save offline. Just stop.
+          const status = onlineError?.status || (onlineError as any)?.context?.status;
+          const errorString = JSON.stringify(onlineError);
+          const isProtocolError = errorString.includes('DB_RESTORE_REQUIRED');
+          const isAuthError = status === 401 || status === 403 || errorString.includes('JWT');
+
+          if (status || isProtocolError || isAuthError) {
+            console.error('[HonestError] Server-side/Auth/Protocol error detected. Halting sale to ensure transparency.');
+            // Note: Toast was already shown in the inner error check if (error) block.
+            // If it wasn't, we show a generic one here just in case.
+            if (!isProtocolError && !isAuthError) {
+              toast({
+                variant: "destructive",
+                title: "Server Communication Error",
+                description: onlineError?.message || "The server rejected the transaction. Please check your connection and try again.",
+              });
+            }
             return false;
           }
 
           // Legacy/Network Fallback: 
-          // For generic network errors, still use the durable offline queue.
-          console.log('[OfflineFallback] Network issue detected. Saving to durable vault.');
+          // ONLY for genuine network timeouts or "Failed to Fetch" where no status exists.
+          console.log('[OfflineFallback] Terminal network issue detected. Saving to durable vault.');
           createOfflineItem('sales', saleData);
 
           toast({
             title: "Saved Offline (Network Issue)",
-            description: "Connection unstable. Sale saved offline and will sync automatically.",
+            description: "Connection unstable. Sale saved offline and will automatically sync when connection returns.",
             variant: "default"
           });
 
