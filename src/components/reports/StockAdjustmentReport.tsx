@@ -19,8 +19,12 @@ import type { MetricCardData, ColumnDef, ExportColumn } from "@/components/repor
 import { useReportFilters } from "@/hooks/reports/useReportFilters";
 import { useReportsStockAdjustments, useReportsStockAdjustmentStats } from "@/hooks/reports/useReportsStock";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip, Legend } from "recharts";
+import { useAuth } from "@/contexts/AuthContext";
 
 const StockAdjustmentReport = () => {
+    const { user } = useAuth();
+    const canViewFinancials = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
+
     // Filters
     const { filters, setFilters } = useReportFilters('stock-adjustment-report', {
         startDate: subDays(new Date(), 30).toISOString(),
@@ -38,7 +42,6 @@ const StockAdjustmentReport = () => {
     };
 
     // Data Fetching
-    // 1. Paginated List
     const { data: listData, isLoading: loadingList } = useReportsStockAdjustments({
         startDate: filters.startDate!,
         endDate: filters.endDate!,
@@ -47,7 +50,6 @@ const StockAdjustmentReport = () => {
         pageSize
     });
 
-    // 2. Stats Data (Lightweight, Full Range)
     const { data: statsData = [], isLoading: loadingStats } = useReportsStockAdjustmentStats({
         startDate: filters.startDate!,
         endDate: filters.endDate!
@@ -98,16 +100,16 @@ const StockAdjustmentReport = () => {
     const metrics: MetricCardData[] = [
         {
             title: 'Total Adjustments',
-            value: totalCount.toString(), // Use total count from paginated query (matches filter)
+            value: totalCount.toString(),
             icon: RefreshCcw,
             description: `${processedStats.increases} Inc / ${processedStats.decreases} Dec (Global)`,
             colorScheme: 'blue'
         },
         {
             title: 'Cost Impact',
-            value: formatCurrency(processedStats.totalCostImpact),
+            value: canViewFinancials ? formatCurrency(processedStats.totalCostImpact) : '********',
             icon: TrendingDown,
-            description: 'Net inventory value diff',
+            description: canViewFinancials ? 'Net inventory value diff' : 'Hidden for your role',
             colorScheme: processedStats.totalCostImpact >= 0 ? 'success' : 'rose'
         }
     ];
@@ -149,7 +151,8 @@ const StockAdjustmentReport = () => {
             cell: (row) => {
                 const impact = row.quantity_change * (row.cost_price_at_time || 0);
                 return <span className={`text-xs ${impact > 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(impact)}</span>;
-            }
+            },
+            roleRestriction: ['SUPER_ADMIN', 'ADMIN']
         },
         {
             key: 'reason',
@@ -163,15 +166,6 @@ const StockAdjustmentReport = () => {
         }
     ];
 
-    const exportData = adjustments.map(row => ({
-        date: format(new Date(row.created_at), 'yyyy-MM-dd HH:mm'),
-        product: row.inventory?.name,
-        type: row.type,
-        change: row.quantity_change,
-        reason: row.reason,
-        user: row.profiles?.name
-    }));
-
     const exportColumns: ExportColumn[] = [
         { key: 'date', header: 'Date' },
         { key: 'product', header: 'Product' },
@@ -180,6 +174,28 @@ const StockAdjustmentReport = () => {
         { key: 'reason', header: 'Reason' },
         { key: 'user', header: 'User' }
     ];
+
+    if (canViewFinancials) {
+        exportColumns.splice(4, 0, { key: 'impact', header: 'Cost Value', formatter: (val) => formatCurrency(Number(val)) });
+    }
+
+    const exportData = adjustments.map(row => {
+        const base = {
+            date: format(new Date(row.created_at), 'yyyy-MM-dd HH:mm'),
+            product: row.inventory?.name,
+            type: row.type,
+            change: row.quantity_change,
+            reason: row.reason,
+            user: row.profiles?.name
+        };
+        if (canViewFinancials) {
+            return {
+                ...base,
+                impact: row.quantity_change * (row.cost_price_at_time || 0)
+            };
+        }
+        return base;
+    });
 
     return (
         <ReportLayout
@@ -201,19 +217,21 @@ const StockAdjustmentReport = () => {
 
             <ReportSummaryCards metrics={metrics} />
 
-            <ReportChartPanel title="Adjustment Trends" description="Cost value of adjustments over time" chartType="bar">
-                <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={processedStats.chartDataArray}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis dataKey="date" tickFormatter={(val) => format(parseISO(val), 'MMM dd')} fontSize={12} />
-                        <YAxis tickFormatter={(val) => `₦${(val / 1000).toFixed(0)}k`} fontSize={12} />
-                        <Tooltip formatter={(val: number) => formatCurrency(val)} labelFormatter={(label) => format(parseISO(label), 'MMM dd, yyyy')} />
-                        <Legend />
-                        <Bar dataKey="additions" name="Value Added" fill="#22c55e" stackId="a" />
-                        <Bar dataKey="removals" name="Value Removed" fill="#ef4444" stackId="a" />
-                    </BarChart>
-                </ResponsiveContainer>
-            </ReportChartPanel>
+            {canViewFinancials && (
+                <ReportChartPanel title="Adjustment Trends" description="Cost value of adjustments over time" chartType="bar">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={processedStats.chartDataArray}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="date" tickFormatter={(val) => format(parseISO(val), 'MMM dd')} fontSize={12} />
+                            <YAxis tickFormatter={(val) => `₦${(val / 1000).toFixed(0)}k`} fontSize={12} />
+                            <Tooltip formatter={(val: number) => formatCurrency(val)} labelFormatter={(label) => format(parseISO(label), 'MMM dd, yyyy')} />
+                            <Legend />
+                            <Bar dataKey="additions" name="Value Added" fill="#22c55e" stackId="a" />
+                            <Bar dataKey="removals" name="Value Removed" fill="#ef4444" stackId="a" />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ReportChartPanel>
+            )}
 
             <ReportDataTable
                 columns={columns}

@@ -23,8 +23,11 @@ import type { MetricCardData, ColumnDef, ExportColumn } from "@/components/repor
 import { useReportFilters } from "@/hooks/reports/useReportFilters";
 import { useReportsInventoryList, useReportsInventoryStats } from "@/hooks/reports/useReportsStock";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip, Legend, PieChart, Pie, Cell } from "recharts";
+import { useAuth } from "@/contexts/AuthContext";
 
 const InventoryReport = () => {
+  const { user } = useAuth();
+
   // Filters
   const { filters, setFilters } = useReportFilters('inventory-report', {
     searchQuery: ''
@@ -40,24 +43,19 @@ const InventoryReport = () => {
   };
 
   // Data Fetching
-  // 1. List Data (Paginated)
   const { data: listData, isLoading: loadingList } = useReportsInventoryList({
     searchQuery: filters.searchQuery,
     page,
     pageSize
   });
 
-  // 2. Stats Data (Full)
   const { data: statsItems = [], isLoading: loadingStats } = useReportsInventoryStats();
+
+  const inventoryItems = listData?.data || [];
+  const totalCount = listData?.count || 0;
 
   // Process Stats
   const processedStats = useMemo(() => {
-    // Note: Stats hook doesn't accept search query, so metrics reflect WHOLE inventory.
-    // If we want metrics to reflect search (e.g. "Value of Antibiotics"), we'd need to filter stats too.
-    // For now, standard report behavior is: Metrics = Global, Table = Filtered.
-    // Or we could client-filter stats? But we only fetched sparse columns.
-    // Let's assume Metrics are Global Overview.
-
     const metrics = statsItems.reduce((acc: any, item: any) => {
       const costVal = (item.quantity || 0) * (item.cost_price || 0);
       const salesVal = (item.quantity || 0) * (item.price || 0);
@@ -96,7 +94,7 @@ const InventoryReport = () => {
 
     const categoryData = Object.values(metrics.categoryStats)
       .sort((a: any, b: any) => b.value - a.value)
-      .slice(0, 8); // Top 8 by value
+      .slice(0, 8);
 
     return {
       ...metrics,
@@ -104,30 +102,21 @@ const InventoryReport = () => {
     };
   }, [statsItems]);
 
-
-  const inventoryItems = listData?.data || [];
-  const totalCount = listData?.count || 0;
+  // Auth Check for Financials
+  // Cost/Profit visible only to SUPER_ADMIN or ADMIN
+  const canViewFinancials = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
 
   // Metrics Configuration
   const metrics: MetricCardData[] = [
     {
       title: 'Inventory Value (Cost)',
-      value: formatCurrency(processedStats.totalCostValue),
+      value: canViewFinancials ? formatCurrency(processedStats.totalCostValue) : '********',
       icon: DollarSign,
-      description: `Potential Sales: ${formatCurrency(processedStats.totalSalesValue)}`,
+      description: canViewFinancials ? `Potential Sales: ${formatCurrency(processedStats.totalSalesValue)}` : 'Hidden for your role',
       colorScheme: 'success'
     },
     {
       title: 'Total Items',
-      value: totalCount.toString(), // Use count from paginated query for total items (matches filters if any) OR global? 
-      // If we use filter count, it changes on search. 
-      // If we use global stats, it stays constant. 
-      // Let's use global stats for card consistency unless filtered. 
-      // Actually `totalCount` is from the list query which respects search.
-      // If searching, we want to know how many found? 
-      // Usually "Total Items" card implies Warehouse Total.
-      // I'll use processedStats.totalItems (Global) as primary, maybe show filtered in description?
-      // Let's stick to Global for Summary Cards.
       value: processedStats.totalItems.toLocaleString(),
       icon: Package,
       description: `${processedStats.categoryData.length} active categories`,
@@ -189,12 +178,14 @@ const InventoryReport = () => {
     {
       key: 'cost',
       header: 'Cost Price',
-      cell: (row) => <span className="font-mono text-xs">{formatCurrency(row.cost_price)}</span>
+      cell: (row) => <span className="font-mono text-xs">{formatCurrency(row.cost_price)}</span>,
+      roleRestriction: ['SUPER_ADMIN', 'ADMIN']
     },
     {
       key: 'value',
       header: 'Stock Value',
-      cell: (row) => <span className="font-bold text-xs">{formatCurrency(row.quantity * row.cost_price)}</span>
+      cell: (row) => <span className="font-bold text-xs">{formatCurrency(row.quantity * row.cost_price)}</span>,
+      roleRestriction: ['SUPER_ADMIN', 'ADMIN']
     },
     {
       key: 'status',
@@ -207,25 +198,44 @@ const InventoryReport = () => {
     }
   ];
 
-  const exportData = inventoryItems.map(row => ({
-    name: row.name,
-    sku: row.sku,
-    category: row.category,
-    quantity: row.quantity,
-    cost: row.cost_price,
-    value: row.quantity * row.cost_price,
-    status: row.quantity <= 0 ? 'Out' : row.quantity <= (row.min_quantity || 10) ? 'Low' : 'OK'
-  }));
+  // Export Data - Should we mask export too? Yes.
+  // We can filter the export columns or map based on permission.
+  // Simpler: Just exclude sensitive columns from export if not admin.
+  // Actually, standard `ReportExportPanel` doesn't handle permission automatically yet.
+  // We should conditionally exclude sensitive fields from `exportColumns`.
 
   const exportColumns: ExportColumn[] = [
     { key: 'name', header: 'Product Name' },
     { key: 'sku', header: 'SKU' },
     { key: 'category', header: 'Category' },
     { key: 'quantity', header: 'Qty' },
-    { key: 'cost', header: 'Unit Cost', formatter: (val) => formatCurrency(Number(val)) },
-    { key: 'value', header: 'Total Value', formatter: (val) => formatCurrency(Number(val)) },
     { key: 'status', header: 'Status' }
   ];
+
+  if (canViewFinancials) {
+    exportColumns.push(
+      { key: 'cost', header: 'Unit Cost', formatter: (val) => formatCurrency(Number(val)) },
+      { key: 'value', header: 'Total Value', formatter: (val) => formatCurrency(Number(val)) }
+    );
+  }
+
+  const exportData = inventoryItems.map(row => {
+    const base = {
+      name: row.name,
+      sku: row.sku,
+      category: row.category,
+      quantity: row.quantity,
+      status: row.quantity <= 0 ? 'Out' : row.quantity <= (row.min_quantity || 10) ? 'Low' : 'OK'
+    };
+    if (canViewFinancials) {
+      return {
+        ...base,
+        cost: row.cost_price,
+        value: row.quantity * row.cost_price
+      };
+    }
+    return base;
+  });
 
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d', '#ffc658', '#8dd1e1'];
 

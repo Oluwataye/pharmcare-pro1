@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import {
     Table,
     TableBody,
@@ -17,13 +17,15 @@ import {
     SelectTrigger,
     SelectValue,
 } from '@/components/ui/select';
+import { useAuth } from '@/contexts/AuthContext';
+import { UserRole } from '@/lib/types';
 
 export interface ColumnDef<T = any> {
     key: string;
     header: string;
     cell?: (row: T) => React.ReactNode;
     sortable?: boolean;
-    roleRestriction?: string[]; // Roles that can see this column
+    roleRestriction?: UserRole[]; // Roles that can see this column
 }
 
 interface ReportDataTableProps<T = any> {
@@ -37,6 +39,7 @@ interface ReportDataTableProps<T = any> {
     isLoading?: boolean;
     emptyMessage?: string;
     className?: string;
+    title?: string;
 }
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100];
@@ -44,6 +47,7 @@ const PAGE_SIZE_OPTIONS = [25, 50, 100];
 /**
  * Standardized data table with pagination and sorting.
  * Supports both client-side and server-side pagination.
+ * Now supports Role-Based Column Masking.
  */
 export const ReportDataTable = <T extends Record<string, any>>({
     columns,
@@ -55,13 +59,23 @@ export const ReportDataTable = <T extends Record<string, any>>({
     onPageSizeChange,
     isLoading = false,
     emptyMessage = 'No data available',
-    className = ''
+    className = '',
+    title
 }: ReportDataTableProps<T>) => {
+    const { user } = useAuth();
     const [localPage, setLocalPage] = useState(currentPage);
     const [localPageSize, setLocalPageSize] = useState(pageSize);
 
     const effectivePage = onPageChange ? currentPage : localPage;
     const effectivePageSize = onPageSizeChange ? pageSize : localPageSize;
+
+    // Filter columns based on role
+    const visibleColumns = useMemo(() => {
+        if (!user) return [];
+        return columns.filter(col =>
+            !col.roleRestriction || col.roleRestriction.includes(user.role)
+        );
+    }, [columns, user]);
 
     // Calculate pagination
     const total = totalRows || data.length;
@@ -105,19 +119,21 @@ export const ReportDataTable = <T extends Record<string, any>>({
 
     if (data.length === 0 && !isLoading) {
         return (
-            <div className="text-center py-10 text-muted-foreground">
-                {emptyMessage}
+            <div className="text-center py-10 text-muted-foreground border rounded-md bg-muted/20">
+                {title && <h3 className="text-lg font-medium mb-2">{title}</h3>}
+                <p>{emptyMessage}</p>
             </div>
         );
     }
 
     return (
         <div className={`space-y-4 ${className}`}>
-            <div className="rounded-md border">
+            {title && <h3 className="text-lg font-semibold">{title}</h3>}
+            <div className="rounded-md border bg-card">
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            {columns.map((column) => (
+                            {visibleColumns.map((column) => (
                                 <TableHead key={column.key}>{column.header}</TableHead>
                             ))}
                         </TableRow>
@@ -125,7 +141,7 @@ export const ReportDataTable = <T extends Record<string, any>>({
                     <TableBody>
                         {displayData.map((row, rowIndex) => (
                             <TableRow key={rowIndex}>
-                                {columns.map((column) => (
+                                {visibleColumns.map((column) => (
                                     <TableCell key={column.key}>
                                         {column.cell ? column.cell(row) : row[column.key]}
                                     </TableCell>
@@ -137,7 +153,7 @@ export const ReportDataTable = <T extends Record<string, any>>({
             </div>
 
             {/* Pagination Controls */}
-            {totalPages > 1 && (
+            {total > 0 && (
                 <div className="flex items-center justify-between px-2">
                     <div className="flex items-center space-x-2">
                         <p className="text-sm text-muted-foreground">
@@ -153,9 +169,9 @@ export const ReportDataTable = <T extends Record<string, any>>({
                                 onValueChange={handlePageSizeChange}
                             >
                                 <SelectTrigger className="h-8 w-[70px]">
-                                    <SelectValue />
+                                    <SelectValue placeholder={effectivePageSize} />
                                 </SelectTrigger>
-                                <SelectContent>
+                                <SelectContent side="top">
                                     {PAGE_SIZE_OPTIONS.map((size) => (
                                         <SelectItem key={size} value={size.toString()}>
                                             {size}
@@ -165,40 +181,45 @@ export const ReportDataTable = <T extends Record<string, any>>({
                             </Select>
                         </div>
 
+                        <div className="flex w-[100px] items-center justify-center text-sm font-medium">
+                            Page {effectivePage} of {totalPages}
+                        </div>
+
                         <div className="flex items-center space-x-2">
                             <Button
                                 variant="outline"
-                                size="icon"
+                                className="hidden h-8 w-8 p-0 lg:flex"
                                 onClick={() => handlePageChange(1)}
                                 disabled={effectivePage === 1}
                             >
+                                <span className="sr-only">Go to first page</span>
                                 <ChevronsLeft className="h-4 w-4" />
                             </Button>
                             <Button
                                 variant="outline"
-                                size="icon"
+                                className="h-8 w-8 p-0"
                                 onClick={() => handlePageChange(effectivePage - 1)}
                                 disabled={effectivePage === 1}
                             >
+                                <span className="sr-only">Go to previous page</span>
                                 <ChevronLeft className="h-4 w-4" />
                             </Button>
-                            <div className="text-sm font-medium">
-                                Page {effectivePage} of {totalPages}
-                            </div>
                             <Button
                                 variant="outline"
-                                size="icon"
+                                className="h-8 w-8 p-0"
                                 onClick={() => handlePageChange(effectivePage + 1)}
                                 disabled={effectivePage === totalPages}
                             >
+                                <span className="sr-only">Go to next page</span>
                                 <ChevronRight className="h-4 w-4" />
                             </Button>
                             <Button
                                 variant="outline"
-                                size="icon"
+                                className="hidden h-8 w-8 p-0 lg:flex"
                                 onClick={() => handlePageChange(totalPages)}
                                 disabled={effectivePage === totalPages}
                             >
+                                <span className="sr-only">Go to last page</span>
                                 <ChevronsRight className="h-4 w-4" />
                             </Button>
                         </div>
