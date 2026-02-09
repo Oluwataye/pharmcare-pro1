@@ -22,6 +22,8 @@ export const useReportsSales = ({ startDate, endDate, branchId }: ReportFilters)
                 .select(`
           id,
           total,
+          discount,
+          manual_discount,
           date,
           created_at,
           branch_id,
@@ -30,8 +32,10 @@ export const useReportsSales = ({ startDate, endDate, branchId }: ReportFilters)
           branches:branch_id(name),
           sales_items (
             quantity,
+            price,
             cost_price,
-            total
+            total,
+            discount
           )
         `)
                 .gte('date', startDate)
