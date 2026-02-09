@@ -3,7 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { AuthProvider } from "./contexts/AuthContext";
 import { OfflineProvider } from "./contexts/OfflineContext";
 import { InventoryProvider } from "./contexts/InventoryContext";
@@ -60,140 +60,100 @@ interface AppProps {
 }
 
 const App = ({ queryClient, persister }: AppProps) => {
-  console.log("[App] Pulse: Component rendering... [VERSION: 2026-02-04-UX-FIX]");
-  // Log initial mount for debugging
-  // logSecurityEvent('APP_MOUNT', {
   return (
     <PersistQueryClientProvider
       client={queryClient}
-      persistOptions={{
-        persister,
-        dehydrateOptions: {
-          shouldDehydrateQuery: query => {
-            // Only persist cacheable queries
-            return query.state.status === 'success' && !query.meta?.skipPersist;
-          },
-        },
-      }}
+      persistOptions={{ persister }}
+      onSuccess={() => console.log("Query cache restored successfully")}
     >
-      <ErrorBoundary>
+      <TooltipProvider>
         <OfflineProvider>
           <AuthProvider>
             <InventoryProvider>
               <ShiftProvider>
-                <AutoBackupManager />
-                <TooltipProvider>
-                  <Toaster />
-                  <Sonner />
+                <BrowserRouter>
+                  <AutoBackupManager />
                   <OfflineBanner />
                   <PWAInstallPrompt />
                   <NotificationPermissionBanner />
-                  <BrowserRouter>
+                  <Toaster />
+                  <Sonner />
+                  <ConflictResolutionDialog />
+
+                  <Suspense fallback={<PageLoader />}>
                     <Routes>
+                      {/* Public Routes */}
                       <Route path="/login" element={<Login />} />
-                      <Route
-                        element={
-                          <ProtectedRoute>
-                            <DashboardLayout />
-                          </ProtectedRoute>
-                        }
-                      >
-                        <Route index element={<Suspense fallback={<PageLoader />}><Dashboard /></Suspense>} />
-                        <Route path="/analytics" element={<Suspense fallback={<PageLoader />}><Analytics /></Suspense>} />
-                        <Route path="/inventory" element={<Suspense fallback={<PageLoader />}><Inventory /></Suspense>} />
-                        <Route path="/sales" element={<Suspense fallback={<PageLoader />}><Sales /></Suspense>} />
-                        <Route path="/sales/new" element={<Suspense fallback={<PageLoader />}><NewSale /></Suspense>} />
-                        <Route path="/receipts" element={<Suspense fallback={<PageLoader />}><Receipts /></Suspense>} />
-                        <Route path="/reconciliation" element={<Suspense fallback={<PageLoader />}><CashReconciliation /></Suspense>} />
-                        <Route path="/users" element={<Suspense fallback={<PageLoader />}><Users /></Suspense>} />
-                        <Route path="/settings" element={<Suspense fallback={<PageLoader />}><Settings /></Suspense>} />
-                        <Route
-                          path="/reports"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "reports" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><Reports /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/print-history"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "reports" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><PrintHistory /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/refunds"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "reports" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><RefundApproval /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/suppliers"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "suppliers" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><Suppliers /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/shifts"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "shifts" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><ShiftManagement /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/expenses"
-                          element={
-                            <ProtectedRoute
-                              requiredPermission={{ action: "read", resource: "expenses" }}
-                            >
-                              <Suspense fallback={<PageLoader />}><Expenses /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/credit"
-                          element={
-                            <ProtectedRoute requiredRole="SUPER_ADMIN">
-                              <Suspense fallback={<PageLoader />}><CreditManagement /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route
-                          path="/training"
-                          element={
-                            <ProtectedRoute requiredRole="SUPER_ADMIN">
-                              <Suspense fallback={<PageLoader />}><Training /></Suspense>
-                            </ProtectedRoute>
-                          }
-                        />
-                        <Route path="/technical-guide" element={<Suspense fallback={<PageLoader />}><TechnicalGuide /></Suspense>} />
-                        <Route path="*" element={<Suspense fallback={<PageLoader />}><NotFound /></Suspense>} />
+
+                      {/* Protected Routes */}
+                      <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                        <Route path="/dashboard" element={
+                          <ErrorBoundary><Dashboard /></ErrorBoundary>
+                        } />
+                        <Route path="/inventory" element={
+                          <ErrorBoundary><Inventory /></ErrorBoundary>
+                        } />
+                        <Route path="/sales" element={
+                          <ErrorBoundary><Sales /></ErrorBoundary>
+                        } />
+                        <Route path="/sales/new" element={
+                          <ErrorBoundary><NewSale /></ErrorBoundary>
+                        } />
+                        <Route path="/sales/receipts" element={
+                          <ErrorBoundary><Receipts /></ErrorBoundary>
+                        } />
+                        <Route path="/sales/history" element={
+                          <ErrorBoundary><PrintHistory /></ErrorBoundary>
+                        } />
+                        <Route path="/sales/refunds" element={
+                          <ErrorBoundary><RefundApproval /></ErrorBoundary>
+                        } />
+                        <Route path="/reports/*" element={
+                          <ErrorBoundary><Reports /></ErrorBoundary>
+                        } />
+                        <Route path="/analytics" element={
+                          <ErrorBoundary><Analytics /></ErrorBoundary>
+                        } />
+                        <Route path="/users" element={
+                          <ErrorBoundary><Users /></ErrorBoundary>
+                        } />
+                        <Route path="/settings" element={
+                          <ErrorBoundary><Settings /></ErrorBoundary>
+                        } />
+                        <Route path="/suppliers" element={
+                          <ErrorBoundary><Suppliers /></ErrorBoundary>
+                        } />
+                        <Route path="/shifts" element={
+                          <ErrorBoundary><ShiftManagement /></ErrorBoundary>
+                        } />
+                        <Route path="/expenses" element={
+                          <ErrorBoundary><Expenses /></ErrorBoundary>
+                        } />
+                        <Route path="/cash-reconciliation" element={
+                          <ErrorBoundary><CashReconciliation /></ErrorBoundary>
+                        } />
+                        <Route path="/training" element={
+                          <ErrorBoundary><Training /></ErrorBoundary>
+                        } />
+                        <Route path="/credit" element={
+                          <ErrorBoundary><CreditManagement /></ErrorBoundary>
+                        } />
+                        <Route path="/technical-guide" element={
+                          <ErrorBoundary><TechnicalGuide /></ErrorBoundary>
+                        } />
                       </Route>
+
+                      {/* Catch-all */}
+                      <Route path="*" element={<NotFound />} />
                     </Routes>
-                  </BrowserRouter>
-                </TooltipProvider>
+                  </Suspense>
+                </BrowserRouter>
               </ShiftProvider>
             </InventoryProvider>
           </AuthProvider>
         </OfflineProvider>
-      </ErrorBoundary>
+      </TooltipProvider>
     </PersistQueryClientProvider>
   );
 };
