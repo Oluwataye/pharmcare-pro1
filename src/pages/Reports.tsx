@@ -24,7 +24,7 @@ import SalesReport from "@/components/reports/SalesReport";
 import DiscountReport from "@/components/reports/DiscountReport";
 import TransactionAuditLog from "@/components/reports/TransactionAuditLog";
 import ExpiringDrugsReport from "@/components/reports/ExpiringDrugsReport";
-import { AuditLogReport } from "@/components/reports/AuditLogReport";
+import AuditLogReport from "@/components/reports/AuditLogReport";
 import { ExpiryNotificationModal } from "@/components/reports/ExpiryNotificationModal";
 import StockAdjustmentReport from "@/components/reports/StockAdjustmentReport";
 import ProfitAndLossReport from "@/components/reports/ProfitAndLossReport";
