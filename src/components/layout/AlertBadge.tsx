@@ -96,8 +96,8 @@ const AlertBadge = () => {
                             >
                                 <div className="flex w-full justify-between items-start gap-2">
                                     <span className={`text-[10px] font-bold uppercase py-0.5 px-1.5 rounded ${alert.severity === 'high' ? "bg-red-100 text-red-700" :
-                                            alert.severity === 'critical' ? "bg-black text-white" :
-                                                "bg-amber-100 text-amber-700"
+                                        alert.severity === 'critical' ? "bg-black text-white" :
+                                            "bg-amber-100 text-amber-700"
                                         }`}>
                                         {alert.severity}
                                     </span>
@@ -115,7 +115,7 @@ const AlertBadge = () => {
                 <Button
                     variant="ghost"
                     className="w-full h-10 rounded-t-none text-xs font-bold text-primary hover:bg-primary/5"
-                    onClick={() => navigate('/reconciliation')}
+                    onClick={() => navigate('/cash-reconciliation')}
                 >
                     View All Reconciliation Logs
                 </Button>

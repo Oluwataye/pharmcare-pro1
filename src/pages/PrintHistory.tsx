@@ -230,7 +230,7 @@ const PrintHistory = () => {
           trend=""
           trendUp={true}
           onClick={() => { }}
-          route="/print-history"
+          route="/sales/history"
           colorScheme="primary"
           comparisonLabel="History period"
         />
@@ -241,7 +241,7 @@ const PrintHistory = () => {
           trend=""
           trendUp={true}
           onClick={() => { }}
-          route="/print-history"
+          route="/sales/history"
           colorScheme="success"
           comparisonLabel="Vs failures"
         />
@@ -252,7 +252,7 @@ const PrintHistory = () => {
           trend=""
           trendUp={false}
           onClick={() => { }}
-          route="/print-history"
+          route="/sales/history"
           colorScheme="danger"
           comparisonLabel="Critical errors"
         />
@@ -263,7 +263,7 @@ const PrintHistory = () => {
           trend=""
           trendUp={true}
           onClick={() => { }}
-          route="/print-history"
+          route="/sales/history"
           colorScheme="warning"
           comparisonLabel="Latency"
         />

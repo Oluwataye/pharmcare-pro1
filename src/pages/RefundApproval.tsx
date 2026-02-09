@@ -167,7 +167,7 @@ const RefundApproval = () => {
                     trend=""
                     trendUp={false}
                     onClick={() => setActiveTab('pending')}
-                    route="/refunds"
+                    route="/sales/refunds"
                     colorScheme="warning"
                     comparisonLabel="Awaiting review"
                 />
@@ -178,7 +178,7 @@ const RefundApproval = () => {
                     trend=""
                     trendUp={true}
                     onClick={() => setActiveTab('approved')}
-                    route="/refunds"
+                    route="/sales/refunds"
                     colorScheme="success"
                     comparisonLabel="Completed"
                 />
@@ -189,7 +189,7 @@ const RefundApproval = () => {
                     trend=""
                     trendUp={false}
                     onClick={() => setActiveTab('rejected')}
-                    route="/refunds"
+                    route="/sales/refunds"
                     colorScheme="danger"
                     comparisonLabel="Declined"
                 />
@@ -200,7 +200,7 @@ const RefundApproval = () => {
                     trend=""
                     trendUp={false}
                     onClick={() => { }}
-                    route="/refunds"
+                    route="/sales/refunds"
                     colorScheme="primary"
                     comparisonLabel="Approved amount"
                 />

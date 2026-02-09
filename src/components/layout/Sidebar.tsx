@@ -78,19 +78,19 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     {
       icon: Receipt,
       label: "Receipts",
-      path: "/receipts",
+      path: "/sales/receipts",
       condition: true
     },
     {
       icon: Printer,
       label: "Print History",
-      path: "/print-history",
+      path: "/sales/history",
       condition: canAccessReports()
     },
     {
       icon: NairaSign,
       label: "Refunds",
-      path: "/refunds",
+      path: "/sales/refunds",
       condition: canAccessReports()
     },
     {
@@ -108,7 +108,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     {
       icon: CheckCircle2,
       label: "Cash Reconciliation",
-      path: "/reconciliation",
+      path: "/cash-reconciliation",
       condition: canAccessReports()
     },
     {

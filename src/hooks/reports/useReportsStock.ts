@@ -155,7 +155,7 @@ export const useReportsInventoryStats = () => {
             // Fetch only necessary columns for stats
             const { data, error } = await supabase
                 .from('inventory')
-                .select('quantity, cost_price, price, min_quantity, category');
+                .select('quantity, cost_price, price, reorder_level, category');
 
             if (error) throw error;
             return (data || []) as any[];
