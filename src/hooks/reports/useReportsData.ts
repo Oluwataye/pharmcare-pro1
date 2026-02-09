@@ -7,15 +7,17 @@ export interface ReportFilters {
     startDate: string;
     endDate: string;
     branchId?: string;
+    page?: number;
+    pageSize?: number;
 }
 
 /**
- * Hook to fetch and cache sales data for reports.
- * Used by Sales Volume, P&L, and Audit reports to share a single cache.
+ * Hook to fetch and cache sales data for invoices/list view.
+ * Supports Pagination.
  */
-export const useReportsSales = ({ startDate, endDate, branchId }: ReportFilters) => {
+export const useReportsSales = ({ startDate, endDate, branchId, page, pageSize }: ReportFilters) => {
     return useQuery({
-        queryKey: ['report-sales', startDate, endDate, branchId],
+        queryKey: ['report-sales', startDate, endDate, branchId, page, pageSize],
         queryFn: async () => {
             let query = supabase
                 .from('sales' as any)
@@ -39,21 +41,67 @@ export const useReportsSales = ({ startDate, endDate, branchId }: ReportFilters)
             total,
             discount
           )
-        `)
-                .gte('date', startDate)
-                .lte('date', endDate);
+        `, { count: 'exact' });
+
+            query = query.gte('date', startDate).lte('date', endDate);
 
             if (branchId && branchId !== 'all') {
                 query = (query as any).eq('branch_id', branchId);
             }
 
-            const { data, error } = await query.order('date', { ascending: true }) as any;
+            // Apply sorting
+            query = query.order('date', { ascending: false });
+
+            // Apply Pagination if provided
+            if (page && pageSize) {
+                const from = (page - 1) * pageSize;
+                const to = from + pageSize - 1;
+                query = query.range(from, to);
+            }
+
+            const { data, error, count } = await query as any;
             if (error) throw error;
-            return (data || []) as any[];
+
+            return {
+                data: (data || []) as any[],
+                count: count || 0
+            };
         },
         staleTime: 1000 * 60 * 5, // 5 minutes cache
     });
 };
+
+/**
+ * Hook to fetch lightweight sales stats for Charts and Metrics.
+ * Fetches ALL records in range but only necessary columns.
+ */
+export const useReportsSalesStats = ({ startDate, endDate, branchId }: ReportFilters) => {
+    return useQuery({
+        queryKey: ['report-sales-stats', startDate, endDate, branchId],
+        queryFn: async () => {
+            let query = supabase
+                .from('sales' as any)
+                .select(`
+                  id,
+                  total,
+                  date,
+                  payment_methods,
+                  branch_id
+                `);
+
+            query = query.gte('date', startDate).lte('date', endDate);
+
+            if (branchId && branchId !== 'all') {
+                query = (query as any).eq('branch_id', branchId);
+            }
+
+            const { data, error } = await query;
+            if (error) throw error;
+            return (data || []) as any[];
+        },
+        staleTime: 1000 * 60 * 10, // 10 minutes cache
+    });
+}
 
 /**
  * Hook to fetch and cache expense data for reports.

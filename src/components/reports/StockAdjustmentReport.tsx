@@ -1,17 +1,10 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import {
     RefreshCcw,
-    ArrowUpRight,
-    ArrowDownRight,
-    Info,
     TrendingDown,
-    TrendingUp,
-    User,
-    AlertCircle
 } from "lucide-react";
-import { format, subDays } from "date-fns";
+import { format, subDays, parseISO } from "date-fns";
 import { Badge } from "@/components/ui/badge";
-import { NairaSign } from "@/components/icons/NairaSign";
 import { formatCurrency } from "@/lib/currency";
 
 import {
@@ -24,7 +17,7 @@ import {
 } from "@/components/reports/shared";
 import type { MetricCardData, ColumnDef, ExportColumn } from "@/components/reports/shared";
 import { useReportFilters } from "@/hooks/reports/useReportFilters";
-import { useReportsStockAdjustments } from "@/hooks/reports/useReportsStock";
+import { useReportsStockAdjustments, useReportsStockAdjustmentStats } from "@/hooks/reports/useReportsStock";
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip, Legend } from "recharts";
 
 const StockAdjustmentReport = () => {
@@ -35,16 +28,34 @@ const StockAdjustmentReport = () => {
         searchQuery: ''
     });
 
+    // Pagination
+    const [page, setPage] = useState(1);
+    const [pageSize, setPageSize] = useState(50);
+
+    const handleFiltersChange = (newFilters: any) => {
+        setFilters(newFilters);
+        setPage(1);
+    };
+
     // Data Fetching
-    const { data: adjustments = [], isLoading } = useReportsStockAdjustments({
-        startDate: filters.startDate || subDays(new Date(), 30).toISOString(),
-        endDate: filters.endDate || new Date().toISOString(),
-        searchQuery: filters.searchQuery
+    // 1. Paginated List
+    const { data: listData, isLoading: loadingList } = useReportsStockAdjustments({
+        startDate: filters.startDate!,
+        endDate: filters.endDate!,
+        searchQuery: filters.searchQuery,
+        page,
+        pageSize
     });
 
-    // Process Data
-    const processedData = useMemo(() => {
-        const stats = adjustments.reduce((acc, curr) => {
+    // 2. Stats Data (Lightweight, Full Range)
+    const { data: statsData = [], isLoading: loadingStats } = useReportsStockAdjustmentStats({
+        startDate: filters.startDate!,
+        endDate: filters.endDate!
+    });
+
+    // Process Stats
+    const processedStats = useMemo(() => {
+        const stats = statsData.reduce((acc: any, curr: any) => {
             const qtyChange = curr.quantity_change;
             const costPrice = curr.cost_price_at_time || 0;
             const sellPrice = curr.unit_price_at_time || 0;
@@ -76,77 +87,56 @@ const StockAdjustmentReport = () => {
 
         return {
             ...stats,
-            chartDataArray: Object.values(stats.chartData).sort((a: any, b: any) => new Date(a.date).getTime() - b.date).slice(-14) // Last 14 days with activity
+            chartDataArray: Object.values(stats.chartData).sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
         };
-    }, [adjustments]);
+    }, [statsData]);
+
+    const adjustments = listData?.data || [];
+    const totalCount = listData?.count || 0;
 
     // Metrics Configuration
     const metrics: MetricCardData[] = [
         {
             title: 'Total Adjustments',
-            value: adjustments.length,
+            value: totalCount.toString(), // Use total count from paginated query (matches filter)
             icon: RefreshCcw,
-            description: `${processedData.increases} Inc / ${processedData.decreases} Dec`,
+            description: `${processedStats.increases} Inc / ${processedStats.decreases} Dec (Global)`,
             colorScheme: 'blue'
         },
         {
             title: 'Cost Impact',
-            value: formatCurrency(processedData.totalCostImpact),
+            value: formatCurrency(processedStats.totalCostImpact),
             icon: TrendingDown,
             description: 'Net inventory value diff',
-            colorScheme: processedData.totalCostImpact >= 0 ? 'success' : 'rose'
-        },
-        {
-            title: 'Potential Revenue',
-            value: formatCurrency(processedData.totalSellImpact),
-            icon: TrendingUp,
-            description: 'Sales value difference',
-            colorScheme: processedData.totalSellImpact >= 0 ? 'success' : 'rose'
-        },
-        {
-            title: 'Net Value Diff',
-            value: formatCurrency(processedData.totalSellImpact - processedData.totalCostImpact),
-            icon: NairaSign,
-            description: 'Profit/Loss projection',
-            colorScheme: 'violet'
+            colorScheme: processedStats.totalCostImpact >= 0 ? 'success' : 'rose'
         }
     ];
 
-    // Table Columns
+    // Columns
     const columns: ColumnDef<any>[] = [
         {
-            key: 'created_at',
+            key: 'date',
             header: 'Date',
-            cell: (row) => format(new Date(row.created_at), 'MMM dd, HH:mm')
+            cell: (row) => <span className="text-xs font-mono">{format(new Date(row.created_at), 'MMM dd, HH:mm')}</span>
         },
         {
             key: 'product',
             header: 'Product',
             cell: (row) => (
                 <div className="flex flex-col">
-                    <span className="font-medium text-sm">{row.inventory.name}</span>
-                    <span className="text-[10px] text-muted-foreground uppercase">{row.inventory.sku}</span>
+                    <span className="font-medium text-sm">{row.inventory?.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{row.inventory?.sku || '-'}</span>
                 </div>
             )
         },
         {
             key: 'type',
             header: 'Type',
-            cell: (row) => {
-                const qtychange = row.quantity_change;
-                switch (row.type) {
-                    case 'ADDITION': return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200"><ArrowUpRight className="h-3 w-3 mr-1" /> Addition</Badge>;
-                    case 'RETURN': return <Badge variant="outline" className="bg-purple-50 text-purple-700 border-purple-200"><ArrowDownRight className="h-3 w-3 mr-1" /> Return</Badge>;
-                    case 'INITIAL': return <Badge variant="secondary"><Info className="h-3 w-3 mr-1" /> Initial</Badge>;
-                    default: return <Badge variant="outline" className={qtychange > 0 ? "text-blue-700 bg-blue-50 border-blue-200" : "text-orange-700 bg-orange-50 border-orange-200"}>
-                        <RefreshCcw className="h-3 w-3 mr-1" /> Adj {qtychange > 0 ? '(+)' : '(-)'}
-                    </Badge>;
-                }
-            }
+            cell: (row) => <Badge variant="outline" className="text-[10px]">{row.type}</Badge>
         },
         {
-            key: 'quantity_change',
-            header: 'Qty Diff',
+            key: 'change',
+            header: 'Change',
             cell: (row) => (
                 <span className={`font-bold ${row.quantity_change > 0 ? 'text-green-600' : 'text-red-600'}`}>
                     {row.quantity_change > 0 ? '+' : ''}{row.quantity_change}
@@ -155,68 +145,54 @@ const StockAdjustmentReport = () => {
         },
         {
             key: 'impact',
-            header: 'Cost Imact',
+            header: 'Cost Value',
             cell: (row) => {
-                const val = row.quantity_change * (row.cost_price_at_time || 0);
-                return <span className={val >= 0 ? 'text-green-600' : 'text-red-600'}>{formatCurrency(val)}</span>;
+                const impact = row.quantity_change * (row.cost_price_at_time || 0);
+                return <span className={`text-xs ${impact > 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(impact)}</span>;
             }
-        },
-        {
-            key: 'user',
-            header: 'User',
-            cell: (row) => <div className="flex items-center gap-1 text-xs"><User className="h-3 w-3" />{row.profiles?.name || 'System'}</div>
         },
         {
             key: 'reason',
             header: 'Reason',
-            cell: (row) => <span className="text-xs italic text-muted-foreground truncate max-w-[150px]" title={row.reason}>{row.reason || '-'}</span>
+            cell: (row) => <span className="text-xs text-muted-foreground truncate max-w-[150px] block">{row.reason || '-'}</span>
+        },
+        {
+            key: 'user',
+            header: 'User',
+            cell: (row) => <span className="text-xs">{row.profiles?.name || 'Unknown'}</span>
         }
     ];
 
-    // Export Data
     const exportData = adjustments.map(row => ({
         date: format(new Date(row.created_at), 'yyyy-MM-dd HH:mm'),
-        product: row.inventory.name,
-        sku: row.inventory.sku,
+        product: row.inventory?.name,
         type: row.type,
-        qty_change: row.quantity_change,
-        old_qty: row.previous_quantity,
-        new_qty: row.new_quantity,
-        cost_impact: row.quantity_change * (row.cost_price_at_time || 0),
-        user: row.profiles?.name || 'System',
-        reason: row.reason
+        change: row.quantity_change,
+        reason: row.reason,
+        user: row.profiles?.name
     }));
 
     const exportColumns: ExportColumn[] = [
         { key: 'date', header: 'Date' },
         { key: 'product', header: 'Product' },
-        { key: 'sku', header: 'SKU' },
         { key: 'type', header: 'Type' },
-        { key: 'qty_change', header: 'Qty Change' },
-        { key: 'new_qty', header: 'New Qty' },
-        { key: 'cost_impact', header: 'Cost Impact (₦)', formatter: (val) => formatCurrency(Number(val)) },
-        { key: 'user', header: 'User' },
-        { key: 'reason', header: 'Reason' }
+        { key: 'change', header: 'Qty Change' },
+        { key: 'reason', header: 'Reason' },
+        { key: 'user', header: 'User' }
     ];
 
     return (
         <ReportLayout
-            title="Stock Advertisements Report"
-            description="Track inventory changes, audits, and value adjustments"
+            title="Stock Adjustment Log"
+            description="Track manual inventory corrections and damages"
             icon={RefreshCcw}
-            isLoading={isLoading}
-            emptyState={adjustments.length === 0 ? (
-                <div className="text-center py-10">
-                    <AlertCircle className="h-10 w-10 text-muted-foreground mx-auto mb-2" />
-                    <p>No stock adjustments found</p>
-                </div>
-            ) : undefined}
-            onRefresh={() => window.location.reload()} // Simplified refresh as hook handles it
+            isLoading={loadingList || loadingStats}
+            onRefresh={() => window.location.reload()}
         >
             <ReportFiltersBar
                 reportId="stock-adjustment-report"
                 filters={filters}
-                onFiltersChange={setFilters}
+                onFiltersChange={handleFiltersChange}
                 availableFilters={{
                     dateRange: true,
                     search: true
@@ -225,27 +201,16 @@ const StockAdjustmentReport = () => {
 
             <ReportSummaryCards metrics={metrics} />
 
-            <ReportChartPanel
-                title="Adjustment Trends (Cost Value)"
-                description="Daily value of additions vs removals/returns"
-                chartType="bar"
-            >
+            <ReportChartPanel title="Adjustment Trends" description="Cost value of adjustments over time" chartType="bar">
                 <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={processedData.chartDataArray}>
+                    <BarChart data={processedStats.chartDataArray}>
                         <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                        <XAxis
-                            dataKey="date"
-                            tickFormatter={(val) => format(new Date(val), 'MMM dd')}
-                            fontSize={12}
-                        />
-                        <YAxis tickFormatter={(val) => `₦${val / 1000}k`} fontSize={12} />
-                        <Tooltip
-                            formatter={(val: number) => formatCurrency(val)}
-                            labelFormatter={(label) => format(new Date(label), 'MMM dd, yyyy')}
-                        />
+                        <XAxis dataKey="date" tickFormatter={(val) => format(parseISO(val), 'MMM dd')} fontSize={12} />
+                        <YAxis tickFormatter={(val) => `₦${(val / 1000).toFixed(0)}k`} fontSize={12} />
+                        <Tooltip formatter={(val: number) => formatCurrency(val)} labelFormatter={(label) => format(parseISO(label), 'MMM dd, yyyy')} />
                         <Legend />
-                        <Bar dataKey="additions" name="Additions (Value)" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                        <Bar dataKey="removals" name="Reductions (Value)" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                        <Bar dataKey="additions" name="Value Added" fill="#22c55e" stackId="a" />
+                        <Bar dataKey="removals" name="Value Removed" fill="#ef4444" stackId="a" />
                     </BarChart>
                 </ResponsiveContainer>
             </ReportChartPanel>
@@ -253,7 +218,11 @@ const StockAdjustmentReport = () => {
             <ReportDataTable
                 columns={columns}
                 data={adjustments}
-                pageSize={20}
+                totalRows={totalCount}
+                pageSize={pageSize}
+                currentPage={page}
+                onPageChange={setPage}
+                onPageSizeChange={setPageSize}
             />
 
             <ReportExportPanel
