@@ -30,3 +30,8 @@ vite.config.ts.timestamp-*
 # Supabase temp
 supabase/.temp/
 
+# Environment variables (CRITICAL: Never commit credentials)
+.env
+.env.*
+!.env.example
+
