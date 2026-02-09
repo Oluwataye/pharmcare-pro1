@@ -29,6 +29,8 @@ export const useReportsSales = ({ startDate, endDate, branchId }: ReportFilters)
           branch_id,
           payment_methods,
           customer_name,
+          created_by,
+          profiles:created_by(name),
           branches:branch_id(name),
           sales_items (
             quantity,
