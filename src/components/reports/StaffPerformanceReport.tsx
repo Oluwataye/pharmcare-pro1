@@ -1,291 +1,233 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table";
-import {
-    ChartContainer,
-    ChartTooltip,
-    ChartTooltipContent,
-    ChartLegend
-} from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, LineChart, Line, Tooltip, ScatterChart, Scatter, ZAxis } from "recharts";
-import { supabase } from "@/integrations/supabase/client";
-import { MetricCard } from "@/components/dashboard/MetricCard";
-import { Users, TrendingUp, AlertTriangle, ShoppingBag, BarChart2, Star, Target } from "lucide-react";
-import { format, subDays, parseISO } from "date-fns";
-import { Spinner } from "@/components/ui/spinner";
+    Star,
+    Target,
+    ShoppingBag,
+    AlertTriangle,
+    ShieldCheck,
+    TrendingUp
+} from "lucide-react";
+import { format, subDays } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
+import { formatCurrency } from "@/lib/currency";
+
+import {
+    ReportLayout,
+    ReportFiltersBar,
+    ReportSummaryCards,
+    ReportChartPanel,
+    ReportDataTable,
+    ReportExportPanel
+} from "@/components/reports/shared";
+import type { MetricCardData, ColumnDef, ExportColumn } from "@/components/reports/shared";
+import { useReportFilters } from "@/hooks/reports/useReportFilters";
+import { useReportsStaffPerformance } from "@/hooks/reports/useReportsStaff";
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, Tooltip, ScatterChart, Scatter, ZAxis } from "recharts";
+import { useReportBranches } from "@/hooks/reports/useReportsData";
 
 const StaffPerformanceReport = () => {
-    const [loading, setLoading] = useState(true);
-    const [staffStats, setStaffStats] = useState<any[]>([]);
-    const [timeframe, setTimeframe] = useState("30"); // days
+    // Filters
+    const { filters, setFilters } = useReportFilters('staff-performance-report', {
+        startDate: subDays(new Date(), 30).toISOString(),
+        endDate: new Date().toISOString(),
+        branchIds: ['all']
+    });
 
-    useEffect(() => {
-        fetchStaffPerformance();
-    }, [timeframe]);
+    // Data Fetching
+    const { data: branches = [] } = useReportBranches();
+    const { data: staffStats, isLoading } = useReportsStaffPerformance({
+        startDate: filters.startDate!,
+        endDate: filters.endDate!,
+        branchId: filters.branchIds?.[0] || 'all'
+    });
 
-    const fetchStaffPerformance = async () => {
-        try {
-            setLoading(true);
-            const startDate = subDays(new Date(), parseInt(timeframe)).toISOString();
+    // Metrics Configuration
+    const topPerformer = staffStats[0];
+    const avgATV = staffStats.length > 0
+        ? staffStats.reduce((a, b) => a + b.avgTransactionValue, 0) / staffStats.length
+        : 0;
+    const highRiskStaff = staffStats.filter(s => s.varianceFrequency > 20).length;
 
-            // 1. Fetch shifts to get variance data
-            const { data: shifts, error: shiftsError } = await supabase
-                .from('staff_shifts' as any)
-                .select('*')
-                .gte('created_at', startDate)
-                .eq('status', 'closed');
-
-            if (shiftsError) throw shiftsError;
-
-            // 2. Fetch sales for volume and ATV
-            const { data: sales, error: salesError } = await supabase
-                .from('sales' as any)
-                .select('cashier_id, cashier_name, total, date')
-                .gte('created_at', startDate);
-
-            if (salesError) throw salesError;
-
-            processPerformance(shifts || [], sales || []);
-        } catch (error) {
-            console.error("Error fetching staff performance:", error);
-        } finally {
-            setLoading(false);
+    const metrics: MetricCardData[] = [
+        {
+            title: 'Top Performer',
+            value: topPerformer?.name || "N/A",
+            icon: Target,
+            description: topPerformer ? formatCurrency(topPerformer.totalSales) : "No data",
+            colorScheme: 'success'
+        },
+        {
+            title: 'Avg Team ATV',
+            value: formatCurrency(avgATV),
+            icon: ShoppingBag,
+            description: 'Average Ticket Value',
+            colorScheme: 'blue'
+        },
+        {
+            title: 'Accuracy Alert',
+            value: highRiskStaff.toString(),
+            icon: AlertTriangle,
+            description: 'Staff with >20% variance freq',
+            colorScheme: highRiskStaff > 0 ? 'rose' : 'success'
+        },
+        {
+            title: 'Total Shifts',
+            value: staffStats.reduce((a, b) => a + b.shiftsCount, 0).toString(),
+            icon: ShieldCheck,
+            description: 'Shifts analyzed',
+            colorScheme: 'violet'
         }
-    };
+    ];
 
-    const processPerformance = (shifts: any[], sales: any[]) => {
-        const stats: Record<string, any> = {};
-
-        // Aggregate Sales Data
-        sales.forEach(sale => {
-            const id = sale.cashier_id || 'unknown';
-            if (!stats[id]) {
-                stats[id] = {
-                    id,
-                    name: sale.cashier_name || 'Store Staff',
-                    totalSales: 0,
-                    transactionCount: 0,
-                    variances: [],
-                    shifts: 0
-                };
+    // Table Columns
+    const columns: ColumnDef<any>[] = [
+        {
+            key: 'name',
+            header: 'Staff Member',
+            cell: (row) => (
+                <div className="flex flex-col">
+                    <span className="font-bold text-sm">{row.name}</span>
+                    <span className="text-[10px] text-muted-foreground">{row.shiftsCount} shifts completed</span>
+                </div>
+            )
+        },
+        {
+            key: 'totalSales',
+            header: 'Total Sales',
+            cell: (row) => <span className="font-medium">{formatCurrency(row.totalSales)}</span>
+        },
+        {
+            key: 'avgTransactionValue',
+            header: 'ATV',
+            cell: (row) => <span className="text-xs">{formatCurrency(row.avgTransactionValue)}</span>
+        },
+        {
+            key: 'netVariance',
+            header: 'Net Variance',
+            cell: (row) => (
+                <span className={`font-bold ${row.netVariance < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    {row.netVariance > 0 ? '+' : ''}{formatCurrency(row.netVariance)}
+                </span>
+            )
+        },
+        {
+            key: 'accuracy',
+            header: 'Accuracy Score',
+            cell: (row) => (
+                <div className="flex flex-col gap-1 w-[100px]">
+                    <div className="flex justify-between text-xs">
+                        <span className={row.accuracyScore > 80 ? 'text-green-600 font-bold' : 'text-orange-600 font-bold'}>
+                            {row.accuracyScore.toFixed(1)}%
+                        </span>
+                    </div>
+                    <Progress value={row.accuracyScore} className="h-1.5" />
+                </div>
+            )
+        },
+        {
+            key: 'status',
+            header: 'Rating',
+            cell: (row) => {
+                if (row.accuracyScore > 95) return <Badge variant="outline" className="bg-emerald-50 text-emerald-700 border-emerald-200 text-[10px]">Elite</Badge>;
+                if (row.accuracyScore > 85) return <Badge variant="outline" className="text-blue-600 border-blue-200 text-[10px]">Reliable</Badge>;
+                return <Badge variant="destructive" className="bg-rose-50 text-rose-700 border-rose-200 text-[10px]">Review</Badge>;
             }
-            stats[id].totalSales += Number(sale.total);
-            stats[id].transactionCount += 1;
-        });
+        }
+    ];
 
-        // Aggregate Shift/Variance Data
-        shifts.forEach(shift => {
-            const id = shift.staff_id;
-            if (!stats[id]) {
-                stats[id] = {
-                    id,
-                    name: shift.staff_name,
-                    totalSales: 0,
-                    transactionCount: 0,
-                    variances: [],
-                    shifts: 0
-                };
-            }
+    // Export Data
+    const exportData = staffStats.map(row => ({
+        name: row.name,
+        shifts: row.shiftsCount,
+        sales: row.totalSales,
+        transactions: row.transactionCount,
+        atv: row.avgTransactionValue,
+        variance: row.netVariance,
+        accuracy: row.accuracyScore,
+        rating: row.accuracyScore > 95 ? 'Elite' : row.accuracyScore > 85 ? 'Reliable' : 'Review Required'
+    }));
 
-            const expected = Number(shift.expected_cash_total) || 0;
-            const actual = Number(shift.actual_cash_counted) || 0;
-            const variance = actual - expected;
-
-            stats[id].variances.push(variance);
-            stats[id].shifts += 1;
-        });
-
-        const performanceArray = Object.values(stats).map((s: any) => {
-            const avgTransactionValue = s.transactionCount > 0 ? s.totalSales / s.transactionCount : 0;
-            const netVariance = s.variances.reduce((a: number, b: number) => a + b, 0);
-            const varianceFrequency = s.shifts > 0 ? (s.variances.filter((v: number) => Math.abs(v) > 50).length / s.shifts) * 100 : 0;
-            const accuracyScore = Math.max(0, 100 - (varianceFrequency * 0.5) - (Math.abs(netVariance) / 1000));
-
-            return {
-                ...s,
-                avgTransactionValue,
-                netVariance,
-                varianceFrequency,
-                accuracyScore
-            };
-        }).sort((a, b) => b.totalSales - a.totalSales);
-
-        setStaffStats(performanceArray);
-    };
-
-    if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <Spinner size="lg" />
-                <p className="text-muted-foreground animate-pulse">Analyzing staff performance metrics...</p>
-            </div>
-        );
-    }
+    const exportColumns: ExportColumn[] = [
+        { key: 'name', header: 'Staff Name' },
+        { key: 'shifts', header: 'Shifts' },
+        { key: 'sales', header: 'Sales (₦)', formatter: (val) => formatCurrency(Number(val)) },
+        { key: 'atv', header: 'ATV (₦)', formatter: (val) => formatCurrency(Number(val)) },
+        { key: 'variance', header: 'Variance (₦)', formatter: (val) => formatCurrency(Number(val)) },
+        { key: 'accuracy', header: 'Accuracy %', formatter: (val) => Number(val).toFixed(2) + '%' },
+        { key: 'rating', header: 'Rating' }
+    ];
 
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-muted/30 p-4 rounded-lg border">
-                <div>
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Star className="h-5 w-5 text-amber-500" />
-                        Staff Efficiency & Accuracy Analytics
-                    </h3>
-                    <p className="text-sm text-muted-foreground">Identifying performance trends and training opportunities.</p>
-                </div>
-                <div className="flex bg-background border rounded-md p-1">
-                    <button
-                        onClick={() => setTimeframe("7")}
-                        className={`px-3 py-1 text-xs rounded ${timeframe === "7" ? "bg-primary text-white" : "hover:bg-muted"}`}
-                    >7 Days</button>
-                    <button
-                        onClick={() => setTimeframe("30")}
-                        className={`px-3 py-1 text-xs rounded ${timeframe === "30" ? "bg-primary text-white" : "hover:bg-muted"}`}
-                    >30 Days</button>
-                    <button
-                        onClick={() => setTimeframe("90")}
-                        className={`px-3 py-1 text-xs rounded ${timeframe === "90" ? "bg-primary text-white" : "hover:bg-muted"}`}
-                    >90 Days</button>
-                </div>
+        <ReportLayout
+            title="Staff Efficiency & Accuracy Analytics"
+            description="Identifying performance trends and training opportunities"
+            icon={Star}
+            isLoading={isLoading}
+            emptyState={staffStats.length === 0 ? undefined : undefined}
+        >
+            <ReportFiltersBar
+                reportId="staff-performance-report"
+                filters={filters}
+                onFiltersChange={setFilters}
+                availableFilters={{
+                    dateRange: true,
+                    branch: true
+                }}
+                branches={branches}
+            />
+
+            <ReportSummaryCards metrics={metrics} />
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <ReportChartPanel
+                    title="Variance vs Performance Matrix"
+                    description="X: Sales Vol, Y: Cash Variance"
+                    chartType="scatter"
+                >
+                    <ResponsiveContainer width="100%" height="100%">
+                        <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis type="number" dataKey="totalSales" name="Sales Vol" unit="₦" tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`} fontSize={12} />
+                            <YAxis type="number" dataKey="netVariance" name="Variance" unit="₦" fontSize={12} />
+                            <ZAxis type="number" range={[50, 400]} />
+                            <Tooltip cursor={{ strokeDasharray: '3 3' }} formatter={(val: number) => formatCurrency(val)} />
+                            <Scatter name="Staff" data={staffStats} fill="#2563eb" />
+                        </ScatterChart>
+                    </ResponsiveContainer>
+                </ReportChartPanel>
+
+                <ReportChartPanel
+                    title="Efficiency Ranking"
+                    description="Staff ordered by Sales Volume"
+                    chartType="bar"
+                >
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={staffStats} layout="vertical" margin={{ left: 40 }}>
+                            <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                            <XAxis type="number" tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`} fontSize={10} />
+                            <YAxis dataKey="name" type="category" width={80} style={{ fontSize: '10px' }} />
+                            <Tooltip formatter={(val: number) => formatCurrency(val)} />
+                            <Bar dataKey="totalSales" fill="#818cf8" radius={[0, 4, 4, 0]} barSize={20} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ReportChartPanel>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <MetricCard
-                    title="Top Performer"
-                    value={staffStats[0]?.name || "N/A"}
-                    description={staffStats[0] ? `₦${staffStats[0].totalSales.toLocaleString()} Vol` : ""}
-                    icon={Target}
-                    colorScheme="success"
-                />
-                <MetricCard
-                    title="Avg Team ATV"
-                    value={`₦${(staffStats.reduce((a, b) => a + b.avgTransactionValue, 0) / (staffStats.length || 1)).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
-                    description="Average ticket size"
-                    icon={ShoppingBag}
-                    colorScheme="primary"
-                />
-                <MetricCard
-                    title="Accuracy Alert"
-                    value={staffStats.filter(s => s.varianceFrequency > 20).length.toString()}
-                    description="Staff with >20% variance frequency"
-                    icon={AlertTriangle}
-                    colorScheme="warning"
-                />
-            </div>
+            <ReportDataTable
+                columns={columns}
+                data={staffStats}
+                pageSize={20}
+                title="Performance Ranking"
+            />
 
-            <Card>
-                <CardHeader>
-                    <CardTitle>Staff Performance Ranking</CardTitle>
-                    <CardDescription>Based on sales volume and operational accuracy</CardDescription>
-                </CardHeader>
-                <CardContent className="p-0">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Staff Member</TableHead>
-                                <TableHead className="text-right">Total Sales</TableHead>
-                                <TableHead className="text-right">ATV</TableHead>
-                                <TableHead className="text-right">Net Variance</TableHead>
-                                <TableHead className="text-right">Accuracy Score</TableHead>
-                                <TableHead className="w-[150px]">Status</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {staffStats.length === 0 ? (
-                                <TableRow>
-                                    <TableCell colSpan={6} className="text-center py-10 text-muted-foreground">
-                                        No staff activity found for this period.
-                                    </TableCell>
-                                </TableRow>
-                            ) : (
-                                staffStats.map((staff) => (
-                                    <TableRow key={staff.id}>
-                                        <TableCell>
-                                            <div className="flex flex-col">
-                                                <span className="font-bold">{staff.name}</span>
-                                                <span className="text-[10px] text-muted-foreground">{staff.shifts} shifts completed</span>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell className="text-right font-mono text-sm">₦{staff.totalSales.toLocaleString()}</TableCell>
-                                        <TableCell className="text-right font-mono text-sm">₦{staff.avgTransactionValue.toLocaleString(undefined, { maximumFractionDigits: 0 })}</TableCell>
-                                        <TableCell className={`text-right font-mono text-sm ${staff.netVariance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                                            ₦{staff.netVariance.toLocaleString()}
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <div className="flex flex-col items-end gap-1">
-                                                <span className="text-xs font-bold">{staff.accuracyScore.toFixed(1)}%</span>
-                                                <Progress value={staff.accuracyScore} className="h-1 w-20" />
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            {staff.accuracyScore > 95 ? (
-                                                <Badge className="bg-emerald-50 text-emerald-700 border-emerald-200">Elite</Badge>
-                                            ) : staff.accuracyScore > 85 ? (
-                                                <Badge variant="outline" className="text-blue-600 border-blue-200">Reliable</Badge>
-                                            ) : (
-                                                <Badge variant="destructive" className="bg-rose-50 text-rose-700 border-rose-200">Review Required</Badge>
-                                            )}
-                                        </TableCell>
-                                    </TableRow>
-                                ))
-                            )}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-sm">Variance vs Performance Matrix</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="h-[250px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
-                                    <CartesianGrid />
-                                    <XAxis type="number" dataKey="totalSales" name="Sales Vol" unit="₦" tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`} />
-                                    <YAxis type="number" dataKey="netVariance" name="Variance" unit="₦" />
-                                    <ZAxis type="number" range={[50, 400]} />
-                                    <Tooltip cursor={{ strokeDasharray: '3 3' }} />
-                                    <Scatter name="Staff" data={staffStats} fill="#2563eb" />
-                                </ScatterChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <p className="text-[10px] text-muted-foreground mt-2 text-center">
-                            X-Axis: Sales Volume | Y-Axis: Net Cash Variance
-                        </p>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardHeader>
-                        <CardTitle className="text-sm">Staff Efficiency Ranking</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="h-[250px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={staffStats} layout="vertical">
-                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} />
-                                    <XAxis type="number" tickFormatter={(val) => `${(val / 1000).toFixed(0)}k`} />
-                                    <YAxis dataKey="name" type="category" width={80} style={{ fontSize: '10px' }} />
-                                    <Tooltip formatter={(val: number) => `₦${val.toLocaleString()}`} />
-                                    <Bar dataKey="totalSales" fill="#818cf8" radius={[0, 4, 4, 0]} />
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </CardContent>
-                </Card>
-            </div>
-        </div>
+            <ReportExportPanel
+                reportName="Staff Performance Report"
+                data={exportData}
+                columns={exportColumns}
+                filters={filters}
+                formats={['csv', 'print']}
+            />
+        </ReportLayout>
     );
 };
 
