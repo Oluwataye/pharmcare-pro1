@@ -26,13 +26,13 @@ export const useReportsSales = ({ startDate, endDate, branchId, page, pageSize }
           total,
           discount,
           manual_discount,
-          date,
+          date:created_at,
           created_at,
           branch_id,
           payment_methods,
           customer_name,
-          created_by,
-          profiles:created_by(name),
+          cashier_id,
+          profiles:cashier_id(name),
           branches:branch_id(name),
           sales_items (
             quantity,
@@ -43,14 +43,14 @@ export const useReportsSales = ({ startDate, endDate, branchId, page, pageSize }
           )
         `, { count: 'exact' });
 
-            query = query.gte('date', startDate).lte('date', endDate);
+            query = query.gte('created_at', startDate).lte('created_at', endDate);
 
             if (branchId && branchId !== 'all') {
                 query = (query as any).eq('branch_id', branchId);
             }
 
             // Apply sorting
-            query = query.order('date', { ascending: false });
+            query = query.order('created_at', { ascending: false });
 
             // Apply Pagination if provided
             if (page && pageSize) {
@@ -84,12 +84,12 @@ export const useReportsSalesStats = ({ startDate, endDate, branchId }: ReportFil
                 .select(`
                   id,
                   total,
-                  date,
+                  date:created_at,
                   payment_methods,
                   branch_id
                 `);
 
-            query = query.gte('date', startDate).lte('date', endDate);
+            query = query.gte('created_at', startDate).lte('created_at', endDate);
 
             if (branchId && branchId !== 'all') {
                 query = (query as any).eq('branch_id', branchId);

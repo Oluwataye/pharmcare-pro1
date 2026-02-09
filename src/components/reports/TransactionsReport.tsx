@@ -225,7 +225,7 @@ const TransactionsReport = () => {
       cell: (row) => (
         <div className="flex items-center gap-2">
           <Receipt className="h-3 w-3 text-muted-foreground" />
-          <span className="font-mono text-xs">{row.id.slice(0, 8)}...</span>
+          <span className="font-mono text-xs">{row.id?.slice(0, 8)}...</span>
         </div>
       )
     },

@@ -86,7 +86,7 @@ export const ReportDataTable = <T extends Record<string, any>>({
     // Client-side pagination if no onPageChange provided
     const displayData = onPageChange
         ? data
-        : data.slice((effectivePage - 1) * effectivePageSize, effectivePage * effectivePageSize);
+        : (data || []).slice((effectivePage - 1) * effectivePageSize, effectivePage * effectivePageSize);
 
     const handlePageChange = (newPage: number) => {
         if (onPageChange) {

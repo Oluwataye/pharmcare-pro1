@@ -151,6 +151,15 @@ const InventoryReport = () => {
       )
     },
     {
+      key: 'id_short',
+      header: 'ID',
+      cell: (row) => (
+        <span className="font-mono text-[10px] text-muted-foreground">
+          {(row.id || '').slice(0, 8)}
+        </span>
+      )
+    },
+    {
       key: 'category',
       header: 'Category',
       cell: (row) => <Badge variant="outline" className="text-[10px]">{row.category || 'Uncategorized'}</Badge>
