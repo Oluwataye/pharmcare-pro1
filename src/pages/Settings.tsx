@@ -28,10 +28,13 @@ import { DataManagement } from "@/components/settings/DataManagement";
 import { SecuritySettings } from "@/components/settings/SecuritySettings";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Wrench, ShieldCheck, Database, FileText } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 const Settings = () => {
   const { toast } = useToast();
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const { config: systemConfig, updateConfig: updateSystemConfig } = useSystemConfig();
@@ -272,6 +275,9 @@ const Settings = () => {
           <TabsTrigger value="privacy">Privacy</TabsTrigger>
           <TabsTrigger value="security">Account Security</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
+          {user?.role === "SUPER_ADMIN" && (
+            <TabsTrigger value="maintenance">Maintenance</TabsTrigger>
+          )}
         </TabsList>
         <TabsContent value="store">
           <Card>
@@ -535,6 +541,62 @@ const Settings = () => {
         <TabsContent value="notifications">
           <NotificationSettings />
         </TabsContent>
+
+        {user?.role === "SUPER_ADMIN" && (
+          <TabsContent value="maintenance">
+            <Card className="border-destructive/20 shadow-sm">
+              <CardHeader className="bg-destructive/5">
+                <div className="flex items-center gap-2">
+                  <Wrench className="h-5 w-5 text-destructive" />
+                  <CardTitle>System Maintenance & Repair</CardTitle>
+                </div>
+                <CardDescription>
+                  Critical tools for database infrastructure repair and recovery.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="pt-6 space-y-6">
+                <div className="flex flex-col md:flex-row gap-6">
+                  <div className="flex-1 space-y-4 p-4 border rounded-lg bg-card hover:border-primary/50 transition-colors cursor-pointer" onClick={() => navigate('/technical-guide')}>
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-primary/10 rounded-full">
+                        <FileText className="h-5 w-5 text-primary" />
+                      </div>
+                      <h4 className="font-bold">Technical Repair Guide</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Access the one-click SQL recovery script and step-by-step instructions to fix "Infrastructure Repair Required" errors.
+                    </p>
+                    <Button variant="link" className="p-0 h-auto text-primary font-bold">Open Technical Guide →</Button>
+                  </div>
+
+                  <div className="flex-1 space-y-4 p-4 border rounded-lg bg-card">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2 bg-green-500/10 rounded-full">
+                        <ShieldCheck className="h-5 w-5 text-green-600" />
+                      </div>
+                      <h4 className="font-bold">Infrastructure Audit</h4>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Run a diagnostic check on your local database sync and online cloud connection.
+                    </p>
+                    <Button variant="outline" size="sm" className="w-full" disabled>Coming Soon</Button>
+                  </div>
+                </div>
+
+                <div className="p-4 bg-muted/30 rounded-lg border border-dashed border-muted-foreground/30">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Database className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm font-semibold text-muted-foreground uppercase tracking-tight">System Identity</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-xs font-mono text-muted-foreground">
+                    <div>PROJECT_ID: ucbmifox...</div>
+                    <div>VERSION: {process.env.NODE_ENV === 'production' ? '2.0.4-ux-hardened' : 'DEV-LOCAL'}</div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        )}
       </Tabs>
 
       <footer className="mt-8 pt-4 border-t text-center text-sm text-muted-foreground">
