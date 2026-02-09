@@ -72,9 +72,21 @@ const Receipts = () => {
       setLoading(true);
       // Fetch from sales table instead of receipts table
       // We join with sales_items to get the count
-      const { data, error } = await supabase
+      let query = supabase
         .from('sales')
-        .select('*, sales_items(count)')
+        .select('*, sales_items(count)');
+
+      // STRICT ACCESS CONTROL:
+      // Non-admins can ONLY see their own receipts.
+      if (user?.role !== 'SUPER_ADMIN' && user?.role !== 'ADMIN') {
+        if (user?.id) {
+          query = query.eq('cashier_id', user.id);
+        } else {
+          query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+        }
+      }
+
+      const { data, error } = await query
         .order('created_at', { ascending: false });
 
       if (error) throw error;

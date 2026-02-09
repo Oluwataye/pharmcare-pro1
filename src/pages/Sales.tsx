@@ -43,8 +43,8 @@ const Sales = () => {
   const fetchSales = useCallback(async () => {
     setIsLoading(true);
     try {
-      const { data: salesData, error: salesError } = await (supabase
-        .from('sales' as any) as any)
+      let query = supabase
+        .from('sales' as any)
         .select(`
             id,
             total,
@@ -62,7 +62,20 @@ const Sales = () => {
             transaction_id,
             shift_name,
             staff_role
-          `)
+          `);
+
+      // STRICT ACCESS CONTROL:
+      // Non-admins can ONLY see their own sales.
+      if (user?.role !== 'SUPER_ADMIN' && user?.role !== 'ADMIN') {
+        if (user?.id) {
+          query = query.eq('cashier_id', user.id);
+        } else {
+          // Fallback: If no user ID, return nothing (shouldn't happen if auth guard works)
+          query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+        }
+      }
+
+      const { data: salesData, error: salesError } = await query
         .order('created_at', { ascending: false });
 
       if (salesError) throw salesError;

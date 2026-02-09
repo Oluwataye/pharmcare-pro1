@@ -83,8 +83,20 @@ const PrintHistory = () => {
           sales:sale_id (
             transaction_id
           )
-        `)
-        .order('created_at', { ascending: false });
+        `);
+
+      // STRICT ACCESS CONTROL:
+      // Non-admins can ONLY see their own print history.
+      if (user?.role !== 'SUPER_ADMIN' && user?.role !== 'ADMIN') {
+        if (user?.id) {
+          query = query.eq('cashier_id', user.id); // Assuming print_analytics has cashier_id or joining sales to check
+          // Note: The print_analytics table definition in types.ts DOES have cashier_id (lines 202, 219, 236), so this is safe.
+        } else {
+          query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+        }
+      }
+
+      query = query.order('created_at', { ascending: false });
 
       // Apply filters
       if (filters.startDate) {
