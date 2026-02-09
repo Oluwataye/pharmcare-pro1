@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useState } from "react";
 import { User, Activity, Clock } from "lucide-react";
 import { format } from "date-fns";
 
@@ -15,14 +15,24 @@ import { useReportsAuditLogs } from "@/hooks/reports/useReportsAudit";
 const UserAuditReport = () => {
   const { filters, setFilters } = useReportFilters('user-audit-report', {
     searchQuery: '',
-    startDate: undefined, // Default to last 24h/limit if undefined? The hook handles filtering logic
-    limit: 50 // Default view limit
   });
 
-  const { data: logs = [], isLoading } = useReportsAuditLogs({
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
+  const handleFiltersChange = (newFilters: any) => {
+    setFilters(newFilters);
+    setPage(1);
+  };
+
+  const { data, isLoading } = useReportsAuditLogs({
     ...filters,
-    limit: 100 // Fetch a bit more for the table
+    page,
+    pageSize
   });
+
+  const logs = data?.data || [];
+  const totalCount = data?.count || 0;
 
   // Columns
   const columns: ColumnDef<any>[] = [
@@ -93,7 +103,7 @@ const UserAuditReport = () => {
       <ReportFiltersBar
         reportId="user-audit-report"
         filters={filters}
-        onFiltersChange={setFilters}
+        onFiltersChange={handleFiltersChange}
         availableFilters={{
           search: true
         }}
@@ -102,11 +112,15 @@ const UserAuditReport = () => {
       <ReportDataTable
         columns={columns}
         data={logs}
-        pageSize={20}
+        totalRows={totalCount}
+        pageSize={pageSize}
+        currentPage={page}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
       />
 
       <ReportExportPanel
-        reportName="User Audit Report"
+        reportName="User Audit Report (Page)"
         data={exportData}
         columns={exportColumns}
         filters={filters}

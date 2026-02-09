@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useState } from "react";
 import { FileText, DollarSign } from "lucide-react";
 import { format } from "date-fns";
 
@@ -15,15 +15,26 @@ import { formatCurrency } from "@/lib/currency";
 
 const TransactionAuditLog = () => {
   const { filters, setFilters } = useReportFilters('transaction-audit-log', {
-    searchQuery: '',
-    limit: 50
+    searchQuery: ''
   });
 
-  const { data: logs = [], isLoading } = useReportsAuditLogs({
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(50);
+
+  const handleFiltersChange = (newFilters: any) => {
+    setFilters(newFilters);
+    setPage(1);
+  };
+
+  const { data, isLoading } = useReportsAuditLogs({
     ...filters,
-    eventTypes: ['SALE_COMPLETED', 'REFUND_PROCESSED', 'EXPENSE_RECORDED', 'PAYMENT_RECEIVED'], // Filter for transaction related events
-    limit: 100
+    eventTypes: ['SALE_COMPLETED', 'REFUND_PROCESSED', 'EXPENSE_RECORDED', 'PAYMENT_RECEIVED'],
+    page,
+    pageSize
   });
+
+  const logs = data?.data || [];
+  const totalCount = data?.count || 0;
 
   const columns: ColumnDef<any>[] = [
     {
@@ -50,7 +61,6 @@ const TransactionAuditLog = () => {
       key: 'amount',
       header: 'Amount',
       cell: (row) => {
-        // Try to extract amount from details if available
         const det = typeof row.details === 'string' ? JSON.parse(row.details || '{}') : row.details;
         const amt = det?.amount || det?.total || 0;
         return amt ? <span className="font-mono">{formatCurrency(amt)}</span> : <span className="text-muted-foreground">-</span>;
@@ -92,7 +102,7 @@ const TransactionAuditLog = () => {
       <ReportFiltersBar
         reportId="transaction-audit-log"
         filters={filters}
-        onFiltersChange={setFilters}
+        onFiltersChange={handleFiltersChange}
         availableFilters={{
           search: true
         }}
@@ -101,11 +111,15 @@ const TransactionAuditLog = () => {
       <ReportDataTable
         columns={columns}
         data={logs}
-        pageSize={20}
+        totalRows={totalCount}
+        pageSize={pageSize}
+        currentPage={page}
+        onPageChange={setPage}
+        onPageSizeChange={setPageSize}
       />
 
       <ReportExportPanel
-        reportName="Transaction Audit Log"
+        reportName="Transaction Audit Log (Page)"
         data={exportData}
         columns={exportColumns}
         filters={filters}
