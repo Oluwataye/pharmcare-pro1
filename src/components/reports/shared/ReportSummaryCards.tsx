@@ -30,7 +30,7 @@ export const ReportSummaryCards: React.FC<ReportSummaryCardsProps> = ({
     className = ''
 }) => {
     // Enforce max cards limit
-    const displayMetrics = metrics.slice(0, maxCards);
+    const displayMetrics = (metrics || []).slice(0, maxCards);
 
     if (isLoading) {
         return (

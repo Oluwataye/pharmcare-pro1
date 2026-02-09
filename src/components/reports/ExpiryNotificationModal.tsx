@@ -25,10 +25,10 @@ export const ExpiryNotificationModal = ({
   onViewReport,
 }: ExpiryNotificationModalProps) => {
   const { getExpiringItems } = useInventory();
-  
+
   // Get items expiring in the next 30 days (critical)
   const criticalItems = getExpiringItems(30);
-  
+
   return (
     <AlertDialog open={open} onOpenChange={onOpenChange}>
       <AlertDialogContent className="max-w-[500px]">
@@ -46,7 +46,7 @@ export const ExpiryNotificationModal = ({
                 </p>
                 <div className="max-h-[200px] overflow-y-auto border rounded-md p-2">
                   <ul className="space-y-1">
-                    {criticalItems.slice(0, 5).map((item) => (
+                    {(criticalItems || []).slice(0, 5).map((item) => (
                       <li key={item.id} className="text-sm">
                         <span className="font-medium">{item.name}</span> - Expires on{" "}
                         <span className="text-red-600 font-medium">
@@ -54,7 +54,7 @@ export const ExpiryNotificationModal = ({
                         </span>
                       </li>
                     ))}
-                    {criticalItems.length > 5 && (
+                    {(criticalItems?.length || 0) > 5 && (
                       <li className="text-sm text-muted-foreground">
                         And {criticalItems.length - 5} more...
                       </li>

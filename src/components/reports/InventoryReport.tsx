@@ -92,7 +92,7 @@ const InventoryReport = () => {
       categoryStats: {} as Record<string, any>
     });
 
-    const categoryData = Object.values(metrics.categoryStats)
+    const categoryData = Object.values(metrics.categoryStats || {})
       .sort((a: any, b: any) => b.value - a.value)
       .slice(0, 8);
 

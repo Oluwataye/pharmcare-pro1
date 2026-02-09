@@ -195,8 +195,8 @@ const Sales = () => {
   const totalDiscounts = filteredSales.reduce((sum, sale) => sum + (sale.discount || 0), 0);
 
   // Pagination logic
-  const totalPages = Math.ceil(filteredSales.length / itemsPerPage);
-  const paginatedSales = filteredSales.slice(
+  const totalPages = Math.ceil((filteredSales?.length || 0) / itemsPerPage);
+  const paginatedSales = (filteredSales || []).slice(
     (currentPage - 1) * itemsPerPage,
     currentPage * itemsPerPage
   );

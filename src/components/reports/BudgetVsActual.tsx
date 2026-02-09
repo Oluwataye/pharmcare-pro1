@@ -299,7 +299,7 @@ const BudgetVsActual = () => {
                     chartType="bar"
                 >
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={comparisonData.slice(0, 10)} layout="vertical" margin={{ left: 20 }}>
+                        <BarChart data={(comparisonData || []).slice(0, 10)} layout="vertical" margin={{ left: 20 }}>
                             <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
                             <XAxis type="number" tickFormatter={(val) => `₦${(val / 1000).toFixed(0)}k`} />
                             <YAxis dataKey="category" type="category" width={100} />
@@ -307,7 +307,7 @@ const BudgetVsActual = () => {
                             <Legend />
                             <Bar dataKey="budget" name="Budget" fill="#94a3b8" radius={[0, 4, 4, 0]} />
                             <Bar dataKey="actual" name="Actual" radius={[0, 4, 4, 0]}>
-                                {comparisonData.slice(0, 10).map((entry, index) => (
+                                {(comparisonData || []).slice(0, 10).map((entry, index) => (
                                     <Cell
                                         key={`cell-${index}`}
                                         fill={entry.status === 'on-track' ? '#10b981' : '#ef4444'}
