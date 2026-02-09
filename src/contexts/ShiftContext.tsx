@@ -40,6 +40,7 @@ interface ShiftContextType {
     adminResumeShift: (shiftId: string) => Promise<void>;
     adminEndShift: (shiftId: string, actualCash: number, staffId: string, startTime: string, notes?: string) => Promise<void>;
     refreshShifts: () => Promise<void>;
+    fetchShiftTotals: (shiftId: string) => Promise<{ cash: number, pos: number, transfer: number, total: number }>;
 }
 
 const ShiftContext = createContext<ShiftContextType | undefined>(undefined);
@@ -359,6 +360,41 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         localStorage.removeItem('active_staff_shift');
     };
 
+    const fetchShiftTotals = async (shiftId: string) => {
+        try {
+            const { data, error } = await supabase
+                .from('sales')
+                .select('total, payment_methods')
+                .eq('shift_id', shiftId);
+
+            if (error) throw error;
+
+            let cash = 0;
+            let pos = 0;
+            let transfer = 0;
+            let total = 0;
+
+            (data || []).forEach(sale => {
+                total += Number(sale.total);
+                const payments = (sale as any).payment_methods;
+                if (Array.isArray(payments)) {
+                    payments.forEach((p: any) => {
+                        if (p.mode === 'cash') cash += Number(p.amount);
+                        else if (p.mode === 'pos') pos += Number(p.amount);
+                        else if (p.mode === 'transfer') transfer += Number(p.amount);
+                    });
+                } else {
+                    cash += Number(sale.total);
+                }
+            });
+
+            return { cash, pos, transfer, total };
+        } catch (error) {
+            console.error('[ShiftContext] Error fetching shift totals:', error);
+            return { cash: 0, pos: 0, transfer: 0, total: 0 };
+        }
+    };
+
     const adminEndShift = async (shiftId: string, actualCash: number, staffId: string, startTime: string, notes?: string, varianceReason?: string) => {
         if (!isOnline) {
             setActiveStaffShifts(prev => prev.filter(s => s.id !== shiftId));
@@ -494,7 +530,8 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
             adminPauseShift,
             adminResumeShift,
             adminEndShift,
-            refreshShifts
+            refreshShifts,
+            fetchShiftTotals
         }}>
             {children}
         </ShiftContext.Provider>

@@ -19,9 +19,10 @@ import { AlertCircle, CheckCircle2, Wallet, CreditCard, Landmark, ShoppingBag } 
 import { Separator } from "@/components/ui/separator";
 
 export const ShiftStatusHeader = () => {
-    const { activeShift, startShift, pauseShift, resumeShift, endShift, isLoading } = useShift();
+    const { activeShift, startShift, pauseShift, resumeShift, endShift, isLoading, fetchShiftTotals } = useShift();
     const [isOpening, setIsOpening] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
+    const [isFetchingTotals, setIsFetchingTotals] = useState(false);
     const [cash, setCash] = useState("");
 
     const handleStart = async () => {
@@ -34,18 +35,19 @@ export const ShiftStatusHeader = () => {
     const [expectedSummary, setExpectedSummary] = useState<{ cash: number, pos: number, transfer: number, total: number } | null>(null);
 
     useEffect(() => {
-        if (isClosing && activeShift) {
-            // In a real scenario, we might want to refresh these from the DB
-            // for the most accurate current state if the shift has been long.
-            // For now we use what's in the activeShift object which is updated by sales.
-            setExpectedSummary({
-                cash: activeShift.expected_cash_total || 0,
-                pos: activeShift.expected_pos_total || 0,
-                transfer: activeShift.expected_transfer_total || 0,
-                total: activeShift.expected_sales_total || 0
-            });
-        }
-    }, [isClosing, activeShift]);
+        const loadTotals = async () => {
+            if (isClosing && activeShift) {
+                setIsFetchingTotals(true);
+                try {
+                    const totals = await fetchShiftTotals(activeShift.id);
+                    setExpectedSummary(totals);
+                } finally {
+                    setIsFetchingTotals(false);
+                }
+            }
+        };
+        loadTotals();
+    }, [isClosing, activeShift, fetchShiftTotals]);
 
     // Calculate variance
     const variance = (parseFloat(cash) || 0) - ((activeShift?.opening_cash || 0) + (expectedSummary?.cash || 0));
@@ -145,7 +147,12 @@ export const ShiftStatusHeader = () => {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="py-2 space-y-4">
-                        <div className="bg-muted/30 p-3 rounded-lg border space-y-2">
+                        <div className="bg-muted/30 p-3 rounded-lg border space-y-2 relative">
+                            {isFetchingTotals && (
+                                <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10 rounded-lg">
+                                    <Clock className="h-4 w-4 animate-spin text-primary" />
+                                </div>
+                            )}
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground flex items-center gap-1">
                                     <Wallet className="h-3 w-3" /> Opening Cash:
@@ -156,24 +163,24 @@ export const ShiftStatusHeader = () => {
                                 <span className="text-muted-foreground flex items-center gap-1">
                                     <ShoppingBag className="h-3 w-3" /> Cash Sales:
                                 </span>
-                                <span className="text-primary font-medium">₦{(activeShift?.expected_cash_total || 0).toLocaleString()}</span>
+                                <span className="text-primary font-medium">₦{(expectedSummary?.cash || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground flex items-center gap-1">
                                     <CreditCard className="h-3 w-3" /> Expected POS:
                                 </span>
-                                <span>₦{(activeShift?.expected_pos_total || 0).toLocaleString()}</span>
+                                <span>₦{(expectedSummary?.pos || 0).toLocaleString()}</span>
                             </div>
                             <div className="flex justify-between text-sm">
                                 <span className="text-muted-foreground flex items-center gap-1">
                                     <Landmark className="h-3 w-3" /> Expected Transfer:
                                 </span>
-                                <span>₦{(activeShift?.expected_transfer_total || 0).toLocaleString()}</span>
+                                <span>₦{(expectedSummary?.transfer || 0).toLocaleString()}</span>
                             </div>
                             <Separator className="my-1" />
                             <div className="flex justify-between text-sm font-bold bg-primary/5 p-1 rounded">
                                 <span>Total Expected in Drawer:</span>
-                                <span>₦{((activeShift?.opening_cash || 0) + (activeShift?.expected_cash_total || 0)).toLocaleString()}</span>
+                                <span>₦{((activeShift?.opening_cash || 0) + (expectedSummary?.cash || 0)).toLocaleString()}</span>
                             </div>
                         </div>
 
