@@ -1,6 +1,8 @@
-
-import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { useMemo } from 'react';
+import { Calculator, TrendingUp, TrendingDown, Wallet, Receipt, PieChart as PieChartIcon } from 'lucide-react';
+import { NairaSign } from '@/components/icons/NairaSign';
+import { format, startOfMonth, endOfMonth, parseISO } from 'date-fns';
+import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Tooltip } from 'recharts';
 import {
     Table,
     TableBody,
@@ -8,59 +10,61 @@ import {
     TableHead,
     TableHeader,
     TableRow,
-} from "@/components/ui/table";
+} from '@/components/ui/table';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
 import {
-    ChartContainer,
-    ChartTooltip,
-    ChartTooltipContent,
-    ChartLegend
-} from "@/components/ui/chart";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, CartesianGrid, PieChart, Pie, Cell, Legend, Tooltip } from "recharts";
-import { MetricCard } from "@/components/dashboard/MetricCard";
-import { TrendingUp, TrendingDown, Wallet, Calculator, ArrowRight, Receipt, FileDown, PieChart as PieChartIcon } from "lucide-react";
-import { NairaSign } from "@/components/icons/NairaSign";
-import { format, startOfMonth, endOfMonth, parseISO } from "date-fns";
-import { Spinner } from "@/components/ui/spinner";
-import { Badge } from "@/components/ui/badge";
-import { Separator } from "@/components/ui/separator";
-import { Button } from "@/components/ui/button";
-import { exportToCSV } from "@/lib/exportUtils";
-import { useReportsSales, useReportsExpenses, useReportBranches } from "@/hooks/reports/useReportsData";
+    ReportLayout,
+    ReportFiltersBar,
+    ReportSummaryCards,
+    ReportChartPanel,
+    ReportExportPanel
+} from '@/components/reports/shared';
+import type { MetricCardData, ExportColumn } from '@/components/reports/shared';
+import { useReportFilters } from '@/hooks/reports/useReportFilters';
+import { useReportsSales, useReportsExpenses, useReportBranches } from '@/hooks/reports/useReportsData';
 
 const COLORS = ['#2563eb', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#ec4899', '#06b6d4'];
 
 const ProfitAndLossReport = () => {
-    const [dateRange, setDateRange] = useState({
-        start: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
-        end: format(endOfMonth(new Date()), 'yyyy-MM-dd')
+    // Initialize filters with persistence
+    const { filters, setFilters } = useReportFilters('pnl-report', {
+        startDate: format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+        endDate: format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+        branchIds: ['all']
     });
-    const [selectedBranch, setSelectedBranch] = useState<string>('all');
 
-    // Use unified hooks
+    // Fetch data using shared hooks
     const { data: branches = [] } = useReportBranches();
     const { data: sales, isLoading: salesLoading } = useReportsSales({
-        startDate: dateRange.start,
-        endDate: dateRange.end,
-        branchId: selectedBranch
+        startDate: filters.startDate || format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+        endDate: filters.endDate || format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+        branchId: filters.branchIds?.[0] || 'all'
     });
     const { data: expenses, isLoading: expensesLoading } = useReportsExpenses({
-        startDate: dateRange.start,
-        endDate: dateRange.end,
-        branchId: selectedBranch
+        startDate: filters.startDate || format(startOfMonth(new Date()), 'yyyy-MM-dd'),
+        endDate: filters.endDate || format(endOfMonth(new Date()), 'yyyy-MM-dd'),
+        branchId: filters.branchIds?.[0] || 'all'
     });
 
     const loading = salesLoading || expensesLoading;
 
-    const data = useMemo(() => {
+    // Calculate P&L data (FINANCIAL LOGIC - DO NOT MODIFY)
+    const { data, chartData, pieData, exportData, statementData } = useMemo(() => {
         if (!sales || !expenses) return {
-            revenue: 0,
-            cogs: 0,
-            grossProfit: 0,
-            expenses: 0,
-            netProfit: 0,
-            expenseBreakdown: [],
-            branchDistribution: [],
-            recentTransactions: []
+            data: {
+                revenue: 0,
+                cogs: 0,
+                grossProfit: 0,
+                expenses: 0,
+                netProfit: 0,
+                expenseBreakdown: [],
+                branchDistribution: []
+            },
+            chartData: [],
+            pieData: [],
+            exportData: [],
+            statementData: []
         };
 
         let revenue = 0;
@@ -99,167 +103,163 @@ const ProfitAndLossReport = () => {
         const grossProfit = revenue - cogs;
         const netProfit = grossProfit - totalExpensesCount;
 
+        // Prepare chart data
+        const processedChartData = [
+            { name: 'Revenue', value: revenue },
+            { name: 'COGS', value: cogs },
+            { name: 'Gross Profit', value: grossProfit },
+            { name: 'Expenses', value: totalExpensesCount },
+            { name: 'Net Profit', value: netProfit },
+        ];
+
+        // Prepare export data
+        const exportRows = [
+            { Item: 'Total Sales Revenue', Amount: revenue, Percentage: '100%' },
+            { Item: 'Cost of Goods Sold (COGS)', Amount: -cogs, Percentage: revenue > 0 ? `${((cogs / revenue) * 100).toFixed(1)}%` : '0%' },
+            { Item: 'GROSS PROFIT', Amount: grossProfit, Percentage: revenue > 0 ? `${((grossProfit / revenue) * 100).toFixed(1)}%` : '0%' },
+            ...sortedBreakdown.map(e => ({
+                Item: `Expense: ${e.category}`,
+                Amount: -e.amount,
+                Percentage: revenue > 0 ? `${((e.amount / revenue) * 100).toFixed(1)}%` : '0%'
+            })),
+            { Item: 'Total Operating Expenses', Amount: -totalExpensesCount, Percentage: revenue > 0 ? `${((totalExpensesCount / revenue) * 100).toFixed(1)}%` : '0%' },
+            { Item: 'NET PROFIT / LOSS', Amount: netProfit, Percentage: revenue > 0 ? `${((netProfit / revenue) * 100).toFixed(1)}%` : '0%' }
+        ];
+
+        // Prepare statement data for table
+        const statementRows = [
+            { type: 'revenue', label: 'Total Sales Revenue', amount: revenue, percentage: 100 },
+            { type: 'expense', label: 'Less: Cost of Goods Sold (COGS)', amount: cogs, percentage: revenue > 0 ? (cogs / revenue) * 100 : 0 },
+            { type: 'subtotal', label: 'GROSS PROFIT', amount: grossProfit, percentage: revenue > 0 ? (grossProfit / revenue) * 100 : 0 },
+            ...sortedBreakdown.map(exp => ({
+                type: 'expense-item' as const,
+                label: exp.category,
+                amount: exp.amount,
+                percentage: revenue > 0 ? (exp.amount / revenue) * 100 : 0
+            })),
+            { type: 'expense-total', label: 'Total Operating Expenses', amount: totalExpensesCount, percentage: revenue > 0 ? (totalExpensesCount / revenue) * 100 : 0 },
+            { type: 'final', label: 'NET PROFIT / LOSS', amount: netProfit, percentage: revenue > 0 ? (netProfit / revenue) * 100 : 0 }
+        ];
+
+        // Prepare metrics for summary cards
+        const metricsData: MetricCardData[] = [
+            {
+                title: 'Total Revenue',
+                value: `₦${revenue.toLocaleString()}`,
+                icon: TrendingUp,
+                colorScheme: 'primary'
+            },
+            {
+                title: 'Gross Profit',
+                value: `₦${grossProfit.toLocaleString()}`,
+                icon: Receipt,
+                colorScheme: 'success'
+            },
+            {
+                title: 'Total Expenses',
+                value: `₦${totalExpensesCount.toLocaleString()}`,
+                icon: Wallet,
+                colorScheme: 'orange'
+            },
+            {
+                title: 'Net Profit',
+                value: `₦${netProfit.toLocaleString()}`,
+                icon: netProfit >= 0 ? TrendingUp : TrendingDown,
+                colorScheme: netProfit >= 0 ? 'success' : 'orange'
+            }
+        ];
+
         return {
-            revenue,
-            cogs,
-            grossProfit,
-            expenses: totalExpensesCount,
-            netProfit,
-            expenseBreakdown: sortedBreakdown,
-            branchDistribution,
-            recentTransactions: expenses.slice(0, 5)
+            data: {
+                revenue,
+                cogs,
+                grossProfit,
+                expenses: totalExpensesCount,
+                netProfit,
+                expenseBreakdown: sortedBreakdown,
+                branchDistribution
+            },
+            metrics: metricsData,
+            chartData: processedChartData,
+            pieData: branchDistribution,
+            exportData: exportRows,
+            statementData: statementRows
         };
     }, [sales, expenses]);
 
-
-    const handleExportStatement = () => {
-        const exportData = [
-            { Item: 'Total Sales Revenue', Amount: data.revenue },
-            { Item: 'Cost of Goods Sold (COGS)', Amount: -data.cogs },
-            { Item: 'GROSS PROFIT', Amount: data.grossProfit },
-            ...data.expenseBreakdown.map(e => ({ Item: `Expense: ${e.category}`, Amount: -e.amount })),
-            { Item: 'Total Operating Expenses', Amount: -data.expenses },
-            { Item: 'NET PROFIT / LOSS', Amount: data.netProfit }
-        ];
-
-        exportToCSV(exportData, `PandL_Statement_${selectedBranch}`, { Item: 'Item', Amount: 'Amount (₦)' });
-    };
-
-    const chartData = [
-        { name: 'Revenue', value: data.revenue },
-        { name: 'COGS', value: data.cogs },
-        { name: 'Gross Profit', value: data.grossProfit },
-        { name: 'Expenses', value: data.expenses },
-        { name: 'Net Profit', value: data.netProfit },
+    const exportColumns: ExportColumn[] = [
+        { key: 'Item', header: 'Item' },
+        { key: 'Amount', header: 'Amount (₦)', formatter: (val) => `₦${Number(val).toLocaleString()}` },
+        { key: 'Percentage', header: '% of Revenue' }
     ];
 
-    if (loading) {
-        return (
-            <div className="flex flex-col items-center justify-center py-20 gap-4">
-                <Spinner size="lg" />
-                <p className="text-muted-foreground animate-pulse">Calculating financial statement...</p>
-            </div>
-        );
-    }
-
     return (
-        <div className="space-y-6">
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 bg-muted/30 p-4 rounded-lg border">
-                <div>
-                    <h3 className="text-lg font-bold flex items-center gap-2">
-                        <Calculator className="h-5 w-5 text-primary" />
-                        P&L Performance Summary
-                    </h3>
-                    <p className="text-sm text-muted-foreground">
-                        {format(parseISO(dateRange.start), 'MMM dd, yyyy')} - {format(parseISO(dateRange.end), 'MMM dd, yyyy')}
-                    </p>
-                </div>
-                <div className="flex flex-wrap gap-2">
-                    <select
-                        value={selectedBranch}
-                        onChange={(e) => setSelectedBranch(e.target.value)}
-                        className="text-xs bg-background border rounded px-2 py-1 min-w-[150px]"
-                    >
-                        <option value="all">All Branches (Consolidated)</option>
-                        {branches.map(branch => (
-                            <option key={branch.id} value={branch.id}>{branch.name}</option>
-                        ))}
-                    </select>
-                    <input
-                        type="date"
-                        value={dateRange.start}
-                        onChange={(e) => setDateRange(prev => ({ ...prev, start: e.target.value }))}
-                        className="text-xs bg-background border rounded px-2 py-1"
-                    />
-                    <input
-                        type="date"
-                        value={dateRange.end}
-                        onChange={(e) => setDateRange(prev => ({ ...prev, end: e.target.value }))}
-                        className="text-xs bg-background border rounded px-2 py-1"
-                    />
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="text-xs h-8 gap-2 bg-primary/10 text-primary hover:bg-primary/20"
-                        onClick={handleExportStatement}
-                    >
-                        <FileDown className="h-3.5 w-3.5" />
-                        Export P&L
-                    </Button>
-                </div>
-            </div>
+        <ReportLayout
+            title="Profit & Loss Statement"
+            description="Comprehensive financial performance analysis"
+            icon={Calculator}
+            isLoading={loading}
+        >
+            {/* Filters */}
+            <ReportFiltersBar
+                reportId="pnl-report"
+                filters={filters}
+                onFiltersChange={setFilters}
+                availableFilters={{
+                    dateRange: true,
+                    branch: true
+                }}
+                branches={branches}
+            />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                <MetricCard
-                    title="Total Revenue"
-                    value={`₦${data.revenue.toLocaleString()}`}
-                    icon={TrendingUp}
-                    colorScheme="primary"
-                />
-                <MetricCard
-                    title="Gross Profit"
-                    value={`₦${data.grossProfit.toLocaleString()}`}
-                    icon={Receipt}
-                    colorScheme="success"
-                />
-                <MetricCard
-                    title="Total Expenses"
-                    value={`₦${data.expenses.toLocaleString()}`}
-                    icon={Wallet}
-                    colorScheme="warning"
-                />
-                <MetricCard
-                    title="Net Profit"
-                    value={`₦${data.netProfit.toLocaleString()}`}
-                    icon={data.netProfit >= 0 ? TrendingUp : TrendingDown}
-                    colorScheme={data.netProfit >= 0 ? "success" : "rose"}
-                />
-            </div>
+            {/* Summary Cards */}
+            <ReportSummaryCards metrics={data.metrics} isLoading={loading} />
 
+            {/* Charts Grid */}
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Financial Overview</CardTitle>
-                        <CardDescription>Visual breakdown of business performance</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="h-[300px]">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={chartData}>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                                    <XAxis dataKey="name" />
-                                    <YAxis tickFormatter={(val) => `₦${(val / 1000).toFixed(0)}k`} />
-                                    <Tooltip
-                                        formatter={(val: number) => `₦${val.toLocaleString()}`}
-                                        contentStyle={{ borderRadius: '8px' }}
-                                    />
-                                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                                        {chartData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </CardContent>
-                </Card>
+                {/* Financial Overview Chart */}
+                <ReportChartPanel
+                    title="Financial Overview"
+                    description="Visual breakdown of business performance"
+                    chartType="bar"
+                    defaultExpanded={true}
+                    className="lg:col-span-2"
+                >
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData}>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                            <XAxis dataKey="name" />
+                            <YAxis tickFormatter={(val) => `₦${(val / 1000).toFixed(0)}k`} />
+                            <Tooltip
+                                formatter={(val: number) => `₦${val.toLocaleString()}`}
+                                contentStyle={{ borderRadius: '8px' }}
+                            />
+                            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                                {chartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </ReportChartPanel>
 
+                {/* Branch Contribution Pie Chart */}
                 <Card>
                     <CardHeader>
-                        <CardTitle className="flex items-center gap-2">
+                        <CardTitle className="flex items-center gap-2 text-base">
                             <PieChartIcon className="h-5 w-5 text-blue-500" />
                             Branch Contribution
                         </CardTitle>
                         <CardDescription>Revenue by location</CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {data.branchDistribution.length > 0 ? (
+                        {pieData.length > 0 ? (
                             <div className="space-y-4">
                                 <div className="h-[200px]">
                                     <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
                                             <Pie
-                                                data={data.branchDistribution}
+                                                data={pieData}
                                                 dataKey="value"
                                                 nameKey="name"
                                                 cx="50%"
@@ -268,7 +268,7 @@ const ProfitAndLossReport = () => {
                                                 outerRadius={80}
                                                 paddingAngle={5}
                                             >
-                                                {data.branchDistribution.map((entry, index) => (
+                                                {pieData.map((entry, index) => (
                                                     <Cell key={`cell-${index}`} fill={COLORS[(index + 3) % COLORS.length]} />
                                                 ))}
                                             </Pie>
@@ -277,7 +277,7 @@ const ProfitAndLossReport = () => {
                                     </ResponsiveContainer>
                                 </div>
                                 <div className="space-y-2">
-                                    {data.branchDistribution.map((item, index) => (
+                                    {pieData.map((item, index) => (
                                         <div key={item.name} className="flex justify-between items-center text-xs">
                                             <div className="flex items-center gap-2">
                                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[(index + 3) % COLORS.length] }} />
@@ -297,6 +297,7 @@ const ProfitAndLossReport = () => {
                 </Card>
             </div>
 
+            {/* P&L Statement Table */}
             <Card>
                 <CardHeader>
                     <CardTitle className="text-md">Statement of Profit and Loss</CardTitle>
@@ -305,64 +306,93 @@ const ProfitAndLossReport = () => {
                 <CardContent className="p-0">
                     <Table>
                         <TableBody>
-                            {/* Revenue Section */}
+                            {/* Header Row */}
                             <TableRow className="bg-muted/50 font-bold">
                                 <TableCell>PARTICULARS</TableCell>
                                 <TableCell className="text-right">AMOUNT (₦)</TableCell>
                                 <TableCell className="text-right">% OF REVENUE</TableCell>
                             </TableRow>
-                            <TableRow>
-                                <TableCell className="pl-6">Total Sales Revenue</TableCell>
-                                <TableCell className="text-right">{data.revenue.toLocaleString()}</TableCell>
-                                <TableCell className="text-right">100%</TableCell>
-                            </TableRow>
-                            <TableRow className="text-rose-600">
-                                <TableCell className="pl-6">Less: Cost of Goods Sold (COGS)</TableCell>
-                                <TableCell className="text-right">({data.cogs.toLocaleString()})</TableCell>
-                                <TableCell className="text-right">{data.revenue > 0 ? ((data.cogs / data.revenue) * 100).toFixed(1) : 0}%</TableCell>
-                            </TableRow>
-                            <Separator />
-                            <TableRow className="font-bold bg-primary/5 text-primary">
-                                <TableCell>GROSS PROFIT</TableCell>
-                                <TableCell className="text-right">{data.grossProfit.toLocaleString()}</TableCell>
-                                <TableCell className="text-right">{data.revenue > 0 ? ((data.grossProfit / data.revenue) * 100).toFixed(1) : 0}%</TableCell>
-                            </TableRow>
 
-                            {/* Expenses Section */}
-                            <TableRow className="bg-muted/30 font-semibold italic">
-                                <TableCell colSpan={3}>Operating Expenses (OPEX)</TableCell>
-                            </TableRow>
-                            {data.expenseBreakdown.map(exp => (
-                                <TableRow key={exp.category} className="text-muted-foreground">
-                                    <TableCell className="pl-8">{exp.category}</TableCell>
-                                    <TableCell className="text-right">({exp.amount.toLocaleString()})</TableCell>
-                                    <TableCell className="text-right">{data.revenue > 0 ? ((exp.amount / data.revenue) * 100).toFixed(1) : 0}%</TableCell>
-                                </TableRow>
-                            ))}
-                            {data.expenseBreakdown.length === 0 && (
-                                <TableRow>
-                                    <TableCell className="pl-8 italic text-xs">No operating expenses found</TableCell>
-                                    <TableCell className="text-right">0.00</TableCell>
-                                    <TableCell className="text-right">0%</TableCell>
-                                </TableRow>
-                            )}
-                            <TableRow className="font-semibold text-rose-600">
-                                <TableCell className="pl-6 font-bold">Total Operating Expenses</TableCell>
-                                <TableCell className="text-right">({data.expenses.toLocaleString()})</TableCell>
-                                <TableCell className="text-right">{data.revenue > 0 ? ((data.expenses / data.revenue) * 100).toFixed(1) : 0}%</TableCell>
-                            </TableRow>
-
-                            {/* Final Profit */}
-                            <TableRow className={`font-bold text-lg ${data.netProfit >= 0 ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
-                                <TableCell>NET PROFIT / LOSS</TableCell>
-                                <TableCell className="text-right">{data.netProfit.toLocaleString()}</TableCell>
-                                <TableCell className="text-right">{data.revenue > 0 ? ((data.netProfit / data.revenue) * 100).toFixed(1) : 0}%</TableCell>
-                            </TableRow>
+                            {/* Statement Rows */}
+                            {statementData.map((row, index) => {
+                                if (row.type === 'revenue') {
+                                    return (
+                                        <TableRow key={index}>
+                                            <TableCell className="pl-6">{row.label}</TableCell>
+                                            <TableCell className="text-right">{row.amount.toLocaleString()}</TableCell>
+                                            <TableCell className="text-right">{row.percentage.toFixed(0)}%</TableCell>
+                                        </TableRow>
+                                    );
+                                }
+                                if (row.type === 'expense') {
+                                    return (
+                                        <TableRow key={index} className="text-rose-600">
+                                            <TableCell className="pl-6">{row.label}</TableCell>
+                                            <TableCell className="text-right">({row.amount.toLocaleString()})</TableCell>
+                                            <TableCell className="text-right">{row.percentage.toFixed(1)}%</TableCell>
+                                        </TableRow>
+                                    );
+                                }
+                                if (row.type === 'subtotal') {
+                                    return (
+                                        <>
+                                            <TableRow key={`sep-${index}`}>
+                                                <TableCell colSpan={3}><Separator /></TableCell>
+                                            </TableRow>
+                                            <TableRow key={index} className="font-bold bg-primary/5 text-primary">
+                                                <TableCell>{row.label}</TableCell>
+                                                <TableCell className="text-right">{row.amount.toLocaleString()}</TableCell>
+                                                <TableCell className="text-right">{row.percentage.toFixed(1)}%</TableCell>
+                                            </TableRow>
+                                            <TableRow key={`opex-${index}`} className="bg-muted/30 font-semibold italic">
+                                                <TableCell colSpan={3}>Operating Expenses (OPEX)</TableCell>
+                                            </TableRow>
+                                        </>
+                                    );
+                                }
+                                if (row.type === 'expense-item') {
+                                    return (
+                                        <TableRow key={index} className="text-muted-foreground">
+                                            <TableCell className="pl-8">{row.label}</TableCell>
+                                            <TableCell className="text-right">({row.amount.toLocaleString()})</TableCell>
+                                            <TableCell className="text-right">{row.percentage.toFixed(1)}%</TableCell>
+                                        </TableRow>
+                                    );
+                                }
+                                if (row.type === 'expense-total') {
+                                    return (
+                                        <TableRow key={index} className="font-semibold text-rose-600">
+                                            <TableCell className="pl-6 font-bold">{row.label}</TableCell>
+                                            <TableCell className="text-right">({row.amount.toLocaleString()})</TableCell>
+                                            <TableCell className="text-right">{row.percentage.toFixed(1)}%</TableCell>
+                                        </TableRow>
+                                    );
+                                }
+                                if (row.type === 'final') {
+                                    return (
+                                        <TableRow key={index} className={`font-bold text-lg ${row.amount >= 0 ? 'bg-green-600 text-white' : 'bg-red-600 text-white'}`}>
+                                            <TableCell>{row.label}</TableCell>
+                                            <TableCell className="text-right">{row.amount.toLocaleString()}</TableCell>
+                                            <TableCell className="text-right">{row.percentage.toFixed(1)}%</TableCell>
+                                        </TableRow>
+                                    );
+                                }
+                                return null;
+                            })}
                         </TableBody>
                     </Table>
                 </CardContent>
             </Card>
-        </div>
+
+            {/* Export Panel */}
+            <ReportExportPanel
+                reportName="Profit and Loss Statement"
+                data={exportData}
+                columns={exportColumns}
+                filters={filters}
+                formats={['csv', 'print']}
+            />
+        </ReportLayout>
     );
 };
 
