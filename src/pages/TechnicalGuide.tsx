@@ -6,12 +6,36 @@ import { useToast } from "@/hooks/use-toast";
 const TechnicalGuide = () => {
     const { toast } = useToast();
 
-    const recoverySql = `-- UNIVERSAL JSON RECOVERY V5.2
--- Purpose: Fix RPC Signature Mismatch (p_payload)
--- This synchronizes the DB with the Production Edge Function.
+    const recoverySql = `-- COMPLETE INFRASTRUCTURE HEALING V5.4
+-- Purpose: Create ALL missing tables, columns, and functions
+-- This is the definitive one-click repair for sales infrastructure.
 
 BEGIN;
 
+-- 1. Create sale_payments table if it doesn't exist
+CREATE TABLE IF NOT EXISTS public.sale_payments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sale_id UUID NOT NULL REFERENCES public.sales(id) ON DELETE CASCADE,
+    payment_mode TEXT NOT NULL,
+    amount DECIMAL(15, 2) NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_sale_payments_sale_id ON public.sale_payments(sale_id);
+
+-- 2. Ensure all required columns exist in sales table
+ALTER TABLE public.sales 
+ADD COLUMN IF NOT EXISTS manual_discount DECIMAL(15, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS shift_name TEXT,
+ADD COLUMN IF NOT EXISTS shift_id UUID,
+ADD COLUMN IF NOT EXISTS staff_role TEXT,
+ADD COLUMN IF NOT EXISTS payment_methods JSONB DEFAULT '[]'::jsonb,
+ADD COLUMN IF NOT EXISTS payment_status TEXT DEFAULT 'paid',
+ADD COLUMN IF NOT EXISTS amount_paid DECIMAL(15, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS amount_outstanding DECIMAL(15, 2) DEFAULT 0,
+ADD COLUMN IF NOT EXISTS customer_id UUID;
+
+-- 3. Create the Universal JSON RPC Function
 CREATE OR REPLACE FUNCTION public.process_sale_transaction(p_payload jsonb)
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -36,8 +60,8 @@ BEGIN
   ) VALUES (
     (p_payload->>'p_transaction_id'),
     (p_payload->>'p_total')::DECIMAL,
-    (p_payload->>'p_discount')::DECIMAL,
-    (p_payload->>'p_manual_discount')::DECIMAL,
+    COALESCE((p_payload->>'p_discount')::DECIMAL, 0),
+    COALESCE((p_payload->>'p_manual_discount')::DECIMAL, 0),
     (p_payload->>'p_customer_name'),
     (p_payload->>'p_customer_phone'),
     (p_payload->>'p_business_name'),
@@ -48,12 +72,12 @@ BEGIN
     (p_payload->>'p_cashier_name'),
     (p_payload->>'p_cashier_email'),
     (p_payload->>'p_shift_name'),
-    (p_payload->>'p_shift_id'),
+    (p_payload->>'p_shift_id')::UUID,
     (p_payload->>'p_staff_role'),
     (p_payload->'p_payments'),
-    (p_payload->>'p_payment_status'),
-    (p_payload->>'p_amount_paid')::DECIMAL,
-    (p_payload->>'p_amount_outstanding')::DECIMAL,
+    COALESCE((p_payload->>'p_payment_status'), 'paid'),
+    COALESCE((p_payload->>'p_amount_paid')::DECIMAL, 0),
+    COALESCE((p_payload->>'p_amount_outstanding')::DECIMAL, 0),
     (p_payload->>'p_customer_id')::UUID
   ) RETURNING id INTO v_sale_id;
 
@@ -62,6 +86,15 @@ BEGIN
     -- Fetch current stock and cost price
     SELECT quantity, cost_price INTO v_current_stock, v_cost_price
     FROM public.inventory WHERE id = (v_item->>'product_id')::UUID FOR UPDATE;
+
+    IF NOT FOUND THEN
+      RAISE EXCEPTION 'Product % not found', v_item->>'product_id';
+    END IF;
+
+    -- Verify stock availability
+    IF v_current_stock < (v_item->>'quantity')::INTEGER THEN
+      RAISE EXCEPTION 'Insufficient stock for %', v_item->>'product_name';
+    END IF;
 
     -- Deduct Stock
     UPDATE public.inventory SET 
@@ -96,7 +129,9 @@ BEGIN
     'profit', ((p_payload->>'p_total')::DECIMAL - v_total_cost)
   );
 END;
-$$;`;
+$$;
+
+COMMIT;`;
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(recoverySql);
