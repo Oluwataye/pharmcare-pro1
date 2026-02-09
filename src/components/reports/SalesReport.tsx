@@ -1,33 +1,48 @@
-import { useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useMemo } from 'react';
+import { ShoppingBag, TrendingUp, TrendingDown, Percent } from 'lucide-react';
+import { NairaSign } from '@/components/icons/NairaSign';
+import { format, subMonths, parseISO } from 'date-fns';
+import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from 'recharts';
 import {
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
   ChartLegend
-} from "@/components/ui/chart";
-import { AreaChart, Area, XAxis, YAxis, ResponsiveContainer, CartesianGrid } from "recharts";
-import { MetricCard } from "@/components/dashboard/MetricCard";
-import { TrendingUp, TrendingDown, Percent } from "lucide-react";
-import { NairaSign } from "@/components/icons/NairaSign";
-import { format, subMonths, parseISO } from "date-fns";
-import { Spinner } from "@/components/ui/spinner";
-import { useReportsSales } from "@/hooks/reports/useReportsData";
+} from '@/components/ui/chart';
+import {
+  ReportLayout,
+  ReportFiltersBar,
+  ReportSummaryCards,
+  ReportChartPanel,
+  ReportExportPanel
+} from '@/components/reports/shared';
+import type { MetricCardData, ExportColumn } from '@/components/reports/shared';
+import { useReportFilters } from '@/hooks/reports/useReportFilters';
+import { useReportsSales, useReportBranches } from '@/hooks/reports/useReportsData';
 
 const SalesReport = () => {
-  const startDate = useMemo(() => subMonths(new Date(), 6).toISOString(), []);
-  const endDate = useMemo(() => new Date().toISOString(), []);
-
-  const { data: rawSales, isLoading: loading } = useReportsSales({
-    startDate,
-    endDate,
-    branchId: 'all'
+  // Initialize filters with persistence
+  const { filters, setFilters } = useReportFilters('sales-report', {
+    startDate: subMonths(new Date(), 6).toISOString(),
+    endDate: new Date().toISOString(),
+    branchIds: ['all']
   });
 
-  const { metrics, chartData } = useMemo(() => {
+  // Fetch data using shared hooks
+  const { data: rawSales, isLoading: loading } = useReportsSales({
+    startDate: filters.startDate || subMonths(new Date(), 6).toISOString(),
+    endDate: filters.endDate || new Date().toISOString(),
+    branchId: filters.branchIds?.[0] || 'all'
+  });
+
+  const { data: branches } = useReportBranches();
+
+  // Calculate metrics and chart data (FINANCIAL LOGIC - DO NOT MODIFY)
+  const { metrics, chartData, exportData } = useMemo(() => {
     if (!rawSales) return {
-      metrics: { revenue: 0, profit: 0, margin: 0, growth: 0, cash: 0, pos: 0, transfer: 0 },
-      chartData: []
+      metrics: [],
+      chartData: [],
+      exportData: []
     };
 
     let totalRevenue = 0;
@@ -77,148 +92,160 @@ const SalesReport = () => {
       profit: values.profit
     }));
 
-    return {
-      metrics: {
-        revenue: totalRevenue,
-        profit: profit,
-        margin: margin,
-        growth: 0,
-        cash: totalCash,
-        pos: totalPos,
-        transfer: totalTransfer
+    // Prepare metrics for summary cards
+    const metricsData: MetricCardData[] = [
+      {
+        title: 'Total Revenue',
+        value: `₦${totalRevenue.toLocaleString()}`,
+        icon: NairaSign,
+        description: filters.startDate && filters.endDate
+          ? `${format(new Date(filters.startDate), 'MMM d')} - ${format(new Date(filters.endDate), 'MMM d, yyyy')}`
+          : 'Last 6 months',
+        trend: { value: 12, isPositive: true },
+        colorScheme: 'primary'
       },
-      chartData: processedChartData
+      {
+        title: 'Gross Profit',
+        value: `₦${profit.toLocaleString()}`,
+        icon: TrendingUp,
+        description: 'Total earnings',
+        colorScheme: 'success'
+      },
+      {
+        title: 'Net Margin',
+        value: `${margin.toFixed(1)}%`,
+        icon: Percent,
+        description: 'Average margin',
+        colorScheme: 'blue'
+      },
+      {
+        title: 'Avg. Monthly Sales',
+        value: `₦${(totalRevenue / (processedChartData.length || 1)).toLocaleString(undefined, { maximumFractionDigits: 0 })}`,
+        icon: TrendingDown,
+        description: 'Per month average',
+        colorScheme: 'violet'
+      }
+    ];
+
+    // Prepare export data
+    const exportRows = processedChartData.map(row => ({
+      month: row.month,
+      revenue: row.sales,
+      profit: row.profit,
+      margin: row.sales > 0 ? ((row.profit / row.sales) * 100).toFixed(2) + '%' : '0%'
+    }));
+
+    return {
+      metrics: metricsData,
+      chartData: processedChartData,
+      exportData: exportRows
     };
-  }, [rawSales]);
+  }, [rawSales, filters.startDate, filters.endDate]);
 
   const chartConfig = {
     sales: {
-      label: "Revenue (₦)",
-      color: "#2563eb", // blue-600
+      label: 'Revenue (₦)',
+      color: '#2563eb',
     },
     profit: {
-      label: "Gross Profit (₦)",
-      color: "#10b981", // emerald-500
+      label: 'Gross Profit (₦)',
+      color: '#10b981',
     }
   };
 
-  if (loading) {
-    return <div className="flex justify-center p-8"><Spinner size="lg" /></div>;
-  }
+  const exportColumns: ExportColumn[] = [
+    { key: 'month', header: 'Month' },
+    { key: 'revenue', header: 'Revenue (₦)', formatter: (val) => `₦${Number(val).toLocaleString()}` },
+    { key: 'profit', header: 'Profit (₦)', formatter: (val) => `₦${Number(val).toLocaleString()}` },
+    { key: 'margin', header: 'Margin (%)' }
+  ];
 
   return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <MetricCard
-          title="Total Revenue (6M)"
-          value={`₦${metrics.revenue.toLocaleString()}`}
-          icon={NairaSign}
-          description="Last 6 months"
-          trend={{ value: 12, isPositive: true }}
-          colorScheme="primary"
-        />
-        <MetricCard
-          title="Gross Profit"
-          value={`₦${metrics.profit.toLocaleString()}`}
-          icon={TrendingUp}
-          description="Total earnings"
-          colorScheme="success"
-        />
-        <MetricCard
-          title="Net Margin"
-          value={`${metrics.margin.toFixed(1)}%`}
-          icon={Percent}
-          description="Average margin"
-          colorScheme="blue"
-        />
-        <MetricCard
-          title="Avg. Monthly Sales"
-          value={`₦${(metrics.revenue / (chartData.length || 1)).toLocaleString(undefined, { maximumFractionDigits: 0 })}`}
-          icon={TrendingDown} // Just an icon choice
-          description="Per month average"
-          colorScheme="violet"
-        />
-      </div>
+    <ReportLayout
+      title="Sales Volume Report"
+      description="Revenue and profit analysis over time"
+      icon={ShoppingBag}
+      isLoading={loading}
+    >
+      {/* Filters */}
+      <ReportFiltersBar
+        reportId="sales-report"
+        filters={filters}
+        onFiltersChange={setFilters}
+        availableFilters={{
+          dateRange: true,
+          branch: true,
+          search: false
+        }}
+        branches={branches || []}
+      />
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <MetricCard
-          title="Cash Collected"
-          value={`₦${metrics.cash.toLocaleString()}`}
-          icon={NairaSign}
-          description="Total physical cash"
-          colorScheme="success"
-        />
-        <MetricCard
-          title="POS Payments"
-          value={`₦${metrics.pos.toLocaleString()}`}
-          icon={TrendingUp}
-          description="Card transactions"
-          colorScheme="blue"
-        />
-        <MetricCard
-          title="Bank Transfers"
-          value={`₦${metrics.transfer.toLocaleString()}`}
-          icon={TrendingUp}
-          description="Direct transfers"
-          colorScheme="violet"
-        />
-      </div>
+      {/* Summary Cards */}
+      <ReportSummaryCards metrics={metrics} isLoading={loading} />
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Financial Performance (Revenue vs Profit)</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="h-[400px]">
-            <ChartContainer config={chartConfig}>
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
-                    </linearGradient>
-                    <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
-                      <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                  <XAxis dataKey="month" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
-                  <YAxis
-                    stroke="#888888"
-                    fontSize={12}
-                    tickLine={false}
-                    axisLine={false}
-                    tickFormatter={(value) => `₦${value.toLocaleString()}`}
-                  />
-                  <ChartTooltip content={<ChartTooltipContent />} />
-                  <ChartLegend />
-                  <Area
-                    type="monotone"
-                    dataKey="sales"
-                    name="Revenue"
-                    stroke="#2563eb"
-                    fillOpacity={1}
-                    fill="url(#colorSales)"
-                    strokeWidth={2}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="profit"
-                    name="Gross Profit"
-                    stroke="#10b981"
-                    fillOpacity={1}
-                    fill="url(#colorProfit)"
-                    strokeWidth={2}
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+      {/* Chart Panel */}
+      <ReportChartPanel
+        title="Financial Performance"
+        description="Revenue vs Profit Trend"
+        chartType="area"
+        defaultExpanded={true}
+      >
+        <ChartContainer config={chartConfig}>
+          <ResponsiveContainer width="100%" height="100%">
+            <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#2563eb" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#2563eb" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorProfit" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} />
+              <XAxis dataKey="month" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+              <YAxis
+                stroke="#888888"
+                fontSize={12}
+                tickLine={false}
+                axisLine={false}
+                tickFormatter={(value) => `₦${value.toLocaleString()}`}
+              />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <ChartLegend />
+              <Area
+                type="monotone"
+                dataKey="sales"
+                name="Revenue"
+                stroke="#2563eb"
+                fillOpacity={1}
+                fill="url(#colorSales)"
+                strokeWidth={2}
+              />
+              <Area
+                type="monotone"
+                dataKey="profit"
+                name="Gross Profit"
+                stroke="#10b981"
+                fillOpacity={1}
+                fill="url(#colorProfit)"
+                strokeWidth={2}
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+      </ReportChartPanel>
+
+      {/* Export Panel */}
+      <ReportExportPanel
+        reportName="Sales Report"
+        data={exportData}
+        columns={exportColumns}
+        filters={filters}
+        formats={['csv', 'print']}
+      />
+    </ReportLayout>
   );
 };
 
