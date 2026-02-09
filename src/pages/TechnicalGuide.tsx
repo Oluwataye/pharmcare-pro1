@@ -6,92 +6,97 @@ import { useToast } from "@/hooks/use-toast";
 const TechnicalGuide = () => {
     const { toast } = useToast();
 
-    const recoverySql = `-- ATOMIC RECOVERY V3: JSON PROTOCOL ENFORCEMENT
--- Purpose: Fix 'could not find function process_sale_transaction' error
--- AND enforce the new ledger/payment-mode architecture.
+    const recoverySql = `-- UNIVERSAL JSON RECOVERY V5.2
+-- Purpose: Fix RPC Signature Mismatch (p_payload)
+-- This synchronizes the DB with the Production Edge Function.
 
 BEGIN;
 
-DO $$ 
+CREATE OR REPLACE FUNCTION public.process_sale_transaction(p_payload jsonb)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_sale_id UUID;
+  v_item JSONB;
+  v_payment JSONB;
+  v_current_stock INTEGER;
+  v_cost_price DECIMAL;
+  v_total_cost DECIMAL := 0;
 BEGIN
-    -- 1. Create the base process_sale_transaction function if it doesn't exist
-    CREATE OR REPLACE FUNCTION public.process_sale_transaction(
-      p_sale_data jsonb,
-      p_items jsonb,
-      p_payments jsonb DEFAULT '[]'::jsonb
-    ) RETURNS jsonb AS $func$
-    DECLARE
-      v_sale_id uuid;
-      v_item jsonb;
-      v_payment jsonb;
-      v_total decimal;
-    BEGIN
-      -- Insert main sale record
-      INSERT INTO sales (
-        customer_name,
-        customer_phone,
-        total_amount,
-        discount_percentage,
-        sale_type,
-        dispenser_id,
-        shift_id,
-        transaction_id
-      ) VALUES (
-        (p_sale_data->>'customerName'),
-        (p_sale_data->>'customerPhone'),
-        (p_sale_data->>'total')::decimal,
-        (p_sale_data->>'discount')::decimal,
-        (p_sale_data->>'saleType'),
-        (p_sale_data->>'dispenserId')::uuid,
-        (p_sale_data->>'shift_id')::uuid,
-        (p_sale_data->>'transactionId')
-      ) RETURNING id INTO v_sale_id;
+  -- 1. Insert Master Sale Record
+  INSERT INTO public.sales (
+    transaction_id, total, discount, manual_discount, 
+    customer_name, customer_phone, business_name, business_address, 
+    sale_type, status, cashier_id, cashier_name, cashier_email, 
+    shift_name, shift_id, staff_role, payment_methods,
+    payment_status, amount_paid, amount_outstanding, customer_id
+  ) VALUES (
+    (p_payload->>'p_transaction_id'),
+    (p_payload->>'p_total')::DECIMAL,
+    (p_payload->>'p_discount')::DECIMAL,
+    (p_payload->>'p_manual_discount')::DECIMAL,
+    (p_payload->>'p_customer_name'),
+    (p_payload->>'p_customer_phone'),
+    (p_payload->>'p_business_name'),
+    (p_payload->>'p_business_address'),
+    (p_payload->>'p_sale_type'),
+    'completed',
+    (p_payload->>'p_cashier_id')::UUID,
+    (p_payload->>'p_cashier_name'),
+    (p_payload->>'p_cashier_email'),
+    (p_payload->>'p_shift_name'),
+    (p_payload->>'p_shift_id'),
+    (p_payload->>'p_staff_role'),
+    (p_payload->'p_payments'),
+    (p_payload->>'p_payment_status'),
+    (p_payload->>'p_amount_paid')::DECIMAL,
+    (p_payload->>'p_amount_outstanding')::DECIMAL,
+    (p_payload->>'p_customer_id')::UUID
+  ) RETURNING id INTO v_sale_id;
 
-      -- Process items
-      FOR v_item IN SELECT * FROM jsonb_array_elements(p_items)
-      LOOP
-        INSERT INTO sale_items (
-          sale_id,
-          product_id,
-          quantity,
-          unit_price,
-          subtotal
-        ) VALUES (
-          v_sale_id,
-          (v_item->>'product_id')::uuid,
-          (v_item->>'quantity')::integer,
-          (v_item->>'unit_price')::decimal,
-          (v_item->>'subtotal')::decimal
-        );
-        
-        -- Deduct inventory
-        UPDATE inventory 
-        SET quantity = quantity - (v_item->>'quantity')::integer
-        WHERE id = (v_item->>'product_id')::uuid;
-      END LOOP;
+  -- 2. Process Items
+  FOR v_item IN SELECT * FROM jsonb_array_elements(p_payload->'p_items') LOOP
+    -- Fetch current stock and cost price
+    SELECT quantity, cost_price INTO v_current_stock, v_cost_price
+    FROM public.inventory WHERE id = (v_item->>'product_id')::UUID FOR UPDATE;
 
-      -- Process payments
-      FOR v_payment IN SELECT * FROM jsonb_array_elements(p_payments)
-      LOOP
-        INSERT INTO sale_payments (
-          sale_id,
-          amount,
-          payment_mode
-        ) VALUES (
-          v_sale_id,
-          (v_payment->>'amount')::decimal,
-          (v_payment->>'mode')
-        );
-      END LOOP;
+    -- Deduct Stock
+    UPDATE public.inventory SET 
+      quantity = quantity - (v_item->>'quantity')::INTEGER,
+      last_updated_at = NOW(),
+      last_updated_by = (p_payload->>'p_cashier_id')::UUID
+    WHERE id = (v_item->>'product_id')::UUID;
 
-      RETURN jsonb_build_object('success', true, 'saleId', v_sale_id);
-    END;
-    $func$ LANGUAGE plpgsql;
+    -- Insert Sale Item
+    INSERT INTO public.sales_items (
+      sale_id, product_id, product_name, quantity, unit_price, price, cost_price, discount, is_wholesale, total
+    ) VALUES (
+      v_sale_id, (v_item->>'product_id')::UUID, v_item->>'product_name', 
+      (v_item->>'quantity')::INTEGER, (v_item->>'unit_price')::DECIMAL, (v_item->>'price')::DECIMAL,
+      COALESCE(v_cost_price, 0), COALESCE((v_item->>'discount')::DECIMAL, 0),
+      COALESCE((v_item->>'is_wholesale')::BOOLEAN, false), (v_item->>'total')::DECIMAL
+    );
 
-    RAISE NOTICE 'Atomic Recovery V3 Applied Successfully';
-END $$;
+    v_total_cost := v_total_cost + (COALESCE(v_cost_price, 0) * (v_item->>'quantity')::INTEGER);
+  END LOOP;
 
-COMMIT;`;
+  -- 3. Record Payments
+  FOR v_payment IN SELECT * FROM jsonb_array_elements(p_payload->'p_payments') LOOP
+    INSERT INTO public.sale_payments (sale_id, payment_mode, amount)
+    VALUES (v_sale_id, v_payment->>'mode', (v_payment->>'amount')::DECIMAL);
+  END LOOP;
+
+  RETURN jsonb_build_object(
+    'success', true, 
+    'sale_id', v_sale_id, 
+    'transaction_id', p_payload->>'p_transaction_id',
+    'profit', ((p_payload->>'p_total')::DECIMAL - v_total_cost)
+  );
+END;
+$$;`;
 
     const copyToClipboard = () => {
         navigator.clipboard.writeText(recoverySql);
