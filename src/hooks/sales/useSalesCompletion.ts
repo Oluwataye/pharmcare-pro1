@@ -111,8 +111,16 @@ export const useSalesCompletion = (
         shift_id: options?.shift_id || activeShift?.id,
         branch_id: user?.branch_id, // Attribute sale to user's branch
         staff_role: options?.staffRole || user?.role,
+        branch_id: user?.branch_id, // Attribute sale to user's branch
+        staff_role: options?.staffRole || user?.role,
         payments: options?.payments
       };
+
+      console.log('useSalesCompletion: Prepared Payload', {
+        transactionId,
+        shift_id: saleData.shift_id,
+        itemCount: saleData.items.length
+      });
 
       // If offline, save this sale for later sync
       if (!isOnline) {

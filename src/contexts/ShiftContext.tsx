@@ -382,14 +382,34 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         }
 
         try {
-            const { data: salesData, error: salesError } = await supabase
+            // STRICT RECONCILIATION V2: Use shift_id for exact linkage
+            // Fallback to time-window only if shift_id yields no results (legacy compatibility)
+            console.log('[ShiftContext] Reconciling shift:', shiftId);
+
+            let { data: salesData, error: salesError } = await supabase
                 .from('sales')
-                .select('total, payment_methods')
-                .eq('cashier_id', staffId)
-                .gte('created_at', startTime);
+                .select('total, payment_methods, shift_id')
+                .eq('shift_id', shiftId);
 
             if (salesError) {
-                console.warn('[ShiftContext] Error calculating sales total:', salesError);
+                console.warn('[ShiftContext] Error querying by shift_id:', salesError);
+            }
+
+            // Fallback: If no sales found by ID, try legacy time-based query 
+            // (Only if shift start time is available)
+            if ((!salesData || salesData.length === 0) && startTime) {
+                console.warn('[ShiftContext] No sales found by shift_id. Attempting legacy time-based reconciliation...');
+                const { data: legacyData, error: legacyError } = await supabase
+                    .from('sales')
+                    .select('total, payment_methods')
+                    .eq('cashier_id', staffId)
+                    .gte('created_at', startTime)
+                    // Add upper bound to prevent bleeding into future shifts
+                    .lte('created_at', new Date().toISOString());
+
+                if (!legacyError && legacyData) {
+                    salesData = legacyData;
+                }
             }
 
             const salesTotal = (salesData as any || []).reduce((sum: number, s: any) => sum + Number(s.total), 0);
