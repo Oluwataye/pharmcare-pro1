@@ -269,5 +269,6 @@ export const StockMovementHistory = ({ productId, limit = 100 }: StockMovementHi
                     </TableBody>
                 </Table>
             </div>
-            );
+        </div>
+    );
 };
