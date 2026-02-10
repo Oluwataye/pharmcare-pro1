@@ -130,7 +130,7 @@ export const useReportsStaffPerformance = (filters: StaffPerformanceFilters) => 
             };
         }).sort((a, b) => b.totalSales - a.totalSales); // Default sort by sales volume
 
-    }, [sales, shifts, loadingSales, loadingShifts]);
+    }, [salesData, shifts, loadingSales, loadingShifts]);
 
     return {
         data: performanceData,
