@@ -244,6 +244,19 @@ const Expenses = () => {
                                             </TableRow>
                                         ))
                                     )}
+
+                                    {/* Summary Row */}
+                                    {expenses.length > 0 && (
+                                        <TableRow className="bg-muted font-bold border-t-2 border-primary/20 sticky bottom-0 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+                                            <TableCell colSpan={4} className="text-right uppercase tracking-wider text-xs">
+                                                Total for Period
+                                            </TableCell>
+                                            <TableCell className="text-right font-bold text-lg text-primary">
+                                                ₦{totalInView.toLocaleString()}
+                                            </TableCell>
+                                            <TableCell />
+                                        </TableRow>
+                                    )}
                                 </TableBody>
                             </Table>
                         </div>
