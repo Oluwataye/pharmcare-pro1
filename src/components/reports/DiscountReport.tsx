@@ -44,7 +44,7 @@ const DiscountReport = () => {
 
     // Process data
     const processedData = useMemo(() => {
-        if (!rawSales) return {
+        if (!rawSales?.data) return {
             metrics: [],
             trendData: [],
             distributionData: [],
@@ -53,7 +53,7 @@ const DiscountReport = () => {
         };
 
         let totalDiscountVal = 0;
-        let totalSalesCount = rawSales.length;
+        let totalSalesCount = rawSales.data.length;
         let salesWithDiscountCount = 0;
 
         let totalManualDiscount = 0;
@@ -63,7 +63,7 @@ const DiscountReport = () => {
         const monthlyData: Record<string, { manual: number; percent: number; item: number; total: number }> = {};
         const recentDiscountedSales: any[] = [];
 
-        rawSales.forEach(sale => {
+        rawSales.data.forEach(sale => {
             const monthKey = format(parseISO(sale.date), 'MMM yyyy');
             if (!monthlyData[monthKey]) {
                 monthlyData[monthKey] = { manual: 0, percent: 0, item: 0, total: 0 };
@@ -204,7 +204,7 @@ const DiscountReport = () => {
             recentDiscounts: topRecent,
             exportData
         };
-    }, [rawSales, filters.startDate]);
+    }, [rawSales?.data, filters.startDate]);
 
     const chartConfig = {
         Manual: { label: "Manual", color: "#f97316" },

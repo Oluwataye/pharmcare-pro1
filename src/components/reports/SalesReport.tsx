@@ -39,7 +39,7 @@ const SalesReport = () => {
 
   // Calculate metrics and chart data (FINANCIAL LOGIC - DO NOT MODIFY)
   const { metrics, chartData, exportData } = useMemo(() => {
-    if (!rawSales) return {
+    if (!rawSales?.data) return {
       metrics: [],
       chartData: [],
       exportData: []
@@ -52,7 +52,7 @@ const SalesReport = () => {
     let totalTransfer = 0;
     const monthlyData: Record<string, { revenue: number; profit: number; cost: number }> = {};
 
-    rawSales.forEach(sale => {
+    rawSales.data.forEach(sale => {
       const monthKey = format(parseISO(sale.date), 'MMM yyyy');
 
       // Calculate sale cost
@@ -140,7 +140,7 @@ const SalesReport = () => {
       chartData: processedChartData,
       exportData: exportRows
     };
-  }, [rawSales, filters.startDate, filters.endDate]);
+  }, [rawSales?.data, filters.startDate, filters.endDate]);
 
   const chartConfig = {
     sales: {

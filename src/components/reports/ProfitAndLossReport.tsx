@@ -51,7 +51,7 @@ const ProfitAndLossReport = () => {
 
     // Calculate P&L data (FINANCIAL LOGIC - DO NOT MODIFY)
     const { data, chartData, pieData, exportData, statementData } = useMemo(() => {
-        if (!sales || !expenses) return {
+        if (!sales?.data || !expenses) return {
             data: {
                 revenue: 0,
                 cogs: 0,
@@ -71,7 +71,7 @@ const ProfitAndLossReport = () => {
         let cogs = 0;
         const branchRevMap: Record<string, number> = {};
 
-        sales.forEach(sale => {
+        sales.data.forEach(sale => {
             const saleTotal = Number(sale.total);
             revenue += saleTotal;
 
@@ -185,7 +185,7 @@ const ProfitAndLossReport = () => {
             exportData: exportRows,
             statementData: statementRows
         };
-    }, [sales, expenses]);
+    }, [sales?.data, expenses]);
 
     const exportColumns: ExportColumn[] = [
         { key: 'Item', header: 'Item' },
