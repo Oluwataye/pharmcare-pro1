@@ -213,7 +213,11 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         {menuItems.map((item) => {
           if (!item.condition) return null;
 
-          const isActive = location.pathname === item.path;
+          // Highlight parent if we are in a sub-path (except for Dashboard '/')
+          const isActive = item.path === "/"
+            ? location.pathname === "/"
+            : location.pathname === item.path || location.pathname.startsWith(item.path + "/");
+
           return (
             <Button
               key={item.path}
@@ -221,12 +225,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
               className={cn(
                 "w-full justify-start gap-3 h-11 px-4 transition-all duration-200",
                 isActive
-                  ? "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 border-l-4 border-primary"
+                  ? "bg-[#002B5B] text-[#F3F4F6] shadow-md hover:bg-[#001D3D] border-l-4 border-[#3B82F6]"
                   : "hover:bg-accent/50 hover:translate-x-1 border-l-4 border-transparent"
               )}
               onClick={() => handleNavigate(item.path)}
             >
-              <item.icon className={cn("h-5 w-5", isActive ? "text-primary-foreground" : "text-muted-foreground")} />
+              <item.icon className={cn("h-5 w-5 transition-colors", isActive ? "text-[#3B82F6]" : "text-muted-foreground")} />
               <span className={cn("font-medium", isActive && "font-semibold")}>{item.label}</span>
             </Button>
           );
