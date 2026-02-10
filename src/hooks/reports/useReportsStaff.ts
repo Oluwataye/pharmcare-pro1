@@ -43,13 +43,14 @@ export const useReportsShifts = ({ startDate, endDate, branchId }: StaffPerforma
  * Combines Sales and Shifts data
  */
 export const useReportsStaffPerformance = (filters: StaffPerformanceFilters) => {
-    const { data: sales = [], isLoading: loadingSales } = useReportsSales(filters);
+    const { data: salesData, isLoading: loadingSales } = useReportsSales(filters);
     const { data: shifts = [], isLoading: loadingShifts } = useReportsShifts(filters);
 
     const performanceData = useMemo(() => {
-        if (loadingSales || loadingShifts) return [];
+        if (loadingSales || loadingShifts || !salesData?.data) return [];
 
         const stats: Record<string, any> = {};
+        const sales = salesData.data;
 
         // 1. Process Sales
         sales.forEach(sale => {
