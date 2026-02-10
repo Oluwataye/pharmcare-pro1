@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
     Table,
     TableBody,
@@ -90,6 +90,14 @@ export const StockMovementHistory = ({ productId, limit = 50 }: StockMovementHis
         }
     };
 
+    const totals = useMemo(() => {
+        return movements.reduce((acc, m) => ({
+            difference: acc.difference + m.quantity_change,
+            balance: acc.balance + m.new_quantity,
+            costImpact: acc.costImpact + ((m.cost_price_at_time || 0) * m.quantity_change)
+        }), { difference: 0, balance: 0, costImpact: 0 });
+    }, [movements]);
+
     if (loading) {
         return (
             <div className="flex justify-center py-8">
@@ -114,7 +122,7 @@ export const StockMovementHistory = ({ productId, limit = 50 }: StockMovementHis
                         <TableHead>Date</TableHead>
                         {!productId && <TableHead>Product</TableHead>}
                         <TableHead>Type</TableHead>
-                        <TableHead className="text-right">Change</TableHead>
+                        <TableHead className="text-right">Difference</TableHead>
                         <TableHead className="text-right">Balance</TableHead>
                         <TableHead className="text-right whitespace-nowrap">Cost Impact</TableHead>
                         <TableHead className="text-right whitespace-nowrap">Sell Impact</TableHead>
@@ -152,6 +160,17 @@ export const StockMovementHistory = ({ productId, limit = 50 }: StockMovementHis
                             </TableCell>
                         </TableRow>
                     ))}
+                    <TableRow className="bg-muted/50 font-bold sticky bottom-0 border-t-2 border-primary/20">
+                        <TableCell colSpan={!productId ? 3 : 2} className="text-primary font-bold">TOTALS</TableCell>
+                        <TableCell className={`text-right ${totals.difference > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            {totals.difference > 0 ? '+' : ''}{totals.difference}
+                        </TableCell>
+                        <TableCell className="text-right">{totals.balance}</TableCell>
+                        <TableCell className={`text-right ${totals.costImpact > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            ₦{totals.costImpact.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </TableCell>
+                        <TableCell colSpan={2}></TableCell>
+                    </TableRow>
                 </TableBody>
             </Table>
         </div>
