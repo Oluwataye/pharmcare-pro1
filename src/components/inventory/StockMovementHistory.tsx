@@ -252,7 +252,7 @@ export const StockMovementHistory = ({ productId, limit = 100 }: StockMovementHi
                                     {m.unit_price_at_time ? `${(m.unit_price_at_time * m.quantity_change).toFixed(2)}` : '-'}
                                 </TableCell>
                                 <TableCell className="text-xs text-muted-foreground max-w-[200px] truncate">
-                                    {m.reason || '-'}
+                                    {m.type === 'ADJUSTMENT' ? (m.reason || '-') : '-'}
                                 </TableCell>
                             </TableRow>
                         ))}
