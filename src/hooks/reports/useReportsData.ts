@@ -34,6 +34,8 @@ export const useReportsSales = ({ startDate, endDate, branchId, page, pageSize }
           cashier_id,
           profiles:cashier_id(name),
           branches:branch_id(name),
+          cashier_id,
+          created_by,
           sales_items (
             quantity,
             price,

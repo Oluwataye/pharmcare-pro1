@@ -54,10 +54,9 @@ export const useReportsStaffPerformance = (filters: StaffPerformanceFilters) => 
 
         // 1. Process Sales
         sales.forEach(sale => {
-            // Use created_by (profile id) if cashier_id not available, or reliable source
-            // The sale object from useReportsSales has created_by and profiles joined
-            const id = sale.created_by || 'unknown';
-            const name = sale.profiles?.name || 'Unknown Staff'; // useReportsSales joins profiles:created_by(name)
+            // Prefer cashier_id as it's the official record of who handled the transaction
+            const id = sale.cashier_id || sale.created_by || 'unknown';
+            const name = sale.profiles?.name || 'Unknown Staff';
 
             if (!stats[id]) {
                 stats[id] = {
