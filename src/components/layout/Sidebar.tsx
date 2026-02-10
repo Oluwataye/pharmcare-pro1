@@ -257,7 +257,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                 variant="ghost"
                 className={cn(
                   "w-full justify-between items-center h-11 px-4 transition-all duration-200 group border-l-4",
-                  isParentActive && !hasChildren
+                  isParentActive
                     ? "bg-primary text-primary-foreground shadow-md border-primary"
                     : "hover:bg-accent/50 hover:translate-x-1 border-transparent"
                 )}
@@ -272,7 +272,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                 <div className="flex items-center gap-3">
                   <item.icon className={cn(
                     "h-5 w-5 transition-colors",
-                    isParentActive && !hasChildren ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
+                    isParentActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
                   )} />
                   <span className={cn("font-medium", isParentActive && "font-semibold")}>
                     {item.label}
