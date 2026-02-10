@@ -258,7 +258,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                 className={cn(
                   "w-full justify-between items-center h-11 px-4 transition-all duration-200 group border-l-4",
                   isParentActive && !hasChildren
-                    ? "bg-[#002B5B] text-[#F3F4F6] shadow-md border-[#3B82F6]"
+                    ? "bg-primary text-primary-foreground shadow-md border-primary"
                     : "hover:bg-accent/50 hover:translate-x-1 border-transparent"
                 )}
                 onClick={() => {
@@ -272,7 +272,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                 <div className="flex items-center gap-3">
                   <item.icon className={cn(
                     "h-5 w-5 transition-colors",
-                    isParentActive && !hasChildren ? "text-[#3B82F6]" : "text-muted-foreground group-hover:text-primary"
+                    isParentActive && !hasChildren ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
                   )} />
                   <span className={cn("font-medium", isParentActive && "font-semibold")}>
                     {item.label}
@@ -299,12 +299,12 @@ const Sidebar = ({ onClose }: SidebarProps) => {
                         className={cn(
                           "w-full justify-start gap-3 h-10 px-4 transition-all duration-200 text-sm",
                           isChildActive
-                            ? "bg-[#002B5B] text-[#F3F4F6] shadow-sm border-l-4 border-[#3B82F6]"
+                            ? "bg-primary text-primary-foreground shadow-sm border-l-4 border-primary"
                             : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
                         )}
                         onClick={() => handleNavigate(child.path)}
                       >
-                        <child.icon className={cn("h-4 w-4", isChildActive ? "text-[#3B82F6]" : "text-muted-foreground")} />
+                        <child.icon className={cn("h-4 w-4", isChildActive ? "text-primary-foreground" : "text-muted-foreground")} />
                         <span>{child.label}</span>
                       </Button>
                     );
