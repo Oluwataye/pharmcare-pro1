@@ -43,11 +43,25 @@ const CashReconciliation = () => {
     // Memoize expensive metric calculations
     const metrics = useMemo(() => {
         const totalVariance = shifts.reduce((acc, s) => acc + s.variance, 0);
+        const totalExpectedCash = shifts.reduce((acc, s) => acc + (s.expected_cash_total || 0), 0);
+        const totalActualCounted = shifts.reduce((acc, s) => acc + (s.actual_cash_counted || 0), 0);
+        const totalPosRevenue = shifts.reduce((acc, s) => acc + (s.expected_pos_total || 0), 0);
+        const totalTransferRevenue = shifts.reduce((acc, s) => acc + (s.expected_transfer_total || 0), 0);
+
         const shiftsWithVariance = shifts.filter(s => Math.abs(s.variance) > 0).length;
         const closedShifts = shifts.filter(s => s.status === 'closed').length;
         const auditAlerts = shifts.filter(s => Math.abs(s.variance) > 1000).length;
 
-        return { totalVariance, shiftsWithVariance, closedShifts, auditAlerts };
+        return {
+            totalVariance,
+            totalExpectedCash,
+            totalActualCounted,
+            totalPosRevenue,
+            totalTransferRevenue,
+            shiftsWithVariance,
+            closedShifts,
+            auditAlerts
+        };
     }, [shifts]);
 
     return (
@@ -221,6 +235,41 @@ const CashReconciliation = () => {
                                         </TableRow>
                                     );
                                 })}
+
+                                {/* Summary Row */}
+                                <TableRow className="bg-muted font-bold border-t-2 border-primary/20 sticky bottom-0 z-10 shadow-[0_-2px_4px_rgba(0,0,0,0.05)]">
+                                    <TableCell colSpan={2} className="text-right uppercase tracking-wider text-xs">
+                                        Total for Period
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono text-sm">
+                                        ₦{metrics.totalExpectedCash.toLocaleString()}
+                                    </TableCell>
+                                    <TableCell className="text-right font-mono text-sm">
+                                        ₦{metrics.totalActualCounted.toLocaleString()}
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Badge
+                                            variant={metrics.totalVariance === 0 ? "outline" : metrics.totalVariance > 0 ? "secondary" : "destructive"}
+                                            className="font-mono text-xs"
+                                        >
+                                            {metrics.totalVariance >= 0 ? "+" : ""}
+                                            ₦{metrics.totalVariance.toLocaleString()}
+                                        </Badge>
+                                    </TableCell>
+                                    <TableCell>
+                                        <div className="flex flex-col gap-1">
+                                            <div className="flex items-center justify-between text-[10px]">
+                                                <span className="text-muted-foreground uppercase">POS:</span>
+                                                <span className="font-bold">₦{metrics.totalPosRevenue.toLocaleString()}</span>
+                                            </div>
+                                            <div className="flex items-center justify-between text-[10px]">
+                                                <span className="text-muted-foreground uppercase">TR:</span>
+                                                <span className="font-bold">₦{metrics.totalTransferRevenue.toLocaleString()}</span>
+                                            </div>
+                                        </div>
+                                    </TableCell>
+                                    <TableCell />
+                                </TableRow>
                             </TableBody>
                         </Table>
                     )}
