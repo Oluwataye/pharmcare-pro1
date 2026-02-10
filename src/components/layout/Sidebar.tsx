@@ -56,6 +56,10 @@ const Sidebar = ({ onClose }: SidebarProps) => {
     }
   }, [storeSettings]);
 
+  const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
+    Sales: true // Default sales to expanded if active
+  });
+
   const menuItems = [
     {
       icon: LayoutDashboard,
@@ -73,25 +77,31 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       icon: ShoppingBag,
       label: "Sales",
       path: "/sales",
-      condition: true
-    },
-    {
-      icon: Receipt,
-      label: "Receipts",
-      path: "/sales/receipts",
-      condition: true
-    },
-    {
-      icon: Printer,
-      label: "Print History",
-      path: "/sales/history",
-      condition: canAccessReports()
-    },
-    {
-      icon: NairaSign,
-      label: "Refunds",
-      path: "/sales/refunds",
-      condition: canAccessReports()
+      condition: true,
+      children: [
+        {
+          icon: ShoppingBag,
+          label: "Point of Sale",
+          path: "/sales"
+        },
+        {
+          icon: Receipt,
+          label: "Receipts",
+          path: "/sales/receipts"
+        },
+        {
+          icon: Printer,
+          label: "Print History",
+          path: "/sales/history",
+          condition: canAccessReports()
+        },
+        {
+          icon: NairaSign,
+          label: "Refunds",
+          path: "/sales/refunds",
+          condition: canAccessReports()
+        },
+      ]
     },
     {
       icon: Users,
@@ -148,6 +158,24 @@ const Sidebar = ({ onClose }: SidebarProps) => {
       condition: canAccessTraining()
     },
   ];
+
+  // Auto-expand menu if a child is active
+  useEffect(() => {
+    menuItems.forEach(item => {
+      if (item.children) {
+        const isChildActive = item.children.some(child =>
+          location.pathname === child.path || location.pathname.startsWith(child.path + "/")
+        );
+        if (isChildActive) {
+          setExpandedMenus(prev => ({ ...prev, [item.label]: true }));
+        }
+      }
+    });
+  }, [location.pathname]);
+
+  const toggleMenu = (label: string) => {
+    setExpandedMenus(prev => ({ ...prev, [label]: !prev[label] }));
+  };
 
   const handleNavigate = (path: string) => {
     navigate(path);
