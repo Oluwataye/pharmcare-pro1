@@ -12,7 +12,10 @@ export const fromCents = (cents: number): number => {
 };
 
 export const formatCurrency = (amount: number): string => {
-    return amount.toFixed(2);
+    return '₦' + amount.toLocaleString(undefined, {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+    });
 };
 
 export const calculateDiscountAmount = (subtotal: number, discountPercentage: number): number => {
