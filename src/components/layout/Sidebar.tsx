@@ -57,7 +57,7 @@ const Sidebar = ({ onClose }: SidebarProps) => {
   }, [storeSettings]);
 
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({
-    Sales: true // Default sales to expanded if active
+    Sales: true
   });
 
   const menuItems = [
@@ -237,30 +237,81 @@ const Sidebar = ({ onClose }: SidebarProps) => {
         </div>
       )}
 
-      <nav className="flex-1 space-y-1 p-3 overflow-y-auto">
+      <nav className="flex-1 space-y-1 p-3 overflow-y-auto custom-scrollbar">
         {menuItems.map((item) => {
           if (!item.condition) return null;
 
-          // Highlight parent if we are in a sub-path (except for Dashboard '/')
-          const isActive = item.path === "/"
+          const hasChildren = item.children && item.children.length > 0;
+          const isExpanded = expandedMenus[item.label];
+
+          // Check if parent is active (either directly or via children)
+          const isParentActive = item.path === "/"
             ? location.pathname === "/"
-            : location.pathname === item.path || location.pathname.startsWith(item.path + "/");
+            : location.pathname === item.path ||
+            location.pathname.startsWith(item.path + "/") ||
+            (item.children?.some(child => location.pathname === child.path || location.pathname.startsWith(child.path + "/")));
 
           return (
-            <Button
-              key={item.path}
-              variant={isActive ? "secondary" : "ghost"}
-              className={cn(
-                "w-full justify-start gap-3 h-11 px-4 transition-all duration-200",
-                isActive
-                  ? "bg-[#002B5B] text-[#F3F4F6] shadow-md hover:bg-[#001D3D] border-l-4 border-[#3B82F6]"
-                  : "hover:bg-accent/50 hover:translate-x-1 border-l-4 border-transparent"
+            <div key={item.label} className="space-y-1">
+              <Button
+                variant="ghost"
+                className={cn(
+                  "w-full justify-between items-center h-11 px-4 transition-all duration-200 group border-l-4",
+                  isParentActive && !hasChildren
+                    ? "bg-[#002B5B] text-[#F3F4F6] shadow-md border-[#3B82F6]"
+                    : "hover:bg-accent/50 hover:translate-x-1 border-transparent"
+                )}
+                onClick={() => {
+                  if (hasChildren) {
+                    toggleMenu(item.label);
+                  } else {
+                    handleNavigate(item.path);
+                  }
+                }}
+              >
+                <div className="flex items-center gap-3">
+                  <item.icon className={cn(
+                    "h-5 w-5 transition-colors",
+                    isParentActive && !hasChildren ? "text-[#3B82F6]" : "text-muted-foreground group-hover:text-primary"
+                  )} />
+                  <span className={cn("font-medium", isParentActive && "font-semibold")}>
+                    {item.label}
+                  </span>
+                </div>
+                {hasChildren && (
+                  <ChevronLeft className={cn(
+                    "h-4 w-4 transition-transform duration-200",
+                    isExpanded ? "-rotate-90" : ""
+                  )} />
+                )}
+              </Button>
+
+              {hasChildren && isExpanded && (
+                <div className="ml-4 pl-4 border-l-2 border-primary/10 space-y-1 animate-in fade-in slide-in-from-left-2 duration-200">
+                  {item.children!.map((child) => {
+                    if (child.condition === false) return null;
+                    const isChildActive = location.pathname === child.path || location.pathname.startsWith(child.path + "/");
+
+                    return (
+                      <Button
+                        key={child.path}
+                        variant="ghost"
+                        className={cn(
+                          "w-full justify-start gap-3 h-10 px-4 transition-all duration-200 text-sm",
+                          isChildActive
+                            ? "bg-[#002B5B] text-[#F3F4F6] shadow-sm border-l-4 border-[#3B82F6]"
+                            : "text-muted-foreground hover:text-foreground hover:bg-accent/30"
+                        )}
+                        onClick={() => handleNavigate(child.path)}
+                      >
+                        <child.icon className={cn("h-4 w-4", isChildActive ? "text-[#3B82F6]" : "text-muted-foreground")} />
+                        <span>{child.label}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
               )}
-              onClick={() => handleNavigate(item.path)}
-            >
-              <item.icon className={cn("h-5 w-5 transition-colors", isActive ? "text-[#3B82F6]" : "text-muted-foreground")} />
-              <span className={cn("font-medium", isActive && "font-semibold")}>{item.label}</span>
-            </Button>
+            </div>
           );
         })}
       </nav>
