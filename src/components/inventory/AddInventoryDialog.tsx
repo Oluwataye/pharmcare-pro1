@@ -29,7 +29,11 @@ export const AddInventoryDialog = ({
 }: AddInventoryDialogProps) => {
   const [supplierId, setSupplierId] = useState<string>("none");
   const [invoiceNumber, setInvoiceNumber] = useState<string>("");
-  const [items, setItems] = useState<any[]>([{ ...initialInventoryFormState, id: Date.now() }]);
+  const [items, setItems] = useState<any[]>([{
+    ...initialInventoryFormState,
+    id: Date.now(),
+    expiryDateObj: new Date(initialInventoryFormState.expiryDate)
+  }]);
   const [localCategories, setLocalCategories] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAddingSupplier, setIsAddingSupplier] = useState(false);
@@ -42,7 +46,11 @@ export const AddInventoryDialog = ({
     if (open) {
       fetchSuppliers();
       // Reset if opening new
-      setItems([{ ...initialInventoryFormState, id: Date.now() }]);
+      setItems([{
+        ...initialInventoryFormState,
+        id: Date.now(),
+        expiryDateObj: new Date(initialInventoryFormState.expiryDate)
+      }]);
       setSupplierId("none");
       setInvoiceNumber("");
       setLocalCategories(categories);
@@ -75,7 +83,11 @@ export const AddInventoryDialog = ({
   };
 
   const handleAddItemForm = () => {
-    setItems([...items, { ...initialInventoryFormState, id: Date.now() }]);
+    setItems([...items, {
+      ...initialInventoryFormState,
+      id: Date.now(),
+      expiryDateObj: new Date(initialInventoryFormState.expiryDate)
+    }]);
   };
 
   const handleRemoveItem = (index: number) => {

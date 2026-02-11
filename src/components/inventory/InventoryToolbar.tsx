@@ -43,7 +43,7 @@ export const InventoryToolbar = ({
 }: InventoryToolbarProps) => {
   const { user } = useAuth();
   const { suppliers, fetchSuppliers } = useSuppliers();
-  const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+  const canBulkUpload = user && ['SUPER_ADMIN', 'ADMIN', 'PHARMACIST'].includes(user.role);
 
   useEffect(() => {
     fetchSuppliers();
@@ -124,7 +124,7 @@ export const InventoryToolbar = ({
         >
           <Printer className="h-4 w-4" />
         </Button>
-        {isSuperAdmin && onBulkUpload && (
+        {canBulkUpload && onBulkUpload && (
           <Button onClick={onBulkUpload} variant="outline" className="hidden sm:inline-flex shrink-0">
             <Upload className="mr-2 h-4 w-4" /> Bulk
           </Button>

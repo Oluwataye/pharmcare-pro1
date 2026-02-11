@@ -78,7 +78,7 @@ export function BulkUploadDialog({
       });
 
       onUploadComplete();
-      
+
       // Reset after 3 seconds
       setTimeout(() => {
         setFile(null);
@@ -108,9 +108,8 @@ export function BulkUploadDialog({
         <DialogHeader>
           <DialogTitle>Bulk Upload Inventory</DialogTitle>
           <DialogDescription>
-            Upload a CSV file to bulk import inventory items. The file must include:
-            Product Name, SKU, Category, Expiry Date, Quantity, Unit, Price, Reorder Level,
-            Manufacturer, and Batch Number.
+            Upload a CSV file to bulk import inventory items. The file must follow this exact column order:
+            Product Name, SKU, Category, Quantity, Unit, Selling Price, Cost Price, Reorder Level, Expiry Date, Manufacturer, and Batch Number.
           </DialogDescription>
         </DialogHeader>
 
@@ -135,6 +134,18 @@ export function BulkUploadDialog({
                 disabled={isUploading}
               />
             </label>
+          </div>
+
+          <div className="flex items-center justify-between p-3 bg-primary/5 rounded-lg border border-primary/20">
+            <div className="text-sm">
+              <p className="font-semibold">Need a template?</p>
+              <p className="text-muted-foreground text-xs">Download our standardized CSV format.</p>
+            </div>
+            <Button variant="outline" size="sm" asChild>
+              <a href="/inventory_template.csv" download="inventory_template.csv">
+                Download CSV
+              </a>
+            </Button>
           </div>
 
           {uploadResult && (

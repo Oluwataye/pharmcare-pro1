@@ -1,0 +1,4 @@
+Name,SKU,Category,Quantity,Unit,Price,Cost Price,Reorder Level,Expiry Date,Manufacturer,Batch Number
+Paracetamol 500mg,PARA-500-BK,Tablet,100,pcs,50,30,20,2026-12-31,Emzor,BN12345
+Amoxicillin 250mg,AMOX-250-BK,Capsule,50,pcs,120,80,10,2025-06-30,GSK,BN67890
+Vitamin C Syrup,VITC-SYP-01,Syrup,20,bottles,450,320,5,2025-09-15,Juhel,BN54321

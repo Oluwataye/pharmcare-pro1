@@ -1,3 +1,8 @@
+export const getDefaultExpiryDate = (): string => {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() + 2);
+  return date.toISOString().split('T')[0];
+};
 
 export const UNIT_OPTIONS = [
   { value: "tablets", label: "Tablets" },
@@ -32,7 +37,7 @@ export const initialInventoryFormState = {
   costPrice: 0,
   profitMargin: 20, // Default to 20%
   reorderLevel: 0,
-  expiryDate: "",
+  expiryDate: getDefaultExpiryDate(),
   manufacturer: "",
   batchNumber: "",
   supplierId: "none",
