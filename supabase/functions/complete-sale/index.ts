@@ -254,7 +254,8 @@ serve(async (req) => {
           .from('customers')
           .select('id')
           .eq('phone', saleData.customerPhone)
-          .single();
+          .ilike('name', saleData.customerName) // Match name case-insensitively
+          .maybeSingle(); // Avoid error on multiple/missing matches
 
         if (existingCustomer) {
           customerId = existingCustomer.id;
