@@ -319,28 +319,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     // Only lock if we have a user
     if (authState.user) {
       console.log('[AuthProvider] Locking session due to timeout');
-      isAuthenticated: false, // This will trigger ProtectedRoute to show Login
+      setAuthState(prev => ({
+        ...prev,
+        isAuthenticated: false, // This will trigger ProtectedRoute to show Login
       }));
-    toast({
-      title: "Session Locked",
-      description: "Your session has been locked due to inactivity.",
-    });
-  }
-};
+      toast({
+        title: "Session Locked",
+        description: "Your session has been locked due to inactivity.",
+      });
+    }
+  };
 
-const authValue = React.useMemo(() => ({
-  ...authState,
-  login,
-  logout,
-  lockSession,
-  session,
-}), [authState, session]);
+  const authValue = React.useMemo(() => ({
+    ...authState,
+    login,
+    logout,
+    lockSession,
+    session,
+  }), [authState, session]);
 
-return (
-  <AuthContext.Provider value={authValue}>
-    {children}
-  </AuthContext.Provider>
-);
+  return (
+    <AuthContext.Provider value={authValue}>
+      {children}
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {
