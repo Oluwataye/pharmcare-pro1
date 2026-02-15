@@ -5,6 +5,7 @@ import { useAuth } from './AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import { getCurrentShift } from '@/utils/shiftUtils';
 import { useOffline } from './OfflineContext';
+import { logAuditEvent } from '@/lib/auditLog';
 
 export interface StaffShift {
     id: string;
@@ -166,12 +167,26 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     staff_email: user.email,
                     shift_type: getCurrentShift(),
                     opening_cash: openingCash,
-                    status: 'active'
+                    status: 'active',
+                    branch_id: user.branch_id
                 })
                 .select()
                 .single();
 
             if (error) throw error;
+
+            // Log shift started
+            logAuditEvent({
+                eventType: 'SHIFT_STARTED',
+                userId: user.id,
+                userEmail: user.email,
+                userRole: user.role,
+                action: 'Shift started',
+                resourceType: 'staff_shifts',
+                resourceId: data.id,
+                details: { shift_type: data.shift_type, opening_cash: openingCash }
+            });
+
             setActiveShift(data as any);
             localStorage.setItem('active_staff_shift', JSON.stringify(data));
             toast({ title: "Shift Started", description: `You are now on duty.` });
@@ -472,6 +487,7 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 .from('staff_shifts' as any)
                 .update({
                     status: 'closed',
+                    closure_status: 'closed',
                     end_time: new Date().toISOString(),
                     expected_sales_total: salesTotal,
                     expected_cash_total: expectedCash,
@@ -503,6 +519,21 @@ export const ShiftProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                     shift_id: shiftId
                 });
             }
+
+            // Log shift reconciled
+            logAuditEvent({
+                eventType: 'SHIFT_RECONCILED',
+                userId: staffId,
+                action: 'Shift reconciled and closed',
+                resourceType: 'staff_shifts',
+                resourceId: shiftId,
+                details: {
+                    expected: expectedCash,
+                    actual: actualCash,
+                    variance,
+                    sales_total: salesTotal
+                }
+            });
 
             await refreshShifts();
             toast({

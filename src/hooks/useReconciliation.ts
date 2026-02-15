@@ -38,7 +38,7 @@ export function useReconciliation(filters?: ReconciliationFilters) {
 
             let query = (supabase.from('staff_shifts' as any) as any)
                 .select('*')
-                .gte('created_at', startDate)
+                .or(`created_at.gte.${startDate},end_time.gte.${startDate}`)
                 .order('created_at', { ascending: false });
 
             // Apply status filter

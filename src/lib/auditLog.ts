@@ -16,7 +16,9 @@ export type AuditEventType =
   | 'DATA_DELETED'
   | 'SALE_COMPLETED'
   | 'INVENTORY_UPDATED'
-  | 'BULK_UPLOAD';
+  | 'BULK_UPLOAD'
+  | 'SHIFT_STARTED'
+  | 'SHIFT_RECONCILED';
 
 export interface AuditLogEntry {
   eventType: AuditEventType;
