@@ -1,5 +1,6 @@
 import { ShieldCheck, Lock } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 
 export const SecuritySettings = () => {
     return (
