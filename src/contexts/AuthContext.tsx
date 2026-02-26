@@ -8,7 +8,7 @@ import { logSuccessfulLogin, logFailedLogin, logLogout } from '@/lib/auditLog';
 import { secureStorage } from '@/lib/secureStorage';
 
 interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>;
+  login: (email: string, password: string, captchaToken: string) => Promise<void>;
   logout: () => void;
   lockSession: () => void;
   session: Session | null;
@@ -220,7 +220,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
-  const login = async (email: string, password: string) => {
+  const login = async (email: string, password: string, captchaToken: string) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
 
     try {
@@ -234,14 +234,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Too many login attempts. Please try again at ${resetTime}`);
       }
 
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+      // Invoke the Edge Function to validate captcha and perform sign in
+      const { data, error } = await supabase.functions.invoke('login-with-turnstile', {
+        body: { email, password, captchaToken }
       });
 
       if (error) throw error;
+      if (data.error) throw new Error(data.error);
 
-      if (data.user) {
+      if (data.user && data.session) {
+        // Explicitly set the session on the client once validated
+        const { error: sessionError } = await supabase.auth.setSession({
+          access_token: data.session.access_token,
+          refresh_token: data.session.refresh_token,
+        });
+
+        if (sessionError) throw sessionError;
+
         // Clear rate limit on successful login
         clearLoginRateLimit(email);
 

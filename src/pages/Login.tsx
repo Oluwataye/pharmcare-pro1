@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Turnstile } from '@marsidev/react-turnstile';
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -17,6 +18,7 @@ const Login = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const navigate = useNavigate();
   const { login } = useAuth();
   const { toast } = useToast();
@@ -31,9 +33,9 @@ const Login = () => {
         newErrors.password = validation.error;
       }
       setErrors(newErrors);
-      logSecurityEvent('FORM_VALIDATION_FAILED', { 
-        email, 
-        error: validation.error 
+      logSecurityEvent('FORM_VALIDATION_FAILED', {
+        email,
+        error: validation.error
       });
       return false;
     }
@@ -43,14 +45,23 @@ const Login = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!validateForm()) {
+      return;
+    }
+
+    if (!captchaToken) {
+      toast({
+        title: "Verification Required",
+        description: "Please complete human verification.",
+        variant: "destructive",
+      });
       return;
     }
 
     setIsLoggingIn(true);
     try {
-      await login(email, password);
+      await login(email, password, captchaToken);
       navigate("/");
     } catch (error) {
       toast({
@@ -66,7 +77,7 @@ const Login = () => {
   const handleInputChange = (field: 'email' | 'password', value: string) => {
     // Basic input sanitization
     const sanitizedValue = value.replace(/[<>'"&]/g, '');
-    
+
     if (field === 'email') {
       setEmail(sanitizedValue);
       if (errors.email) setErrors(prev => ({ ...prev, email: undefined }));
@@ -108,7 +119,7 @@ const Login = () => {
               />
               {errors.email && <p className="text-red-500 text-xs mt-1">{errors.email}</p>}
             </div>
-            
+
             <div>
               <label htmlFor="password" className="block text-sm font-medium mb-1">
                 Password
@@ -143,11 +154,27 @@ const Login = () => {
               </div>
               {errors.password && <p className="text-red-500 text-xs mt-1">{errors.password}</p>}
             </div>
-            
-            <Button 
-              type="submit" 
-              className="w-full" 
-              disabled={isLoggingIn}
+
+            <div className="flex justify-center my-4 min-h-[65px]">
+              <Turnstile
+                siteKey={import.meta.env.VITE_TURNSTILE_SITE_KEY || '1x00000000000000000000AA'}
+                onSuccess={(token) => setCaptchaToken(token)}
+                onError={() => {
+                  setCaptchaToken(null);
+                  toast({
+                    title: "Verification Failed",
+                    description: "Failed to verify you are human. Please try again.",
+                    variant: "destructive",
+                  });
+                }}
+                onExpire={() => setCaptchaToken(null)}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={isLoggingIn || !captchaToken}
             >
               {isLoggingIn ? (
                 <div className="flex items-center gap-2">
