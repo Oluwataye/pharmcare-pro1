@@ -187,17 +187,6 @@ const Login = () => {
             </Button>
           </form>
 
-          <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-md">
-            <p className="text-xs font-medium text-amber-800 mb-1">Password Requirements:</p>
-            <ul className="text-xs text-amber-700 space-y-1">
-              <li>• At least 8 characters long</li>
-              <li>• Contains uppercase letter (A-Z)</li>
-              <li>• Contains lowercase letter (a-z)</li>
-              <li>• Contains number (0-9)</li>
-              <li>• Contains special character (!@#$%^&*)</li>
-            </ul>
-          </div>
-
           <div className="mt-4 text-xs text-gray-500 text-center">
             <Shield className="h-3 w-3 inline mr-1" />
             Your session is protected with enhanced security measures
