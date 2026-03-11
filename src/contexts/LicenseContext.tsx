@@ -70,13 +70,10 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
       // We must verify the payload footprints against Edge Function
       const footprint = getInstallationFootprint();
       
-      const { data: verifyData, error: verifyError } = await supabase.functions.invoke('activate-license', {
-        body: {
-          action: 'verify',
-          licenseKey: activeLicense.license_key,
-          domain: footprint.domain,
-          installationId: footprint.installationId
-        }
+      const { data: verifyData, error: verifyError } = await supabase.rpc('verify_license_rpc', {
+        p_license_key: activeLicense.license_key,
+        p_domain: footprint.domain,
+        p_installation_id: footprint.installationId
       });
 
       if (verifyError || !verifyData?.valid) {
@@ -112,21 +109,18 @@ export const LicenseProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setIsLoading(true);
       const footprint = getInstallationFootprint();
       
-      const { data, error } = await supabase.functions.invoke('activate-license', {
-        body: {
-          action: 'activate',
-          licenseKey: key,
-          clientName: name,
-          domain: footprint.domain,
-          installationId: footprint.installationId
-        }
+      const { data, error } = await supabase.rpc('activate_license_rpc', {
+        p_license_key: key,
+        p_client_name: name,
+        p_domain: footprint.domain,
+        p_installation_id: footprint.installationId
       });
 
       if (error) {
          return { success: false, error: error.message };
       }
 
-      if (data.error) {
+      if (!data.success) {
          return { success: false, error: data.error };
       }
 
