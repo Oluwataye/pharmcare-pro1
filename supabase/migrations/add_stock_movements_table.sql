@@ -32,15 +32,22 @@ CREATE INDEX IF NOT EXISTS idx_stock_movements_type ON public.stock_movements(ty
 ALTER TABLE public.stock_movements ENABLE ROW LEVEL SECURITY;
 
 -- 5. Create RLS Policies
-CREATE POLICY "Users can view stock movements"
-    ON public.stock_movements FOR SELECT
-    TO authenticated
-    USING (true);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'stock_movements' AND policyname = 'Users can view stock movements'
+  ) THEN 
+    CREATE POLICY "Users can view stock movements" ON public.stock_movements FOR SELECT TO authenticated USING (true);
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Admins and Pharmacists can create movements"
-    ON public.stock_movements FOR INSERT
-    TO authenticated
-    WITH CHECK (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'stock_movements' AND policyname = 'Admins and Pharmacists can create movements'
+  ) THEN 
+    CREATE POLICY "Admins and Pharmacists can create movements" ON public.stock_movements FOR INSERT TO authenticated WITH CHECK (
         EXISTS (
             SELECT 1 FROM public.user_roles
             WHERE user_id = auth.uid()
@@ -49,6 +56,9 @@ CREATE POLICY "Admins and Pharmacists can create movements"
         OR 
         (type = 'SALE') -- Sales can be logged by anyone (including Dispensers)
     );
+  END IF; 
+END
+$$;
 
 -- 6. Add comment for documentation
 COMMENT ON TABLE public.stock_movements IS 'Audit trail for all changes to inventory stock levels';

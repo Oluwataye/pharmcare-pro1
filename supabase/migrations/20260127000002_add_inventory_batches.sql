@@ -16,23 +16,40 @@ CREATE TABLE IF NOT EXISTS public.inventory_batches (
 );
 
 -- 2. Create Indexes for Performance (FEFO lookup)
-CREATE INDEX idx_inventory_batches_inventory_id ON public.inventory_batches(inventory_id);
-CREATE INDEX idx_inventory_batches_expiry ON public.inventory_batches(expiry_date ASC);
+CREATE INDEX IF NOT EXISTS idx_inventory_batches_inventory_id ON public.inventory_batches(inventory_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_batches_expiry ON public.inventory_batches(expiry_date ASC);
 
 -- 3. Enable RLS
 ALTER TABLE public.inventory_batches ENABLE ROW LEVEL SECURITY;
 
 -- Policies
-CREATE POLICY "Allow authenticated to read batches"
-ON public.inventory_batches FOR SELECT
-TO authenticated
-USING (true);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'inventory_batches' AND policyname = 'Allow authenticated to read batches'
+  ) THEN 
+    CREATE POLICY "Allow authenticated to read batches" ON public.inventory_batches FOR SELECT TO authenticated USING (true);
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Allow authenticated to manage batches"
-ON public.inventory_batches FOR ALL
-TO authenticated
-USING (true)
-WITH CHECK (true);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'inventory_batches' AND policyname = 'Allow authenticated to manage batches'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'inventory_batches' AND policyname = 'Allow authenticated to manage batches'
+  ) THEN 
+    CREATE POLICY "Allow authenticated to manage batches" ON public.inventory_batches FOR ALL TO authenticated USING (true) WITH CHECK (true);
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
 
 -- 4. Automatic Inventory Total Sync Trigger
 -- We want inventory.quantity to ALWAYS reflect the sum of batches.

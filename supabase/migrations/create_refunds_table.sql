@@ -1,5 +1,5 @@
 -- Refunds Table with Approval Workflow
-CREATE TABLE refunds (
+CREATE TABLE IF NOT EXISTS refunds (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   sale_id TEXT NOT NULL,
   transaction_id TEXT NOT NULL,
@@ -31,10 +31,10 @@ CREATE TABLE refunds (
 );
 
 -- Indexes for performance
-CREATE INDEX idx_refunds_sale_id ON refunds(sale_id);
-CREATE INDEX idx_refunds_transaction_id ON refunds(transaction_id);
-CREATE INDEX idx_refunds_status ON refunds(status);
-CREATE INDEX idx_refunds_initiated_by ON refunds(initiated_by);
+CREATE INDEX IF NOT EXISTS idx_refunds_sale_id ON refunds(sale_id);
+CREATE INDEX IF NOT EXISTS idx_refunds_transaction_id ON refunds(transaction_id);
+CREATE INDEX IF NOT EXISTS idx_refunds_status ON refunds(status);
+CREATE INDEX IF NOT EXISTS idx_refunds_initiated_by ON refunds(initiated_by);
 
 -- RLS Policies
 ALTER TABLE refunds ENABLE ROW LEVEL SECURITY;
@@ -76,6 +76,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS refunds_updated_at ON refunds;
+DROP TRIGGER IF EXISTS refunds_updated_at ON refunds;
 CREATE TRIGGER refunds_updated_at
   BEFORE UPDATE ON refunds
   FOR EACH ROW

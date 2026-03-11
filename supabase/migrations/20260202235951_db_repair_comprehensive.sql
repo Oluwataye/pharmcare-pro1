@@ -1,4 +1,4 @@
--- 1. FIX SYSTEM_ALERTS (RESOVLES 404)
+-- 1. FIX SYSTEM_ALERTS (RESOLVES 404)
 CREATE TABLE IF NOT EXISTS public.system_alerts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     type TEXT NOT NULL,
@@ -17,21 +17,24 @@ CREATE TABLE IF NOT EXISTS public.system_alerts (
 -- RLS for system_alerts
 ALTER TABLE public.system_alerts ENABLE ROW LEVEL SECURITY;
 
-DO $$ 
+DO $$
 BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can view all alerts') THEN
-        CREATE POLICY "Admins can view all alerts" ON public.system_alerts FOR SELECT TO authenticated 
-        USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role IN ('SUPER_ADMIN', 'PHARMACIST')));
-    END IF;
-    
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Staff can view own alerts') THEN
-        CREATE POLICY "Staff can view own alerts" ON public.system_alerts FOR SELECT TO authenticated 
-        USING (staff_id = auth.uid());
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'system_alerts' AND policyname = 'Admins can view all alerts') THEN
+        CREATE POLICY "Admins can view all alerts" ON public.system_alerts
+          FOR SELECT TO authenticated
+          USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role IN ('SUPER_ADMIN', 'PHARMACIST')));
     END IF;
 
-    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE policyname = 'Admins can update alerts') THEN
-        CREATE POLICY "Admins can update alerts" ON public.system_alerts FOR UPDATE TO authenticated 
-        USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role IN ('SUPER_ADMIN', 'PHARMACIST')));
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'system_alerts' AND policyname = 'Staff can view own alerts') THEN
+        CREATE POLICY "Staff can view own alerts" ON public.system_alerts
+          FOR SELECT TO authenticated
+          USING (staff_id = auth.uid());
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'system_alerts' AND policyname = 'Admins can update alerts') THEN
+        CREATE POLICY "Admins can update alerts" ON public.system_alerts
+          FOR UPDATE TO authenticated
+          USING (EXISTS (SELECT 1 FROM public.user_roles WHERE user_id = auth.uid() AND role IN ('SUPER_ADMIN', 'PHARMACIST')));
     END IF;
 END $$;
 

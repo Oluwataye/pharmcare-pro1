@@ -14,34 +14,56 @@ VALUES (
 
 -- Storage policies for store logos
 -- Allow authenticated users to view logos
-CREATE POLICY "Anyone can view store logos"
-ON storage.objects FOR SELECT
-TO public
-USING (bucket_id = 'store-logos');
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'storage.objects' AND policyname = 'Anyone can view store logos'
+  ) THEN 
+    CREATE POLICY "Anyone can view store logos" 
+  ON storage.objects
+  bucket_id = 'store-logos';
+  END IF; 
+END
+$$;
 
 -- Only super admins can upload logos
-CREATE POLICY "Super admins can upload store logos"
-ON storage.objects FOR INSERT
-TO authenticated
-WITH CHECK (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'storage.objects' AND policyname = 'Super admins can upload store logos'
+  ) THEN 
+    CREATE POLICY "Super admins can upload store logos" ON storage.objects FOR INSERT TO authenticated WITH CHECK (
   bucket_id = 'store-logos' 
   AND (SELECT has_role(auth.uid(), 'SUPER_ADMIN'::app_role))
 );
+  END IF; 
+END
+$$;
 
 -- Only super admins can update logos
-CREATE POLICY "Super admins can update store logos"
-ON storage.objects FOR UPDATE
-TO authenticated
-USING (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'storage.objects' AND policyname = 'Super admins can update store logos'
+  ) THEN 
+    CREATE POLICY "Super admins can update store logos" ON storage.objects FOR UPDATE TO authenticated USING (
   bucket_id = 'store-logos' 
   AND (SELECT has_role(auth.uid(), 'SUPER_ADMIN'::app_role))
 );
+  END IF; 
+END
+$$;
 
 -- Only super admins can delete logos
-CREATE POLICY "Super admins can delete store logos"
-ON storage.objects FOR DELETE
-TO authenticated
-USING (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'storage.objects' AND policyname = 'Super admins can delete store logos'
+  ) THEN 
+    CREATE POLICY "Super admins can delete store logos" ON storage.objects FOR DELETE TO authenticated USING (
   bucket_id = 'store-logos' 
   AND (SELECT has_role(auth.uid(), 'SUPER_ADMIN'::app_role))
 );
+  END IF; 
+END
+$$;

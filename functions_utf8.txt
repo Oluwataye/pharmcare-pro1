@@ -1,0 +1,12 @@
+﻿
+  
+   ID                                   | NAME                  | SLUG                  | STATUS | VERSION | UPDATED_AT (UTC)    
+  --------------------------------------|-----------------------|-----------------------|--------|---------|---------------------
+   821f59f4-368a-4932-9f72-3a446b0c86bc | list-users            | list-users            | ACTIVE | 11      | 2026-01-13 16:22:30 
+   ba15a489-f930-4c6e-abf4-40b26110d4bc | create-user           | create-user           | ACTIVE | 12      | 2026-01-13 16:23:15 
+   b7b661d3-e392-49dc-9111-d37e18a25bd9 | complete-sale         | complete-sale         | ACTIVE | 23      | 2026-02-08 14:37:12 
+   ba32aef3-52f3-4d82-a7bd-3fc9a629fb3c | bulk-upload-inventory | bulk-upload-inventory | ACTIVE | 2       | 2026-01-13 16:25:38 
+   51a3d19c-1b7c-4fc9-bfd3-356b491c14a7 | backup-db             | backup-db             | ACTIVE | 4       | 2026-02-02 09:22:54 
+   a0f989ea-9b74-440a-ad7d-979fdf46acaa | login-with-turnstile  | login-with-turnstile  | ACTIVE | 1       | 2026-02-26 20:41:18 
+   e0880c33-9f69-49ef-ab87-0e47f927798b | activate-license      | activate-license      | ACTIVE | 1       | 2026-03-11 09:01:02 
+

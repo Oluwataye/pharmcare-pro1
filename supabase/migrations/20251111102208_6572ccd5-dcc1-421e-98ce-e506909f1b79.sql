@@ -29,25 +29,43 @@ CREATE TABLE IF NOT EXISTS public.print_analytics (
 ALTER TABLE public.print_analytics ENABLE ROW LEVEL SECURITY;
 
 -- All authenticated users can view print analytics
-CREATE POLICY "All authenticated users can view print analytics"
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'print_analytics' AND policyname = 'All authenticated users can view print analytics'
+  ) THEN 
+    CREATE POLICY "All authenticated users can view print analytics" 
   ON public.print_analytics
-  FOR SELECT
+    FOR SELECT
   USING (true);
+  END IF; 
+END
+$$;
 
 -- Authenticated users can insert their own print analytics
-CREATE POLICY "Authenticated users can insert print analytics"
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'print_analytics' AND policyname = 'Authenticated users can insert print analytics'
+  ) THEN 
+    CREATE POLICY "Authenticated users can insert print analytics" 
   ON public.print_analytics
-  FOR INSERT
+    FOR INSERT
   WITH CHECK (auth.uid() = cashier_id);
+  END IF; 
+END
+$$;
 
 -- Create indexes for faster filtering
-CREATE INDEX idx_print_analytics_created_at ON public.print_analytics(created_at DESC);
-CREATE INDEX idx_print_analytics_cashier_id ON public.print_analytics(cashier_id);
-CREATE INDEX idx_print_analytics_customer_name ON public.print_analytics(customer_name);
-CREATE INDEX idx_print_analytics_print_status ON public.print_analytics(print_status);
-CREATE INDEX idx_print_analytics_sale_id ON public.print_analytics(sale_id);
+CREATE INDEX IF NOT EXISTS idx_print_analytics_created_at ON public.print_analytics(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_print_analytics_cashier_id ON public.print_analytics(cashier_id);
+CREATE INDEX IF NOT EXISTS idx_print_analytics_customer_name ON public.print_analytics(customer_name);
+CREATE INDEX IF NOT EXISTS idx_print_analytics_print_status ON public.print_analytics(print_status);
+CREATE INDEX IF NOT EXISTS idx_print_analytics_sale_id ON public.print_analytics(sale_id);
 
 -- Add trigger for updated_at
+DROP TRIGGER IF EXISTS update_print_analytics_updated_at ON public.print_analytics;
+DROP TRIGGER IF EXISTS update_print_analytics_updated_at ON public.print_analytics;
 CREATE TRIGGER update_print_analytics_updated_at
   BEFORE UPDATE ON public.print_analytics
   FOR EACH ROW

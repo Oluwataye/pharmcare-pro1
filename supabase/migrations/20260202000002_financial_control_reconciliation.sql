@@ -23,34 +23,49 @@ CREATE TABLE IF NOT EXISTS public.system_alerts (
 ALTER TABLE public.system_alerts ENABLE ROW LEVEL SECURITY;
 
 -- Admins can see all alerts
-CREATE POLICY "Admins can view all alerts" 
-ON public.system_alerts FOR SELECT 
-TO authenticated 
-USING (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'system_alerts' AND policyname = 'Admins can view all alerts'
+  ) THEN 
+    CREATE POLICY "Admins can view all alerts" ON public.system_alerts FOR SELECT TO authenticated USING (
     EXISTS (
         SELECT 1 FROM public.user_roles 
         WHERE user_id = auth.uid() AND role IN ('SUPER_ADMIN', 'PHARMACIST')
     )
 );
+  END IF; 
+END
+$$;
 
 -- Staff can see their own alerts
-CREATE POLICY "Staff can view own alerts" 
-ON public.system_alerts FOR SELECT 
-TO authenticated 
-USING (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'system_alerts' AND policyname = 'Staff can view own alerts'
+  ) THEN 
+    CREATE POLICY "Staff can view own alerts" ON public.system_alerts FOR SELECT TO authenticated USING (
     staff_id = auth.uid()
 );
+  END IF; 
+END
+$$;
 
 -- Only admins can resolve alerts
-CREATE POLICY "Admins can update alerts" 
-ON public.system_alerts FOR UPDATE 
-TO authenticated 
-USING (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'system_alerts' AND policyname = 'Admins can update alerts'
+  ) THEN 
+    CREATE POLICY "Admins can update alerts" ON public.system_alerts FOR UPDATE TO authenticated USING (
     EXISTS (
         SELECT 1 FROM public.user_roles 
         WHERE user_id = auth.uid() AND role IN ('SUPER_ADMIN', 'PHARMACIST')
     )
 );
+  END IF; 
+END
+$$;
 
 -- Trigger for updated_at
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -61,7 +76,9 @@ BEGIN
 END;
 $$ language 'plpgsql';
 
+DROP TRIGGER IF EXISTS update_system_alerts_updated_at ON public.system_alerts;
+DROP TRIGGER IF EXISTS update_system_alerts_updated_at ON public.system_alerts;
 CREATE TRIGGER update_system_alerts_updated_at
-    BEFORE UPDATE ON public.system_alerts
-    FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column();
+  BEFORE UPDATE ON public.system_alerts
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();

@@ -1,8 +1,14 @@
--- Create enum for user roles
-CREATE TYPE public.app_role AS ENUM ('SUPER_ADMIN', 'PHARMACIST', 'CASHIER');
+-- Create enum for user roles safely
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'app_role') THEN
+        CREATE TYPE public.app_role AS ENUM ('SUPER_ADMIN', 'PHARMACIST', 'CASHIER');
+    END IF;
+END
+$$;
 
 -- Create profiles table
-CREATE TABLE public.profiles (
+CREATE TABLE IF NOT EXISTS public.profiles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL UNIQUE,
   name TEXT NOT NULL,
@@ -12,7 +18,7 @@ CREATE TABLE public.profiles (
 );
 
 -- Create user_roles table
-CREATE TABLE public.user_roles (
+CREATE TABLE IF NOT EXISTS public.user_roles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE NOT NULL,
   role app_role NOT NULL,
@@ -37,7 +43,7 @@ AS $$
 $$;
 
 -- Create inventory table
-CREATE TABLE public.inventory (
+CREATE TABLE IF NOT EXISTS public.inventory (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL,
   sku TEXT NOT NULL UNIQUE,
@@ -55,7 +61,7 @@ CREATE TABLE public.inventory (
 );
 
 -- Create store_settings table
-CREATE TABLE public.store_settings (
+CREATE TABLE IF NOT EXISTS public.store_settings (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   name TEXT NOT NULL DEFAULT 'PharmaCare Pro',
   address TEXT,
@@ -81,73 +87,223 @@ ALTER TABLE public.inventory ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.store_settings ENABLE ROW LEVEL SECURITY;
 
 -- Profiles policies
-CREATE POLICY "Users can view all profiles"
-  ON public.profiles FOR SELECT
-  TO authenticated
-  USING (TRUE);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'profiles' AND policyname = 'Users can view all profiles'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'profiles' AND policyname = 'Users can view all profiles'
+  ) THEN 
+    CREATE POLICY "Users can view all profiles" ON public.profiles FOR SELECT TO authenticated USING (TRUE);
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Users can update own profile"
-  ON public.profiles FOR UPDATE
-  TO authenticated
-  USING (auth.uid() = user_id);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'profiles' AND policyname = 'Users can update own profile'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'profiles' AND policyname = 'Users can update own profile'
+  ) THEN 
+    CREATE POLICY "Users can update own profile" ON public.profiles FOR UPDATE TO authenticated USING (auth.uid() = user_id);
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Super admins can insert profiles"
-  ON public.profiles FOR INSERT
-  TO authenticated
-  WITH CHECK (public.has_role(auth.uid(), 'SUPER_ADMIN'));
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'profiles' AND policyname = 'Super admins can insert profiles'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'profiles' AND policyname = 'Super admins can insert profiles'
+  ) THEN 
+    CREATE POLICY "Super admins can insert profiles" ON public.profiles FOR INSERT TO authenticated WITH CHECK (public.has_role(auth.uid(), 'SUPER_ADMIN'));
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
 
 -- User roles policies
-CREATE POLICY "Users can view all roles"
-  ON public.user_roles FOR SELECT
-  TO authenticated
-  USING (TRUE);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'user_roles' AND policyname = 'Users can view all roles'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'user_roles' AND policyname = 'Users can view all roles'
+  ) THEN 
+    CREATE POLICY "Users can view all roles" ON public.user_roles FOR SELECT TO authenticated USING (TRUE);
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Super admins can manage roles"
-  ON public.user_roles FOR ALL
-  TO authenticated
-  USING (public.has_role(auth.uid(), 'SUPER_ADMIN'))
-  WITH CHECK (public.has_role(auth.uid(), 'SUPER_ADMIN'));
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'user_roles' AND policyname = 'Super admins can manage roles'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'user_roles' AND policyname = 'Super admins can manage roles'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'user_roles' AND policyname = 'Super admins can manage roles'
+  ) THEN 
+    CREATE POLICY "Super admins can manage roles" ON public.user_roles FOR ALL TO authenticated USING (public.has_role(auth.uid(), 'SUPER_ADMIN')) WITH CHECK (public.has_role(auth.uid(), 'SUPER_ADMIN'));
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
 
 -- Inventory policies
-CREATE POLICY "All authenticated users can view inventory"
-  ON public.inventory FOR SELECT
-  TO authenticated
-  USING (TRUE);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'inventory' AND policyname = 'All authenticated users can view inventory'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'inventory' AND policyname = 'All authenticated users can view inventory'
+  ) THEN 
+    CREATE POLICY "All authenticated users can view inventory" ON public.inventory FOR SELECT TO authenticated USING (TRUE);
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Super admins and pharmacists can insert inventory"
-  ON public.inventory FOR INSERT
-  TO authenticated
-  WITH CHECK (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'inventory' AND policyname = 'Super admins and pharmacists can insert inventory'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'inventory' AND policyname = 'Super admins and pharmacists can insert inventory'
+  ) THEN 
+    CREATE POLICY "Super admins and pharmacists can insert inventory" ON public.inventory FOR INSERT TO authenticated WITH CHECK (
     public.has_role(auth.uid(), 'SUPER_ADMIN') OR 
     public.has_role(auth.uid(), 'PHARMACIST')
   );
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Super admins and pharmacists can update inventory"
-  ON public.inventory FOR UPDATE
-  TO authenticated
-  USING (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'inventory' AND policyname = 'Super admins and pharmacists can update inventory'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'inventory' AND policyname = 'Super admins and pharmacists can update inventory'
+  ) THEN 
+    CREATE POLICY "Super admins and pharmacists can update inventory" ON public.inventory FOR UPDATE TO authenticated USING (
     public.has_role(auth.uid(), 'SUPER_ADMIN') OR 
     public.has_role(auth.uid(), 'PHARMACIST')
   );
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Super admins and pharmacists can delete inventory"
-  ON public.inventory FOR DELETE
-  TO authenticated
-  USING (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'inventory' AND policyname = 'Super admins and pharmacists can delete inventory'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'inventory' AND policyname = 'Super admins and pharmacists can delete inventory'
+  ) THEN 
+    CREATE POLICY "Super admins and pharmacists can delete inventory" ON public.inventory FOR DELETE TO authenticated USING (
     public.has_role(auth.uid(), 'SUPER_ADMIN') OR 
     public.has_role(auth.uid(), 'PHARMACIST')
   );
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
 
 -- Store settings policies
-CREATE POLICY "All authenticated users can view settings"
-  ON public.store_settings FOR SELECT
-  TO authenticated
-  USING (TRUE);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'store_settings' AND policyname = 'All authenticated users can view settings'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'store_settings' AND policyname = 'All authenticated users can view settings'
+  ) THEN 
+    CREATE POLICY "All authenticated users can view settings" ON public.store_settings FOR SELECT TO authenticated USING (TRUE);
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Only super admins can update settings"
-  ON public.store_settings FOR UPDATE
-  TO authenticated
-  USING (public.has_role(auth.uid(), 'SUPER_ADMIN'));
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'store_settings' AND policyname = 'Only super admins can update settings'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'store_settings' AND policyname = 'Only super admins can update settings'
+  ) THEN 
+    CREATE POLICY "Only super admins can update settings" ON public.store_settings FOR UPDATE TO authenticated USING (public.has_role(auth.uid(), 'SUPER_ADMIN'));
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
 
 -- Create trigger function for updated_at
 CREATE OR REPLACE FUNCTION public.handle_updated_at()
@@ -163,16 +319,19 @@ END;
 $$;
 
 -- Add triggers for updated_at
+DROP TRIGGER IF EXISTS set_updated_at_profiles ON public.profiles;
 CREATE TRIGGER set_updated_at_profiles
   BEFORE UPDATE ON public.profiles
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS set_updated_at_inventory ON public.inventory;
 CREATE TRIGGER set_updated_at_inventory
   BEFORE UPDATE ON public.inventory
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_updated_at();
 
+DROP TRIGGER IF EXISTS set_updated_at_settings ON public.store_settings;
 CREATE TRIGGER set_updated_at_settings
   BEFORE UPDATE ON public.store_settings
   FOR EACH ROW
@@ -206,7 +365,7 @@ END;
 $$;
 
 -- Trigger for new user signup
-CREATE TRIGGER on_auth_user_created
+CREATE OR REPLACE TRIGGER on_auth_user_created
   AFTER INSERT ON auth.users
   FOR EACH ROW
   EXECUTE FUNCTION public.handle_new_user();

@@ -22,18 +22,29 @@ ALTER TABLE public.expenses ENABLE ROW LEVEL SECURITY;
 
 -- 4. Create Policies
 -- Admins/Super Admins can do everything
-CREATE POLICY "Admins can manage all expenses"
-ON public.expenses
-FOR ALL
-TO authenticated
-USING (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'expenses' AND policyname = 'Admins can manage all expenses'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'expenses' AND policyname = 'Admins can manage all expenses'
+  ) THEN 
+    CREATE POLICY "Admins can manage all expenses" ON public.expenses FOR ALL TO authenticated USING (
     public.has_role(auth.uid(), 'SUPER_ADMIN'::app_role) OR 
     public.has_role(auth.uid(), 'ADMIN'::app_role)
-)
-WITH CHECK (
+) WITH CHECK (
     public.has_role(auth.uid(), 'SUPER_ADMIN'::app_role) OR 
     public.has_role(auth.uid(), 'ADMIN'::app_role)
 );
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
 
 -- 5. Trigger for updated_at
 CREATE OR REPLACE FUNCTION public.handle_expenses_updated_at()
@@ -44,10 +55,12 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_expenses_updated_at ON public.expenses;
+DROP TRIGGER IF EXISTS trigger_expenses_updated_at ON public.expenses;
 CREATE TRIGGER trigger_expenses_updated_at
-    BEFORE UPDATE ON public.expenses
-    FOR EACH ROW
-    EXECUTE FUNCTION public.handle_expenses_updated_at();
+  BEFORE UPDATE ON public.expenses
+  FOR EACH ROW
+  EXECUTE FUNCTION public.handle_expenses_updated_at();
 
 -- 6. Indices for performance
 CREATE INDEX IF NOT EXISTS idx_expenses_date ON public.expenses(date);

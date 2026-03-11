@@ -1,25 +1,31 @@
 -- Create audit log event types enum
-CREATE TYPE public.audit_event_type AS ENUM (
-  'LOGIN_SUCCESS',
-  'LOGIN_FAILED',
-  'LOGOUT',
-  'UNAUTHORIZED_ACCESS',
-  'USER_CREATED',
-  'USER_DELETED',
-  'USER_UPDATED',
-  'ROLE_CHANGED',
-  'PASSWORD_RESET',
-  'PASSWORD_CHANGED',
-  'SETTINGS_UPDATED',
-  'DATA_EXPORTED',
-  'DATA_DELETED',
-  'SALE_COMPLETED',
-  'INVENTORY_UPDATED',
-  'BULK_UPLOAD'
-);
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'audit_event_type') THEN
+    CREATE TYPE public.audit_event_type AS ENUM (
+      'LOGIN_SUCCESS',
+      'LOGIN_FAILED',
+      'LOGOUT',
+      'UNAUTHORIZED_ACCESS',
+      'USER_CREATED',
+      'USER_DELETED',
+      'USER_UPDATED',
+      'ROLE_CHANGED',
+      'PASSWORD_RESET',
+      'PASSWORD_CHANGED',
+      'SETTINGS_UPDATED',
+      'DATA_EXPORTED',
+      'DATA_DELETED',
+      'SALE_COMPLETED',
+      'INVENTORY_UPDATED',
+      'BULK_UPLOAD'
+    );
+  END IF;
+END
+$$;
 
 -- Create audit_logs table
-CREATE TABLE public.audit_logs (
+CREATE TABLE IF NOT EXISTS public.audit_logs (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   event_type audit_event_type NOT NULL,
   user_id uuid REFERENCES auth.users(id) ON DELETE SET NULL,
@@ -37,28 +43,44 @@ CREATE TABLE public.audit_logs (
 );
 
 -- Create index for faster queries
-CREATE INDEX idx_audit_logs_user_id ON public.audit_logs(user_id);
-CREATE INDEX idx_audit_logs_event_type ON public.audit_logs(event_type);
-CREATE INDEX idx_audit_logs_created_at ON public.audit_logs(created_at DESC);
-CREATE INDEX idx_audit_logs_resource ON public.audit_logs(resource_type, resource_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_user_id ON public.audit_logs(user_id);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_event_type ON public.audit_logs(event_type);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_created_at ON public.audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_audit_logs_resource ON public.audit_logs(resource_type, resource_id);
 
 -- Enable RLS
 ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Only SUPER_ADMIN can view audit logs
-CREATE POLICY "Only super admins can view audit logs"
-ON public.audit_logs
-FOR SELECT
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'audit_logs' AND policyname = 'Only super admins can view audit logs'
+  ) THEN 
+    CREATE POLICY "Only super admins can view audit logs" 
+  ON public.audit_logs
+  FOR SELECT
 USING (has_role(auth.uid(), 'SUPER_ADMIN'));
+  END IF; 
+END
+$$;
 
 -- Service role can insert audit logs (from edge functions)
-CREATE POLICY "Service role can insert audit logs"
-ON public.audit_logs
-FOR INSERT
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'audit_logs' AND policyname = 'Service role can insert audit logs'
+  ) THEN 
+    CREATE POLICY "Service role can insert audit logs" 
+  ON public.audit_logs
+  FOR INSERT
 WITH CHECK (true);
+  END IF; 
+END
+$$;
 
 -- Create data retention tracking table
-CREATE TABLE public.data_retention_config (
+CREATE TABLE IF NOT EXISTS public.data_retention_config (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   table_name text NOT NULL UNIQUE,
   retention_days integer NOT NULL,
@@ -72,11 +94,19 @@ CREATE TABLE public.data_retention_config (
 ALTER TABLE public.data_retention_config ENABLE ROW LEVEL SECURITY;
 
 -- Only SUPER_ADMIN can manage retention config
-CREATE POLICY "Only super admins can manage retention config"
-ON public.data_retention_config
-FOR ALL
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'data_retention_config' AND policyname = 'Only super admins can manage retention config'
+  ) THEN 
+    CREATE POLICY "Only super admins can manage retention config" 
+  ON public.data_retention_config
+  FOR ALL
 USING (has_role(auth.uid(), 'SUPER_ADMIN'))
 WITH CHECK (has_role(auth.uid(), 'SUPER_ADMIN'));
+  END IF; 
+END
+$$;
 
 -- Insert default retention policies
 INSERT INTO public.data_retention_config (table_name, retention_days) VALUES
@@ -85,7 +115,7 @@ INSERT INTO public.data_retention_config (table_name, retention_days) VALUES
   ('rate_limits', 1);
 
 -- Create GDPR data requests table
-CREATE TABLE public.gdpr_requests (
+CREATE TABLE IF NOT EXISTS public.gdpr_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   request_type text NOT NULL CHECK (request_type IN ('EXPORT', 'DELETE', 'ACCESS')),
@@ -100,29 +130,53 @@ CREATE TABLE public.gdpr_requests (
 );
 
 -- Create indexes
-CREATE INDEX idx_gdpr_requests_user_id ON public.gdpr_requests(user_id);
-CREATE INDEX idx_gdpr_requests_status ON public.gdpr_requests(status);
+CREATE INDEX IF NOT EXISTS idx_gdpr_requests_user_id ON public.gdpr_requests(user_id);
+CREATE INDEX IF NOT EXISTS idx_gdpr_requests_status ON public.gdpr_requests(status);
 
 -- Enable RLS
 ALTER TABLE public.gdpr_requests ENABLE ROW LEVEL SECURITY;
 
 -- Users can view their own requests
-CREATE POLICY "Users can view own GDPR requests"
-ON public.gdpr_requests
-FOR SELECT
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'gdpr_requests' AND policyname = 'Users can view own GDPR requests'
+  ) THEN 
+    CREATE POLICY "Users can view own GDPR requests" 
+  ON public.gdpr_requests
+  FOR SELECT
 USING (auth.uid() = user_id OR has_role(auth.uid(), 'SUPER_ADMIN'));
+  END IF; 
+END
+$$;
 
 -- Users can create their own requests
-CREATE POLICY "Users can create own GDPR requests"
-ON public.gdpr_requests
-FOR INSERT
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'gdpr_requests' AND policyname = 'Users can create own GDPR requests'
+  ) THEN 
+    CREATE POLICY "Users can create own GDPR requests" 
+  ON public.gdpr_requests
+  FOR INSERT
 WITH CHECK (auth.uid() = user_id);
+  END IF; 
+END
+$$;
 
 -- Only SUPER_ADMIN can update requests
-CREATE POLICY "Only super admins can update GDPR requests"
-ON public.gdpr_requests
-FOR UPDATE
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'gdpr_requests' AND policyname = 'Only super admins can update GDPR requests'
+  ) THEN 
+    CREATE POLICY "Only super admins can update GDPR requests" 
+  ON public.gdpr_requests
+  FOR UPDATE
 USING (has_role(auth.uid(), 'SUPER_ADMIN'));
+  END IF; 
+END
+$$;
 
 -- Create function to log audit events
 CREATE OR REPLACE FUNCTION public.log_audit_event(

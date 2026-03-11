@@ -8,14 +8,19 @@
 DROP POLICY IF EXISTS "All authenticated users can view sales" ON sales;
 
 -- Create restrictive policy: Cashiers see only their own sales, admins and pharmacists see all
-CREATE POLICY "Restricted sales access"
-ON sales FOR SELECT
-TO authenticated
-USING (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'sales' AND policyname = 'Restricted sales access'
+  ) THEN 
+    CREATE POLICY "Restricted sales access" ON sales FOR SELECT TO authenticated USING (
   cashier_id = auth.uid() OR
   has_role(auth.uid(), 'SUPER_ADMIN'::app_role) OR
   has_role(auth.uid(), 'PHARMACIST'::app_role)
 );
+  END IF; 
+END
+$$;
 
 -- ============================================
 -- SALES_ITEMS TABLE: Restrict based on sale ownership
@@ -25,10 +30,12 @@ USING (
 DROP POLICY IF EXISTS "All authenticated users can view sales items" ON sales_items;
 
 -- Create restrictive policy: Only view items for sales you can access
-CREATE POLICY "Restricted sales items access"
-ON sales_items FOR SELECT
-TO authenticated
-USING (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'sales_items' AND policyname = 'Restricted sales items access'
+  ) THEN 
+    CREATE POLICY "Restricted sales items access" ON sales_items FOR SELECT TO authenticated USING (
   EXISTS (
     SELECT 1 FROM sales
     WHERE sales.id = sales_items.sale_id
@@ -39,6 +46,9 @@ USING (
     )
   )
 );
+  END IF; 
+END
+$$;
 
 -- ============================================
 -- RECEIPTS TABLE: Restrict based on sale ownership
@@ -48,10 +58,12 @@ USING (
 DROP POLICY IF EXISTS "All authenticated users can view receipts" ON receipts;
 
 -- Create restrictive policy: Only view receipts for sales you can access
-CREATE POLICY "Restricted receipts access"
-ON receipts FOR SELECT
-TO authenticated
-USING (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'receipts' AND policyname = 'Restricted receipts access'
+  ) THEN 
+    CREATE POLICY "Restricted receipts access" ON receipts FOR SELECT TO authenticated USING (
   EXISTS (
     SELECT 1 FROM sales
     WHERE sales.id = receipts.sale_id
@@ -62,6 +74,9 @@ USING (
     )
   )
 );
+  END IF; 
+END
+$$;
 
 -- ============================================
 -- PRINT_ANALYTICS TABLE: Restrict to own analytics or admin
@@ -71,13 +86,18 @@ USING (
 DROP POLICY IF EXISTS "All authenticated users can view print analytics" ON print_analytics;
 
 -- Create restrictive policy: Cashiers see only their own print analytics, admins see all
-CREATE POLICY "Restricted print analytics access"
-ON print_analytics FOR SELECT
-TO authenticated
-USING (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'print_analytics' AND policyname = 'Restricted print analytics access'
+  ) THEN 
+    CREATE POLICY "Restricted print analytics access" ON print_analytics FOR SELECT TO authenticated USING (
   cashier_id = auth.uid() OR
   has_role(auth.uid(), 'SUPER_ADMIN'::app_role)
 );
+  END IF; 
+END
+$$;
 
 -- ============================================
 -- STORE_SETTINGS TABLE: Restrict to admin and pharmacist only
@@ -87,13 +107,18 @@ USING (
 DROP POLICY IF EXISTS "All authenticated users can view settings" ON store_settings;
 
 -- Create restrictive policy: Only super admins and pharmacists can view settings
-CREATE POLICY "Restricted store settings access"
-ON store_settings FOR SELECT
-TO authenticated
-USING (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'store_settings' AND policyname = 'Restricted store settings access'
+  ) THEN 
+    CREATE POLICY "Restricted store settings access" ON store_settings FOR SELECT TO authenticated USING (
   has_role(auth.uid(), 'SUPER_ADMIN'::app_role) OR
   has_role(auth.uid(), 'PHARMACIST'::app_role)
 );
+  END IF; 
+END
+$$;
 
 -- Add helpful comment
 COMMENT ON POLICY "Restricted sales access" ON sales IS 'Phase 1 Security: Cashiers can only view their own sales, admins and pharmacists can view all';

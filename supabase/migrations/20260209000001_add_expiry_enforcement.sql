@@ -138,7 +138,7 @@ END;
 $$;
 
 -- Add documentation comment
-COMMENT ON FUNCTION public.process_sale_transaction IS 
+COMMENT ON FUNCTION public.process_sale_transaction(jsonb) IS 
 'Processes sale transactions with CRITICAL validations:
 1. Expiry date enforcement (patient safety)
 2. Stock availability check (inventory integrity)

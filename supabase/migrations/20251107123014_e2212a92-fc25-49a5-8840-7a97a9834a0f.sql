@@ -11,14 +11,27 @@ CREATE TABLE IF NOT EXISTS public.receipts (
 ALTER TABLE public.receipts ENABLE ROW LEVEL SECURITY;
 
 -- Create policies for receipts
-CREATE POLICY "All authenticated users can view receipts"
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'receipts' AND policyname = 'All authenticated users can view receipts'
+  ) THEN 
+    CREATE POLICY "All authenticated users can view receipts" 
   ON public.receipts
-  FOR SELECT
+    FOR SELECT
   USING (true);
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Authenticated users can insert receipts"
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'receipts' AND policyname = 'Authenticated users can insert receipts'
+  ) THEN 
+    CREATE POLICY "Authenticated users can insert receipts" 
   ON public.receipts
-  FOR INSERT
+    FOR INSERT
   WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.sales
@@ -26,11 +39,16 @@ CREATE POLICY "Authenticated users can insert receipts"
       AND sales.cashier_id = auth.uid()
     )
   );
+  END IF; 
+END
+$$;
 
 -- Create index on sale_id for faster lookups
 CREATE INDEX IF NOT EXISTS idx_receipts_sale_id ON public.receipts(sale_id);
 
 -- Create trigger for updated_at
+DROP TRIGGER IF EXISTS update_receipts_updated_at ON public.receipts;
+DROP TRIGGER IF EXISTS update_receipts_updated_at ON public.receipts;
 CREATE TRIGGER update_receipts_updated_at
   BEFORE UPDATE ON public.receipts
   FOR EACH ROW

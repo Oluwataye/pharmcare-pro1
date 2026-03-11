@@ -16,42 +16,65 @@ ALTER TABLE public.suppliers ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for suppliers table
 -- Allow all authenticated users to read suppliers
-CREATE POLICY "Allow authenticated users to read suppliers"
-  ON public.suppliers
-  FOR SELECT
-  TO authenticated
-  USING (true);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'suppliers' AND policyname = 'Allow authenticated users to read suppliers'
+  ) THEN 
+    CREATE POLICY "Allow authenticated users to read suppliers" ON public.suppliers FOR SELECT TO authenticated USING (true);
+  END IF; 
+END
+$$;
 
 -- Allow SUPER_ADMIN and PHARMACIST to insert suppliers
-CREATE POLICY "Allow SUPER_ADMIN and PHARMACIST to insert suppliers"
-  ON public.suppliers
-  FOR INSERT
-  TO authenticated
-  WITH CHECK (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'suppliers' AND policyname = 'Allow SUPER_ADMIN and PHARMACIST to insert suppliers'
+  ) THEN 
+    CREATE POLICY "Allow SUPER_ADMIN and PHARMACIST to insert suppliers" ON public.suppliers FOR INSERT TO authenticated WITH CHECK (
     public.has_role(auth.uid(), 'SUPER_ADMIN'::app_role) OR
     public.has_role(auth.uid(), 'PHARMACIST'::app_role)
   );
+  END IF; 
+END
+$$;
 
 -- Allow SUPER_ADMIN and PHARMACIST to update suppliers
-CREATE POLICY "Allow SUPER_ADMIN and PHARMACIST to update suppliers"
-  ON public.suppliers
-  FOR UPDATE
-  TO authenticated
-  USING (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'suppliers' AND policyname = 'Allow SUPER_ADMIN and PHARMACIST to update suppliers'
+  ) THEN 
+    DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'suppliers' AND policyname = 'Allow SUPER_ADMIN and PHARMACIST to update suppliers'
+  ) THEN 
+    CREATE POLICY "Allow SUPER_ADMIN and PHARMACIST to update suppliers" ON public.suppliers FOR UPDATE TO authenticated USING (
     public.has_role(auth.uid(), 'SUPER_ADMIN'::app_role) OR
     public.has_role(auth.uid(), 'PHARMACIST'::app_role)
-  )
-  WITH CHECK (
+  ) WITH CHECK (
     public.has_role(auth.uid(), 'SUPER_ADMIN'::app_role) OR
     public.has_role(auth.uid(), 'PHARMACIST'::app_role)
   );
+  END IF; 
+END
+$$;
+  END IF; 
+END
+$$;
 
 -- Allow SUPER_ADMIN to delete suppliers
-CREATE POLICY "Allow SUPER_ADMIN to delete suppliers"
-  ON public.suppliers
-  FOR DELETE
-  TO authenticated
-  USING (public.has_role(auth.uid(), 'SUPER_ADMIN'::app_role));
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'suppliers' AND policyname = 'Allow SUPER_ADMIN to delete suppliers'
+  ) THEN 
+    CREATE POLICY "Allow SUPER_ADMIN to delete suppliers" ON public.suppliers FOR DELETE TO authenticated USING (public.has_role(auth.uid(), 'SUPER_ADMIN'::app_role));
+  END IF; 
+END
+$$;
 
 -- Create index for faster lookups
 CREATE INDEX IF NOT EXISTS idx_suppliers_name ON public.suppliers(name);
@@ -65,6 +88,8 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS trigger_update_suppliers_updated_at ON public.suppliers;
+DROP TRIGGER IF EXISTS trigger_update_suppliers_updated_at ON public.suppliers;
 CREATE TRIGGER trigger_update_suppliers_updated_at
   BEFORE UPDATE ON public.suppliers
   FOR EACH ROW

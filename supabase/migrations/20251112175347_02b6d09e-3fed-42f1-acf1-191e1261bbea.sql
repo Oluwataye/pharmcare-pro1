@@ -19,11 +19,19 @@ ON rate_limits(identifier, action, window_start);
 ALTER TABLE rate_limits ENABLE ROW LEVEL SECURITY;
 
 -- Only allow service role to manage rate limits (edge functions)
-CREATE POLICY "Service role can manage rate limits"
-ON rate_limits FOR ALL
-TO service_role
-USING (true)
-WITH CHECK (true);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'rate_limits' AND policyname = 'Service role can manage rate limits'
+  ) THEN 
+    CREATE POLICY "Service role can manage rate limits" 
+      ON rate_limits FOR ALL
+      TO service_role
+      USING (true)
+      WITH CHECK (true);
+  END IF; 
+END
+$$;
 
 -- Add cleanup trigger to remove old rate limit records
 CREATE OR REPLACE FUNCTION cleanup_old_rate_limits()

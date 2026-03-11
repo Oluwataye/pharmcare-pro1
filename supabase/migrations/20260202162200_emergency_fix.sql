@@ -38,20 +38,55 @@ DROP POLICY IF EXISTS "Expenses branch isolation" ON public.expenses;
 DROP POLICY IF EXISTS "Inventory branch isolation" ON public.inventory;
 DROP POLICY IF EXISTS "Budgets branch isolation" ON public.budgets;
 
-CREATE POLICY "Profiles branch isolation" ON public.profiles FOR SELECT TO authenticated
-USING (public.has_role(auth.uid(), 'SUPER_ADMIN') OR user_id = auth.uid() OR branch_id = public.get_user_branch_id());
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'profiles' AND policyname = 'Profiles branch isolation'
+  ) THEN 
+    CREATE POLICY "Profiles branch isolation" ON public.profiles FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'SUPER_ADMIN') OR user_id = auth.uid() OR branch_id = public.get_user_branch_id());
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Inventory branch isolation" ON public.inventory FOR SELECT TO authenticated
-USING (public.has_role(auth.uid(), 'SUPER_ADMIN') OR branch_id = public.get_user_branch_id());
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'inventory' AND policyname = 'Inventory branch isolation'
+  ) THEN 
+    CREATE POLICY "Inventory branch isolation" ON public.inventory FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'SUPER_ADMIN') OR branch_id = public.get_user_branch_id());
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Sales branch isolation" ON public.sales FOR SELECT TO authenticated
-USING (public.has_role(auth.uid(), 'SUPER_ADMIN') OR branch_id = public.get_user_branch_id());
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'sales' AND policyname = 'Sales branch isolation'
+  ) THEN 
+    CREATE POLICY "Sales branch isolation" ON public.sales FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'SUPER_ADMIN') OR branch_id = public.get_user_branch_id());
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Expenses branch isolation" ON public.expenses FOR SELECT TO authenticated
-USING (public.has_role(auth.uid(), 'SUPER_ADMIN') OR branch_id = public.get_user_branch_id());
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'expenses' AND policyname = 'Expenses branch isolation'
+  ) THEN 
+    CREATE POLICY "Expenses branch isolation" ON public.expenses FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'SUPER_ADMIN') OR branch_id = public.get_user_branch_id());
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Budgets branch isolation" ON public.budgets FOR SELECT TO authenticated
-USING (public.has_role(auth.uid(), 'SUPER_ADMIN') OR branch_id = public.get_user_branch_id() OR branch_id IS NULL);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'budgets' AND policyname = 'Budgets branch isolation'
+  ) THEN 
+    CREATE POLICY "Budgets branch isolation" ON public.budgets FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'SUPER_ADMIN') OR branch_id = public.get_user_branch_id() OR branch_id IS NULL);
+  END IF; 
+END
+$$;
 
 -- 5. Fix potential recursion in has_role
 CREATE OR REPLACE FUNCTION public.has_role(_user_id UUID, _role app_role)

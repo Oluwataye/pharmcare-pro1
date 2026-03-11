@@ -2,11 +2,11 @@
 -- FIX SHIFTS BRANCH ISOLATION & RLS
 -- ====================================================================
 
--- 1. Get the default branch ID
 DO $$ 
 DECLARE 
     default_branch_id UUID;
 BEGIN
+    -- 1. Get the default branch ID
     SELECT id INTO default_branch_id FROM public.branches LIMIT 1;
 
     -- 2. Backfill branch_id for staff_shifts from profiles or default branch
@@ -26,23 +26,35 @@ BEGIN
     ALTER TABLE public.staff_shifts ENABLE ROW LEVEL SECURITY;
 
     -- 4. Create Branch Isolation Policy
-    DROP POLICY IF EXISTS "Shifts branch isolation" ON public.staff_shifts;
-    
-    CREATE POLICY "Shifts branch isolation" ON public.staff_shifts FOR SELECT TO authenticated
-    USING (
-        public.has_role(auth.uid(), 'SUPER_ADMIN') 
-        OR 
-        public.has_role(auth.uid(), 'ADMIN')
-        OR
-        branch_id IS NOT DISTINCT FROM public.get_user_branch_id()
-    );
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE schemaname = 'public' 
+        AND tablename = 'staff_shifts' 
+        AND policyname = 'Shifts branch isolation'
+    ) THEN 
+        CREATE POLICY "Shifts branch isolation" ON public.staff_shifts 
+        FOR SELECT TO authenticated 
+        USING (
+            public.has_role(auth.uid(), 'SUPER_ADMIN') 
+            OR 
+            public.has_role(auth.uid(), 'ADMIN')
+            OR
+            branch_id IS NOT DISTINCT FROM public.get_user_branch_id()
+        );
+    END IF;
 
     -- 5. Create Management Policy (for starting/ending own shifts)
-    DROP POLICY IF EXISTS "Staff manage own shifts" ON public.staff_shifts;
-    
-    CREATE POLICY "Staff manage own shifts" ON public.staff_shifts FOR ALL TO authenticated
-    USING (staff_id = auth.uid())
-    WITH CHECK (staff_id = auth.uid());
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_policies 
+        WHERE schemaname = 'public' 
+        AND tablename = 'staff_shifts' 
+        AND policyname = 'Staff manage own shifts'
+    ) THEN 
+        CREATE POLICY "Staff manage own shifts" ON public.staff_shifts 
+        FOR ALL TO authenticated 
+        USING (staff_id = auth.uid()) 
+        WITH CHECK (staff_id = auth.uid());
+    END IF;
 
     RAISE NOTICE 'staff_shifts RLS policies created and branch_id backfilled.';
 END $$;

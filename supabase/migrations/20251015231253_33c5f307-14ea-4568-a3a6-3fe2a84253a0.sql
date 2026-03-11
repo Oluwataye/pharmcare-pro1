@@ -37,34 +37,56 @@ ALTER TABLE public.sales ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.sales_items ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies for sales
-CREATE POLICY "All authenticated users can view sales"
-  ON public.sales FOR SELECT
-  TO authenticated
-  USING (true);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'sales' AND policyname = 'All authenticated users can view sales'
+  ) THEN 
+    CREATE POLICY "All authenticated users can view sales" ON public.sales FOR SELECT TO authenticated USING (true);
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Authenticated users can insert sales"
-  ON public.sales FOR INSERT
-  TO authenticated
-  WITH CHECK (auth.uid() = cashier_id);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'sales' AND policyname = 'Authenticated users can insert sales'
+  ) THEN 
+    CREATE POLICY "Authenticated users can insert sales" ON public.sales FOR INSERT TO authenticated WITH CHECK (auth.uid() = cashier_id);
+  END IF; 
+END
+$$;
 
 -- RLS Policies for sales_items
-CREATE POLICY "All authenticated users can view sales items"
-  ON public.sales_items FOR SELECT
-  TO authenticated
-  USING (true);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'sales_items' AND policyname = 'All authenticated users can view sales items'
+  ) THEN 
+    CREATE POLICY "All authenticated users can view sales items" ON public.sales_items FOR SELECT TO authenticated USING (true);
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Authenticated users can insert sales items"
-  ON public.sales_items FOR INSERT
-  TO authenticated
-  WITH CHECK (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'sales_items' AND policyname = 'Authenticated users can insert sales items'
+  ) THEN 
+    CREATE POLICY "Authenticated users can insert sales items" ON public.sales_items FOR INSERT TO authenticated WITH CHECK (
     EXISTS (
       SELECT 1 FROM public.sales
       WHERE sales.id = sales_items.sale_id
       AND sales.cashier_id = auth.uid()
     )
   );
+  END IF; 
+END
+$$;
 
 -- Add trigger to update updated_at
+DROP TRIGGER IF EXISTS handle_sales_updated_at ON public.sales;
+DROP TRIGGER IF EXISTS handle_sales_updated_at ON public.sales;
 CREATE TRIGGER handle_sales_updated_at
   BEFORE UPDATE ON public.sales
   FOR EACH ROW

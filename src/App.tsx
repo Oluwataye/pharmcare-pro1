@@ -11,6 +11,7 @@ import { ShiftProvider } from "./contexts/ShiftContext";
 import { ConflictResolutionDialog } from "./components/sync/ConflictResolutionDialog";
 import DashboardLayout from "./components/layout/DashboardLayout";
 import ProtectedRoute from "./components/auth/ProtectedRoute";
+import { LicenseProvider } from "./contexts/LicenseContext";
 import Login from "./pages/Login";
 import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
 import type { Persister } from "@tanstack/react-query-persist-client";
@@ -46,6 +47,8 @@ const CashReconciliation = lazy(() => import("./pages/CashReconciliation"));
 const Training = lazy(() => import("./pages/Training"));
 const CreditManagement = lazy(() => import("./pages/CreditManagement"));
 const TechnicalGuide = lazy(() => import("./pages/TechnicalGuide"));
+const LicenseActivation = lazy(() => import("./pages/LicenseActivation"));
+const LicenseManagement = lazy(() => import("./pages/admin/LicenseManagement"));
 
 // Loading fallback component
 const PageLoader = () => (
@@ -69,24 +72,26 @@ const App = ({ queryClient, persister }: AppProps) => {
       <TooltipProvider>
         <OfflineProvider>
           <AuthProvider>
-            <InventoryProvider>
-              <ShiftProvider>
-                <BrowserRouter>
-                  <AutoBackupManager />
-                  <OfflineBanner />
-                  <PWAInstallPrompt />
-                  <NotificationPermissionBanner />
-                  <Toaster />
-                  <Sonner />
-                  <ConflictResolutionDialog />
+            <LicenseProvider>
+              <InventoryProvider>
+                <ShiftProvider>
+                  <BrowserRouter>
+                    <AutoBackupManager />
+                    <OfflineBanner />
+                    <PWAInstallPrompt />
+                    <NotificationPermissionBanner />
+                    <Toaster />
+                    <Sonner />
+                    <ConflictResolutionDialog />
 
-                  <Suspense fallback={<PageLoader />}>
-                    <Routes>
-                      {/* Public Routes */}
-                      <Route path="/login" element={<Login />} />
+                    <Suspense fallback={<PageLoader />}>
+                      <Routes>
+                        {/* Public Routes */}
+                        <Route path="/login" element={<Login />} />
+                        <Route path="/license-activation" element={<LicenseActivation />} />
 
-                      {/* Protected Routes */}
-                      <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
+                        {/* Protected Routes */}
+                        <Route element={<ProtectedRoute><DashboardLayout /></ProtectedRoute>}>
                         <Route path="/" element={<Navigate to="/dashboard" replace />} />
                         <Route path="/dashboard" element={
                           <ErrorBoundary><Dashboard /></ErrorBoundary>
@@ -142,6 +147,9 @@ const App = ({ queryClient, persister }: AppProps) => {
                         <Route path="/technical-guide" element={
                           <ErrorBoundary><TechnicalGuide /></ErrorBoundary>
                         } />
+                        <Route path="/admin/licenses" element={
+                          <ErrorBoundary><LicenseManagement /></ErrorBoundary>
+                        } />
                       </Route>
 
                       {/* Catch-all */}
@@ -151,10 +159,11 @@ const App = ({ queryClient, persister }: AppProps) => {
                 </BrowserRouter>
               </ShiftProvider>
             </InventoryProvider>
-          </AuthProvider>
-        </OfflineProvider>
-      </TooltipProvider>
-    </PersistQueryClientProvider>
+          </LicenseProvider>
+        </AuthProvider>
+      </OfflineProvider>
+    </TooltipProvider>
+  </PersistQueryClientProvider>
   );
 };
 

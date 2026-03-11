@@ -53,24 +53,59 @@ ALTER TABLE public.customers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.customer_transactions ENABLE ROW LEVEL SECURITY;
 
 -- Policies for Customers
-CREATE POLICY "Authenticated users can read customers" ON public.customers
-    FOR SELECT TO authenticated USING (true);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'customers' AND policyname = 'Authenticated users can read customers'
+  ) THEN 
+    CREATE POLICY "Authenticated users can read customers" ON public.customers FOR SELECT TO authenticated USING (true);
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Authenticated users can create customers" ON public.customers
-    FOR INSERT TO authenticated WITH CHECK (true);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'customers' AND policyname = 'Authenticated users can create customers'
+  ) THEN 
+    CREATE POLICY "Authenticated users can create customers" ON public.customers FOR INSERT TO authenticated WITH CHECK (true);
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Authenticated users can update customers" ON public.customers
-    FOR UPDATE TO authenticated USING (true);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'customers' AND policyname = 'Authenticated users can update customers'
+  ) THEN 
+    CREATE POLICY "Authenticated users can update customers" ON public.customers FOR UPDATE TO authenticated USING (true);
+  END IF; 
+END
+$$;
 
 -- Policies for Transactions
-CREATE POLICY "Authenticated users can read customer transactions" ON public.customer_transactions
-    FOR SELECT TO authenticated USING (true);
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'customer_transactions' AND policyname = 'Authenticated users can read customer transactions'
+  ) THEN 
+    CREATE POLICY "Authenticated users can read customer transactions" ON public.customer_transactions FOR SELECT TO authenticated USING (true);
+  END IF; 
+END
+$$;
 
-CREATE POLICY "Admins can insert customer transactions" ON public.customer_transactions
-    FOR INSERT TO authenticated WITH CHECK (
+DO $$ 
+BEGIN 
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_policies WHERE schemaname = 'public' AND tablename = 'customer_transactions' AND policyname = 'Admins can insert customer transactions'
+  ) THEN 
+    CREATE POLICY "Admins can insert customer transactions" ON public.customer_transactions FOR INSERT TO authenticated WITH CHECK (
         --Ideally lock this down further, but for now authenticated users need to create records via Edge Function or App
         true
     );
+  END IF; 
+END
+$$;
 
 -- 5. Helper Function to Update Customer Balance
 CREATE OR REPLACE FUNCTION public.update_customer_balance()
@@ -84,7 +119,9 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
+DROP TRIGGER IF EXISTS update_customer_balance_trigger ON public.customer_transactions;
+DROP TRIGGER IF EXISTS update_customer_balance_trigger ON public.customer_transactions;
 CREATE TRIGGER update_customer_balance_trigger
-AFTER INSERT ON public.customer_transactions
-FOR EACH ROW
-EXECUTE FUNCTION public.update_customer_balance();
+  AFTER INSERT ON public.customer_transactions
+  FOR EACH ROW
+  EXECUTE FUNCTION public.update_customer_balance();
