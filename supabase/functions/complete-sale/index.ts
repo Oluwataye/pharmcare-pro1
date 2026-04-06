@@ -324,7 +324,7 @@ serve(async (req) => {
     };
 
     const { data: result, error: rpcError } = await supabase
-      .rpc('process_sale_transaction', { p_payload: payload })
+      .rpc('process_sale_transaction', payload)
 
     if (rpcError) {
       console.error('RPC Error:', rpcError)
