@@ -324,7 +324,7 @@ serve(async (req) => {
     };
 
     const { data: result, error: rpcError } = await supabase
-      .rpc('process_sale_transaction', payload)
+      .rpc('process_sale_transaction', { p_payload: payload })
 
     if (rpcError) {
       console.error('RPC Error:', rpcError)
@@ -334,7 +334,7 @@ serve(async (req) => {
       let errorCode = 'ATOMIC_SALE_FAILURE';
       let message = rpcError.message;
 
-      if (rpcError.message.includes('could not find function') || rpcError.code === 'P0001') {
+      if (rpcError.message.includes('could not find function')) {
         errorCode = 'DB_RESTORE_REQUIRED';
         message = 'Database Infrastructure requires restoration. Please run the atomic_recovery_v3_json.sql script in your Supabase Dashboard.';
       }
