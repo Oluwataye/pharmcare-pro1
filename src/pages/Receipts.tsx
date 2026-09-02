@@ -59,6 +59,22 @@ const Receipts = () => {
 
   useEffect(() => {
     fetchReceipts();
+
+    // Subscribe to real-time sales table changes
+    const channel = supabase
+      .channel('receipts_realtime_changes')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'sales' },
+        () => {
+          fetchReceipts();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [user]);
 
   useEffect(() => {
@@ -70,11 +86,10 @@ const Receipts = () => {
   const fetchReceipts = async () => {
     try {
       setLoading(true);
-      // Fetch from sales table instead of receipts table
-      // We join with sales_items to get the count
+      // Fetch from sales table joining with sales_items to get items array
       let query = supabase
         .from('sales')
-        .select('*, sales_items(count)');
+        .select('*, sales_items(id)');
 
       // STRICT ACCESS CONTROL:
       // Non-admins can ONLY see their own receipts.
@@ -102,7 +117,7 @@ const Receipts = () => {
         sale_type: sale.sale_type,
         created_at: sale.created_at,
         manual_discount: Number(sale.manual_discount || 0),
-        items_count: sale.sales_items?.[0]?.count || 0,
+        items_count: Array.isArray(sale.sales_items) ? sale.sales_items.length : 0,
         cashier_id: sale.cashier_id,
         shift_name: sale.shift_name
       }));
