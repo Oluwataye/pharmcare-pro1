@@ -11,6 +11,9 @@ npx supabase functions deploy complete-sale --no-verify-jwt --project-ref ucbmif
 Write-Host "Deploying bulk-upload-inventory..."
 npx supabase functions deploy bulk-upload-inventory --no-verify-jwt --project-ref ucbmifoxfozwtrelceuv
 
+Write-Host "Deploying login-with-turnstile..."
+npx supabase functions deploy login-with-turnstile --no-verify-jwt --project-ref ucbmifoxfozwtrelceuv
+
 Write-Host "Deployment attempts finished."
 Write-Host "Please check the output above for any errors."
 pause

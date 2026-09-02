@@ -220,6 +220,33 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     };
   }, []);
 
+// Helper to extract true error message from Supabase Edge Function response
+const parseEdgeFunctionError = async (error: any): Promise<string> => {
+  if (!error) return 'Authentication failed';
+
+  if (typeof error === 'object' && error !== null) {
+    if ('context' in error && error.context) {
+      try {
+        const response = error.context;
+        if (typeof response.clone === 'function') {
+          const body = await response.clone().json();
+          if (body && body.error) return body.error;
+        } else if (typeof response.json === 'function') {
+          const body = await response.json();
+          if (body && body.error) return body.error;
+        }
+      } catch (e) {
+        // Fallthrough if JSON parsing fails
+      }
+    }
+    if (error.message && error.message !== 'Edge Function returned a non-2xx status code') {
+      return error.message;
+    }
+  }
+
+  return typeof error === 'string' ? error : 'Invalid login credentials';
+};
+
   const login = async (email: string, password: string, captchaToken: string) => {
     setAuthState(prev => ({ ...prev, isLoading: true }));
 
@@ -234,34 +261,76 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error(`Too many login attempts. Please try again at ${resetTime}`);
       }
 
+      let authUser: User | null = null;
+      let authSession: Session | null = null;
+
       // Invoke the Edge Function to validate captcha and perform sign in
-      const { data, error } = await supabase.functions.invoke('login-with-turnstile', {
-        body: { email, password, captchaToken }
-      });
-
-      if (error) throw error;
-      if (data.error) throw new Error(data.error);
-
-      if (data.user && data.session) {
-        // Explicitly set the session on the client once validated
-        const { error: sessionError } = await supabase.auth.setSession({
-          access_token: data.session.access_token,
-          refresh_token: data.session.refresh_token,
+      try {
+        const { data, error } = await supabase.functions.invoke('login-with-turnstile', {
+          body: { email, password, captchaToken }
         });
 
-        if (sessionError) throw sessionError;
+        if (error) {
+          const parsedMessage = await parseEdgeFunctionError(error);
 
+          // If credentials are explicitly invalid (401), throw clean message
+          if (parsedMessage.toLowerCase().includes('credential') || parsedMessage.toLowerCase().includes('invalid')) {
+            throw new Error(parsedMessage);
+          }
+
+          // Otherwise attempt direct login fallback if edge function encountered a server error
+          console.warn('[AuthProvider] Edge function error:', parsedMessage, '- Attempting direct Supabase auth fallback...');
+          const { data: directData, error: directError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (directError) throw directError;
+          authUser = directData.user;
+          authSession = directData.session;
+        } else if (data?.error) {
+          throw new Error(data.error);
+        } else if (data?.user && data?.session) {
+          authUser = data.user;
+          authSession = data.session;
+
+          // Explicitly set the session on the client once validated
+          const { error: sessionError } = await supabase.auth.setSession({
+            access_token: data.session.access_token,
+            refresh_token: data.session.refresh_token,
+          });
+          if (sessionError) throw sessionError;
+        }
+      } catch (edgeError: any) {
+        const parsedMessage = await parseEdgeFunctionError(edgeError);
+        if (parsedMessage.toLowerCase().includes('credential') || parsedMessage.toLowerCase().includes('too many')) {
+          throw new Error(parsedMessage);
+        }
+
+        // Direct login fallback if edge function call fails completely
+        console.warn('[AuthProvider] Edge function failed, executing direct Supabase login fallback...', edgeError);
+        const { data: directData, error: directError } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
+
+        if (directError) throw directError;
+        authUser = directData.user;
+        authSession = directData.session;
+      }
+
+      if (authUser && authSession) {
         // Clear rate limit on successful login
         clearLoginRateLimit(email);
 
-        const userProfile = await fetchUserProfile(data.user.id);
+        const userProfile = await fetchUserProfile(authUser.id, email);
 
         if (!userProfile) {
           throw new Error('Unable to load user profile');
         }
 
         // Log successful login
-        logSuccessfulLogin(data.user.id, email, userProfile.role);
+        logSuccessfulLogin(authUser.id, email, userProfile.role);
 
         setAuthState({
           user: userProfile,
@@ -273,18 +342,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           title: 'Login successful',
           description: `Welcome back, ${userProfile.name}!`,
         });
+      } else {
+        throw new Error('Invalid login credentials');
       }
     } catch (error: any) {
+      const displayMessage = error?.message === 'Edge Function returned a non-2xx status code'
+        ? 'Invalid login credentials'
+        : (error?.message || 'Invalid login credentials');
+
       // Log failed login attempt
-      logFailedLogin(email, error.message || 'Unknown error');
+      logFailedLogin(email, displayMessage);
 
       setAuthState(prev => ({ ...prev, isLoading: false }));
       toast({
         title: 'Login failed',
-        description: error.message || 'Invalid credentials',
+        description: displayMessage,
         variant: 'destructive',
       });
-      throw error;
+      throw new Error(displayMessage);
     }
   };
 
