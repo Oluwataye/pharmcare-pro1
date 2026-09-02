@@ -69,17 +69,22 @@ export const useSales = (options?: UseSalesOptions) => {
     } as Parameters<typeof completeTransaction>[0]);
 
     // If sale completed successfully and we have a sale ID, trigger print with the ID
-    if (result && typeof result === 'string') {
+    if (result && (typeof result === 'string' || result === true)) {
       await handlePrint({
         ...completeSaleOptions,
         dispenserName: options?.dispenserName,
         dispenserEmail: options?.dispenserEmail,
         dispenserId: options?.dispenserId,
-        saleId: result,
+        saleId: typeof result === 'string' ? result : undefined,
         items: currentItems,
         directPrint: true,
         existingWindow: windowRef // Pass through the captured window
       });
+
+      // Post-print cleanup guarantee
+      clearItems();
+      clearDiscount();
+      resetSaleType();
     } else {
       // If sale failed, close the window we opened for printing
       if (windowRef && !windowRef.closed) {

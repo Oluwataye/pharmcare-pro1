@@ -59,6 +59,25 @@ const NewSale = () => {
   useEffect(() => {
     secureStorage.setItem('CURRENT_SALE_BUSINESS_ADDRESS', businessAddress);
   }, [businessAddress]);
+
+  // Listen for global cart_cleared event to sync UI reset
+  useEffect(() => {
+    const handleCartCleared = () => {
+      setCustomerName("");
+      setCustomerPhone("");
+      setBusinessName("");
+      setBusinessAddress("");
+      setPayments([{ mode: 'cash', amount: 0 }]);
+      setResetKey(prev => prev + 1);
+      secureStorage.removeItem('CURRENT_SALE_CUSTOMER_NAME');
+      secureStorage.removeItem('CURRENT_SALE_CUSTOMER_PHONE');
+      secureStorage.removeItem('CURRENT_SALE_BUSINESS_NAME');
+      secureStorage.removeItem('CURRENT_SALE_BUSINESS_ADDRESS');
+    };
+
+    window.addEventListener('cart_cleared', handleCartCleared);
+    return () => window.removeEventListener('cart_cleared', handleCartCleared);
+  }, []);
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
   const [isSuccessModalOpen, setIsSuccessModalOpen] = useState(false);
   const [lastCompletedSaleId, setLastCompletedSaleId] = useState<string | null>(null);

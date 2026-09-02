@@ -41,6 +41,21 @@ export function NewSaleForm({ onComplete, onCancel }: NewSaleFormProps) {
 
   const { handlePrint, openPrintWindow } = useSalesPrinting(items, discount, isWholesale ? 'wholesale' : 'retail', manualDiscount);
 
+  // Listen for global cart_cleared event to clear dispenser form state
+  useEffect(() => {
+    const handleCartCleared = () => {
+      setItems([]);
+      setDiscount(0);
+      setManualDiscount(0);
+      setIsWholesale(false);
+      setSearchQuery("");
+      setSelectedProduct(null);
+    };
+
+    window.addEventListener('cart_cleared', handleCartCleared);
+    return () => window.removeEventListener('cart_cleared', handleCartCleared);
+  }, []);
+
   // Calculate total and discount amounts
   const subtotal = items.reduce((sum, item) => sum + item.total, 0);
   const discountAmount = (subtotal * (discount / 100)) + manualDiscount;
