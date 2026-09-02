@@ -10,6 +10,7 @@ export interface SystemConfig {
     manualDiscountEnabled: boolean;
     defaultDiscount: number;
     maxDiscount: number;
+    requireAdminShift: boolean;
 }
 
 const DEFAULT_CONFIG: SystemConfig = {
@@ -21,6 +22,7 @@ const DEFAULT_CONFIG: SystemConfig = {
     manualDiscountEnabled: true,
     defaultDiscount: 0,
     maxDiscount: 20,
+    requireAdminShift: false,
 };
 
 const STORAGE_KEY = 'pharmcare_system_config';

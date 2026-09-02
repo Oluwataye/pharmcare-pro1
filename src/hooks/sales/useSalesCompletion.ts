@@ -8,6 +8,7 @@ import { secureStorage } from '@/lib/secureStorage';
 import { supabase } from '@/integrations/supabase/client';
 import { getCurrentShift } from '@/utils/shiftUtils';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSystemConfig } from '@/hooks/useSystemConfig';
 import { useShift } from '../useShift';
 import { useInventory } from '../useInventory';
 
@@ -40,22 +41,24 @@ export const useSalesCompletion = (
   const { createOfflineItem } = useOfflineData();
   const { activeShift, startShift } = useShift();
   const { user } = useAuth();
+  const { config: systemConfig } = useSystemConfig();
   const { inventory } = useInventory(); // Get current cost prices from inventory
 
   const completeSale = async (options?: CompleteSaleOptions) => {
     if (items.length === 0) {
       toast({
-        title: "Error",
-        description: "Cannot complete sale with no items",
+        title: "Cart Empty",
+        description: "Add items to the sale before completing",
         variant: "destructive",
       });
       return false;
     }
 
     const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
+    const isAdminBypassed = isAdmin && !systemConfig.requireAdminShift;
 
-    // MANDATORY SHIFT CHECK: Required for Cashiers/Dispensers/Pharmacists, but Admins do not need to run a shift to record sales
-    if (!isAdmin && !activeShift) {
+    // MANDATORY SHIFT CHECK: Required for Cashiers/Dispensers/Pharmacists, or when requireAdminShift is enabled
+    if (!isAdminBypassed && !activeShift) {
       toast({
         title: "Drawer Closed",
         description: "You must start a shift and enter an opening balance before recording sales.",

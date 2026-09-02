@@ -514,6 +514,24 @@ const Settings = () => {
                 </div>
                 <p className="text-xs text-muted-foreground">This margin will be applied by default to all new stock entries.</p>
               </div>
+
+              <div className="pt-4 border-t space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="require-admin-shift" className="font-medium text-sm">
+                      Require Admins to Open Shift for Cash Drawer Reconciliation
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      When enabled, Admins and Super Admins must open an active duty shift and enter an opening cash balance before processing sales.
+                    </p>
+                  </div>
+                  <Switch
+                    id="require-admin-shift"
+                    checked={systemConfig.requireAdminShift || false}
+                    onCheckedChange={(checked) => updateSystemConfig({ requireAdminShift: checked })}
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

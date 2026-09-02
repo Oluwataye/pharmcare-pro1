@@ -2,6 +2,7 @@
 import { Button } from "@/components/ui/button";
 import { useShift } from "@/hooks/useShift";
 import { useAuth } from "@/contexts/AuthContext";
+import { useSystemConfig } from "@/hooks/useSystemConfig";
 import { Badge } from "@/components/ui/badge";
 import { Clock, Lock, LogIn, Pause, Play, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
@@ -21,8 +22,10 @@ import { Separator } from "@/components/ui/separator";
 
 export const ShiftStatusHeader = () => {
     const { user } = useAuth();
+    const { config: systemConfig } = useSystemConfig();
     const { activeShift, startShift, pauseShift, resumeShift, endShift, isLoading, fetchShiftTotals } = useShift();
     const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
+    const isAdminBypassed = isAdmin && !systemConfig.requireAdminShift;
     const [isOpening, setIsOpening] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
     const [isFetchingTotals, setIsFetchingTotals] = useState(false);
@@ -104,7 +107,7 @@ export const ShiftStatusHeader = () => {
                 </>
             ) : (
                 <>
-                    {isAdmin ? (
+                    {isAdminBypassed ? (
                         <div className="flex items-center gap-2">
                             <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
                                 <Shield className="h-3 w-3" />
