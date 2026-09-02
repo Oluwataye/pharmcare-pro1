@@ -40,7 +40,7 @@ interface ReceiptRecord {
 
 const Receipts = () => {
   const { toast } = useToast();
-  const { user } = useAuth();
+  const { user, isLoading: isAuthLoading } = useAuth();
   const { activeShift } = useShift();
   const [receipts, setReceipts] = useState<ReceiptRecord[]>([]);
   const [filteredReceipts, setFilteredReceipts] = useState<ReceiptRecord[]>([]);
@@ -57,83 +57,110 @@ const Receipts = () => {
     openPrintWindow
   } = useReceiptReprint();
 
-  useEffect(() => {
-    fetchReceipts();
-
-    // Subscribe to real-time sales table changes
-    const channel = supabase
-      .channel('receipts_realtime_changes')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'sales' },
-        () => {
-          fetchReceipts();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [user]);
-
-  useEffect(() => {
-    // RLS policies now handle transaction privacy at the database level
-    // Display all receipts returned by the database query
-    setFilteredReceipts(receipts);
-  }, [receipts]);
-
   const fetchReceipts = async () => {
     try {
       setLoading(true);
-      // Fetch from sales table joining with sales_items to get items array
+
+      // Query sales table directly
       let query = supabase
         .from('sales')
-        .select('*, sales_items(id)');
+        .select('*');
 
-      // STRICT ACCESS CONTROL:
-      // Non-admins can ONLY see their own receipts.
-      if (user?.role !== 'SUPER_ADMIN' && user?.role !== 'ADMIN') {
-        if (user?.id) {
-          query = query.eq('cashier_id', user.id);
-        } else {
-          query = query.eq('id', '00000000-0000-0000-0000-000000000000');
+      // Access Control: SUPER_ADMIN, ADMIN, and PHARMACIST can view all store receipts.
+      // DISPENSER (Cashier) sees their own receipts.
+      const canViewAll = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN' || user?.role === 'PHARMACIST';
+
+      if (!canViewAll && user?.id) {
+        query = query.eq('cashier_id', user.id);
+      }
+
+      const { data: salesData, error: salesError } = await query
+        .order('created_at', { ascending: false })
+        .limit(100);
+
+      if (salesError) {
+        console.error("[Receipts] Error fetching sales:", salesError);
+        throw salesError;
+      }
+
+      const salesList = salesData || [];
+
+      // Fetch items count safely by querying sales_items for retrieved sale IDs
+      const saleIds = salesList.map((s: any) => s.id);
+      let itemsCountMap: Record<string, number> = {};
+
+      if (saleIds.length > 0) {
+        try {
+          const { data: itemsData } = await supabase
+            .from('sales_items')
+            .select('sale_id')
+            .in('sale_id', saleIds);
+
+          if (itemsData) {
+            itemsData.forEach((item: any) => {
+              itemsCountMap[item.sale_id] = (itemsCountMap[item.sale_id] || 0) + 1;
+            });
+          }
+        } catch (itemErr) {
+          console.warn("[Receipts] Warning fetching item counts:", itemErr);
         }
       }
 
-      const { data, error } = await query
-        .order('created_at', { ascending: false });
-
-      if (error) throw error;
-
-      const formattedReceipts: ReceiptRecord[] = (data || []).map((sale: any) => ({
+      const formattedReceipts: ReceiptRecord[] = salesList.map((sale: any) => ({
         id: sale.id,
-        transaction_id: sale.transaction_id,
+        transaction_id: sale.transaction_id || sale.id,
         customer_name: sale.customer_name,
         business_name: sale.business_name,
         cashier_name: sale.cashier_name,
-        total: Number(sale.total),
+        total: Number(sale.total || 0),
         discount: Number(sale.discount || 0),
         sale_type: sale.sale_type,
         created_at: sale.created_at,
         manual_discount: Number(sale.manual_discount || 0),
-        items_count: Array.isArray(sale.sales_items) ? sale.sales_items.length : 0,
+        items_count: itemsCountMap[sale.id] || 0,
         cashier_id: sale.cashier_id,
         shift_name: sale.shift_name
       }));
 
       setReceipts(formattedReceipts);
-    } catch (error) {
-      console.error("Error fetching receipts/sales:", error);
+    } catch (error: any) {
+      console.error("[Receipts] Error loading receipt history:", error);
       toast({
         title: "Error",
-        description: "Failed to load receipt history. Please try again.",
+        description: "Failed to load receipt history. Please click Refresh.",
         variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (!isAuthLoading) {
+      fetchReceipts();
+
+      // Subscribe to real-time sales table changes
+      const channel = supabase
+        .channel('receipts_realtime_changes')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'sales' },
+          () => {
+            console.log('[Receipts] Realtime change detected on sales table');
+            fetchReceipts();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [user?.id, user?.role, isAuthLoading]);
+
+  useEffect(() => {
+    setFilteredReceipts(receipts);
+  }, [receipts]);
 
   const handlePreviewReceipt = (saleId: string) => {
     const windowRef = openPrintWindow();
