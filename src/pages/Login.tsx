@@ -92,7 +92,7 @@ const Login = () => {
       <div className="w-full max-w-md">
         <div className="bg-white p-6 md:p-8 rounded-lg shadow-lg">
           <div className="flex items-center justify-center mb-6">
-            <Shield className="h-8 w-8 text-primary mr-2" />
+            <img src="/favicon.png" alt="PharmaCare Pro Logo" className="h-10 w-10 mr-2 object-contain" />
             <h1 className="text-xl md:text-2xl font-bold text-primary">
               PharmaCare Pro
             </h1>
