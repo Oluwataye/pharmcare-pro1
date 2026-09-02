@@ -1,8 +1,9 @@
 
 import { Button } from "@/components/ui/button";
 import { useShift } from "@/hooks/useShift";
+import { useAuth } from "@/contexts/AuthContext";
 import { Badge } from "@/components/ui/badge";
-import { Clock, Lock, LogIn, Pause, Play } from "lucide-react";
+import { Clock, Lock, LogIn, Pause, Play, Shield } from "lucide-react";
 import { useState, useEffect } from "react";
 import {
     Dialog,
@@ -19,7 +20,9 @@ import { AlertCircle, CheckCircle2, Wallet, CreditCard, Landmark, ShoppingBag } 
 import { Separator } from "@/components/ui/separator";
 
 export const ShiftStatusHeader = () => {
+    const { user } = useAuth();
     const { activeShift, startShift, pauseShift, resumeShift, endShift, isLoading, fetchShiftTotals } = useShift();
+    const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
     const [isOpening, setIsOpening] = useState(false);
     const [isClosing, setIsClosing] = useState(false);
     const [isFetchingTotals, setIsFetchingTotals] = useState(false);
@@ -101,11 +104,23 @@ export const ShiftStatusHeader = () => {
                 </>
             ) : (
                 <>
-                    <span className="text-xs text-muted-foreground italic">No active shift detected</span>
-                    <Button variant="default" size="sm" onClick={() => setIsOpening(true)} className="h-8">
-                        <LogIn className="h-4 w-4 mr-1" />
-                        Start Shift
-                    </Button>
+                    {isAdmin ? (
+                        <div className="flex items-center gap-2">
+                            <Badge variant="outline" className="bg-blue-50 text-blue-700 border-blue-200 flex items-center gap-1">
+                                <Shield className="h-3 w-3" />
+                                Admin Direct Access
+                            </Badge>
+                            <span className="text-xs text-muted-foreground italic">No active shift required</span>
+                        </div>
+                    ) : (
+                        <>
+                            <span className="text-xs text-muted-foreground italic">No active shift detected</span>
+                            <Button variant="default" size="sm" onClick={() => setIsOpening(true)} className="h-8">
+                                <LogIn className="h-4 w-4 mr-1" />
+                                Start Shift
+                            </Button>
+                        </>
+                    )}
                 </>
             )}
 

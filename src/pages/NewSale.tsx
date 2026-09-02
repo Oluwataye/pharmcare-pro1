@@ -330,8 +330,8 @@ const NewSale = () => {
           </Button>
           <Button
             onClick={handleCompleteSale}
-            disabled={isCompleting || !activeShift}
-            title={!activeShift ? "You must start a shift before recording sales" : ""}
+            disabled={isCompleting || ((user?.role !== 'SUPER_ADMIN' && user?.role !== 'ADMIN') && !activeShift)}
+            title={((user?.role !== 'SUPER_ADMIN' && user?.role !== 'ADMIN') && !activeShift) ? "You must start a shift before recording sales" : ""}
           >
             {isCompleting ? "Processing..." : (isOfflineMode ? (
               <>

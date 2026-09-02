@@ -52,8 +52,10 @@ export const useSalesCompletion = (
       return false;
     }
 
-    // MANDATORY SHIFT CHECK (Configurable in future, but enforced now for integrity)
-    if (!activeShift) {
+    const isAdmin = user?.role === 'SUPER_ADMIN' || user?.role === 'ADMIN';
+
+    // MANDATORY SHIFT CHECK: Required for Cashiers/Dispensers/Pharmacists, but Admins do not need to run a shift to record sales
+    if (!isAdmin && !activeShift) {
       toast({
         title: "Drawer Closed",
         description: "You must start a shift and enter an opening balance before recording sales.",
@@ -107,8 +109,8 @@ export const useSalesCompletion = (
         dispenserId: options?.dispenserId || user?.id,
         transactionId,
         saleType: currentSaleType,
-        shift_name: activeShift?.shift_type || getCurrentShift(),
-        shift_id: options?.shift_id || activeShift?.id,
+        shift_name: activeShift?.shift_type || (isAdmin ? 'Admin Direct' : getCurrentShift()),
+        shift_id: options?.shift_id || activeShift?.id || null,
         branch_id: user?.branch_id, // Attribute sale to user's branch
         staff_role: options?.staffRole || user?.role,
         payments: options?.payments
