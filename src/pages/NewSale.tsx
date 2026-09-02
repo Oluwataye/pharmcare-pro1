@@ -90,6 +90,7 @@ const NewSale = () => {
     setShowPreview,
     previewData,
     completeSale,
+    clearItems,
     isOfflineMode,
     openPrintWindow
   } = useSales({
@@ -249,7 +250,7 @@ const NewSale = () => {
         existingWindow: printWindow,
       });
 
-      if (result && typeof result === 'string') {
+      if (result && (typeof result === 'string' || result === true)) {
         setLastCompletedItems(currentItems);
         logSecurityEvent('SALE_COMPLETED', {
           userId: user.id,
@@ -257,12 +258,17 @@ const NewSale = () => {
           total: calculateTotal(),
           transactionId
         });
-        setLastCompletedSaleId(result);
+        setLastCompletedSaleId(typeof result === 'string' ? result : transactionId);
         setPayments([{ mode: 'cash', amount: 0 }]); // Reset payments
         setCustomerName("");
         setCustomerPhone("");
         setBusinessName("");
         setBusinessAddress("");
+        secureStorage.removeItem('CURRENT_SALE_CUSTOMER_NAME');
+        secureStorage.removeItem('CURRENT_SALE_CUSTOMER_PHONE');
+        secureStorage.removeItem('CURRENT_SALE_BUSINESS_NAME');
+        secureStorage.removeItem('CURRENT_SALE_BUSINESS_ADDRESS');
+        clearItems(); // Auto-clear items cart, discounts, and sale type for next sale
         setResetKey(prev => prev + 1); // Force reset of search section
         setIsSuccessModalOpen(true);
       }
@@ -551,7 +557,7 @@ const NewSale = () => {
               Transaction has been completed successfully. The receipt should be printing now.
             </p>
           </div>
-          <DialogFooter className="flex sm:justify-center gap-2">
+          <DialogFooter className="flex sm:justify-center gap-2 flex-wrap">
             <Button
               variant="outline"
               onClick={() => {
@@ -567,7 +573,16 @@ const NewSale = () => {
               <Printer className="mr-2 h-4 w-4" />
               Reprint Receipt
             </Button>
-            <Button onClick={() => navigate("/sales")}>
+            <Button
+              onClick={() => {
+                clearItems();
+                setIsSuccessModalOpen(false);
+              }}
+            >
+              <ShoppingBag className="mr-2 h-4 w-4" />
+              Start New Sale
+            </Button>
+            <Button variant="secondary" onClick={() => navigate("/sales")}>
               Go to Sales List
             </Button>
           </DialogFooter>
